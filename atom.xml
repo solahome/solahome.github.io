@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-08-20T10:19:42.856Z</updated>
+    <updated>2020-08-21T03:17:43.269Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -11,13 +11,29 @@
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, sola的小屋</rights>
     <entry>
+        <title type="html"><![CDATA[写给刚刚开始学习Python的初学者]]></title>
+        <id>https://solahome.github.io/post/topythonbeginner/</id>
+        <link href="https://solahome.github.io/post/topythonbeginner/">
+        </link>
+        <updated>2020-07-26T15:44:41.000Z</updated>
+        <content type="html"><![CDATA[<h3 id="python入门"><strong>Python入门</strong></h3>
+<p>Python和其他大多数计算机语言一样，相比于其他的入门语言，比如说C语言，Python的语法甚至相对更简单一些（比如数字与字符串在一些情况下甚至不用int和char等来进行区分），这些会让Python入门相对更加容易，但相对的也可能会带来一些问题。由于Python是一种解释性语言，所以与C语言有所不同，不太方便编译成如以.exe为后缀的可执行文件，所以有用C语言开发的<a href="https://cython.org/">CPython</a>解释器。也正是因为Python的一些特性，Python也存在一些安全性相关的问题。</p>
+<p>这里，我的个人建议是如果是第一次接触计算机编程，可以先从其他的语言开始（我的从C语言开始的），虽然也有朋友推荐通过简单的Python入门，不过个人感觉正是由于Python在某些语法的简化，可能会使一些编程的初学者不太注意一些细节，之后在学习其他编程语言时缺少一些规范性的基本知识。</p>
+<h3 id="python学习方法"><strong>Python学习方法</strong></h3>
+<p>和其他的一些语言一样，Python最好的学习方法就是看它的<a href="https://docs.python.org/zh-cn/3/">官方文档</a>，如果稍微有一些其他计算机语言的基础，直接活用<a href="https://docs.python.org/zh-cn/3/">官方文档</a>进行学习是效率和效果最好的。相比于现在已经停止更新的Python2版本，现在我们最好学习Python的Python3版本。如果需要在较短的时间掌握一定的基础，也可以挑选一些网上的视频快速观看，有一个大概的了解即可，之后遇到问题再去查找相关的解答。</p>
+<p>Python在数据分析和科学计算中有比较多的应用，因为Python具有较多的<em>包</em>来满足各种计算的需要，也正是因为这个，Python才更需要包管理和环境管理，不同版本的包之间是否相互协调是一个需要注意的问题（后面我会介绍一下使用<a href="https://www.anaconda.com">Anaconda</a>的进行环境管理中会遇到的一些问题的解决方案）。</p>
+<p>Python这一适合进行科学计算的性质使它广泛的被用于机器学习、深度学习中（我也是因为这一原因而接触到Python的）。</p>
+<p>最后推荐一个可以方便大家了解Python在运行中的内存处理机制的（即电脑上的Python代码是如何进行运行的）网站<a href="http://pythontutor.com/">http://pythontutor.com/</a>。</p>
+]]></content>
+    </entry>
+    <entry>
         <title type="html"><![CDATA[漫漫长路一相逢，便胜却人间无数]]></title>
         <id>https://solahome.github.io/post/about/</id>
         <link href="https://solahome.github.io/post/about/">
         </link>
         <updated>2020-07-25T11:09:48.000Z</updated>
         <content type="html"><![CDATA[<blockquote>
-<p><strong>一个人与另一个人的相遇是时光中的一瞬，分别却是我们的常态，茫茫人海，我们相遇便是缘分</strong></p>
+<p><em><strong>一个人与另一个人的相遇是时光中的一瞬，分别却是我们的常态，茫茫人海，我们相遇便是缘分</strong></em></p>
 </blockquote>
 <h3 id="关于博主"><strong>关于博主</strong></h3>
 <p>博主非计算机科班，不过对计算机的一些内容比较感兴趣<br>
