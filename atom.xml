@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-08-21T05:34:06.710Z</updated>
+    <updated>2020-08-21T07:06:59.286Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -11,12 +11,74 @@
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, sola的小屋</rights>
     <entry>
+        <title type="html"><![CDATA[关于Python的包管理器Anaconda的一些常见问题]]></title>
+        <id>https://solahome.github.io/post/aboutpythonanaconda/</id>
+        <link href="https://solahome.github.io/post/aboutpythonanaconda/">
+        </link>
+        <updated>2020-07-28T05:49:29.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=33911781&auto=0&height=90"></iframe>
+<h3 id="前言"><strong>前言</strong></h3>
+<p>关于Python的一些学习建议可以看看下面的这篇文章<br>
+<a href="https://solahome.github.io/post/topythonbeginner/">写给刚刚开始学习Python的初学者</a></p>
+<h3 id="通过anaconda安装"><strong>通过Anaconda安装</strong></h3>
+<p>Python安装过程存在环境配置的问题，直接安装Python的安装包后需要通过命令行来编写运行程序，或者通过配置相关的编译器或是大型的IDE来编写运行程序。而且由于Python具有多个不同的版本，它的一些工具包存在不同版本间的兼容问题，需要对Python进行环境管理。</p>
+<p>这里推荐使用方便进行环境管理的<a href="https://www.anaconda.com">Anaconda</a>来进行安装，它有关于Python2和Python3两个版本，由于Python2已经停止维护，所以建议使用Python3的版本，<a href="https://www.anaconda.com">Anaconda</a>支持Windows、MacOS、Linux平台，关于安装包以及工具包可以把源换到 <a href="https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/">清华大学开源软件镜像站的Anaconda镜像</a>。</p>
+<h3 id="anaconda镜像换源"><strong>Anaconda镜像换源</strong></h3>
+<p>以<a href="https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/">清华大学开源软件镜像站的Anaconda镜像</a>其中的Anaconda包镜像之一https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/为例</p>
+<ol>
+<li>
+<p>添加源</p>
+<p><code>conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/</code></p>
+</li>
+<li>
+<p>设置搜索时显示通道地址</p>
+<p><code>conda config --set show_channel_urls yes</code></p>
+</li>
+<li>
+<p>查看当前的config</p>
+<p><code>conda config --show</code></p>
+</li>
+<li>
+<p>查看添加的镜像</p>
+<p><code>conda config --get channels</code></p>
+</li>
+<li>
+<p>删除源</p>
+<p><code>conda config --remove-key channels</code></p>
+</li>
+</ol>
+<h4 id="一些可用的镜像源"><strong>一些可用的镜像源</strong></h4>
+<p><strong><a href="https://mirrors.tuna.tsinghua.edu.cn/">清华大学开源软件镜像站</a></strong></p>
+<p><a href="https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/">https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/</a></p>
+<p><a href="https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/">https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/</a></p>
+<p><a href="https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/">https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/</a></p>
+<p><a href="https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/">https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/</a></p>
+<p><strong><a href="https://mirrors.sjtug.sjtu.edu.cn/#/">上海交通大学开源镜像站</a></strong></p>
+<p><a href="https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/">https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/</a></p>
+<p><a href="https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/free/">https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/free/</a></p>
+<p><a href="https://mirrors.sjtug.sjtu.edu.cn/anaconda/cloud/conda-forge/">https://mirrors.sjtug.sjtu.edu.cn/anaconda/cloud/conda-forge/</a></p>
+<h3 id="关于anaconda的安装"><strong>关于Anaconda的安装</strong></h3>
+<p>整个安装过程几乎都是可以一直Next进行下去，有几个小地方值得稍微注意一下：</p>
+<ol>
+<li>
+<p>一般情况下Install for: 可以选择Just Me，这样就不需要电脑的管理员权限</p>
+</li>
+<li>
+<p>另外一个是安装的位置不一定是要在C盘，也就是默认的文件夹，安装位置也可以是其他的地方</p>
+</li>
+<li>
+<p>添加环境变量，关于这个的说法比较多，其实它的意思可以理解成就是你是否可以在系统命令行中使用conda命令。如果添加了，就可以在系统命令行中直接使用conda命令，否则就只能在Anaconda Powershell Prompt和Anaconda Prompt中使用。</p>
+</li>
+</ol>
+]]></content>
+    </entry>
+    <entry>
         <title type="html"><![CDATA[写给刚刚开始学习Python的初学者]]></title>
         <id>https://solahome.github.io/post/topythonbeginner/</id>
         <link href="https://solahome.github.io/post/topythonbeginner/">
         </link>
         <updated>2020-07-26T15:44:41.000Z</updated>
-        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1354451040&auto=1&height=90"></iframe>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1354451040&auto=0&height=90"></iframe>
 <h3 id="python入门"><strong>Python入门</strong></h3>
 <p>Python和其他大多数计算机语言一样，相比于其他的入门语言，比如说C语言，Python的语法甚至相对更简单一些（比如数字与字符串在一些情况下甚至不用int和char等来进行区分），这些会让Python入门相对更加容易，但相对的也可能会带来一些问题。由于Python是一种解释性语言，所以与C语言有所不同，不太方便编译成如以.exe为后缀的可执行文件，所以有用C语言开发的<a href="https://cython.org/">CPython</a>解释器。也正是因为Python的一些特性，Python也存在一些安全性相关的问题。</p>
 <p>这里，我的个人建议是如果是第一次接触计算机编程，可以先从其他的语言开始（我的从C语言开始的），虽然也有朋友推荐通过简单的Python入门，不过个人感觉正是由于Python在某些语法的简化，可能会使一些编程的初学者不太注意一些细节，之后在学习其他编程语言时缺少一些规范性的基本知识。</p>
@@ -33,7 +95,7 @@
         <link href="https://solahome.github.io/post/about/">
         </link>
         <updated>2020-07-25T11:09:48.000Z</updated>
-        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=503704380&auto=1&height=90"></iframe>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=503704380&auto=0&height=90"></iframe>
 <blockquote>
 <p><em><strong>一个人与另一个人的相遇是时光中的一瞬，分别却是我们的常态，茫茫人海，我们相遇便是缘分</strong></em></p>
 </blockquote>
