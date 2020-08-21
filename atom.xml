@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-08-21T04:06:44.978Z</updated>
+    <updated>2020-08-21T05:34:06.710Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -16,7 +16,8 @@
         <link href="https://solahome.github.io/post/topythonbeginner/">
         </link>
         <updated>2020-07-26T15:44:41.000Z</updated>
-        <content type="html"><![CDATA[<h3 id="python入门"><strong>Python入门</strong></h3>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1354451040&auto=1&height=90"></iframe>
+<h3 id="python入门"><strong>Python入门</strong></h3>
 <p>Python和其他大多数计算机语言一样，相比于其他的入门语言，比如说C语言，Python的语法甚至相对更简单一些（比如数字与字符串在一些情况下甚至不用int和char等来进行区分），这些会让Python入门相对更加容易，但相对的也可能会带来一些问题。由于Python是一种解释性语言，所以与C语言有所不同，不太方便编译成如以.exe为后缀的可执行文件，所以有用C语言开发的<a href="https://cython.org/">CPython</a>解释器。也正是因为Python的一些特性，Python也存在一些安全性相关的问题。</p>
 <p>这里，我的个人建议是如果是第一次接触计算机编程，可以先从其他的语言开始（我的从C语言开始的），虽然也有朋友推荐通过简单的Python入门，不过个人感觉正是由于Python在某些语法的简化，可能会使一些编程的初学者不太注意一些细节，之后在学习其他编程语言时缺少一些规范性的基本知识。</p>
 <h3 id="python学习方法"><strong>Python学习方法</strong></h3>
