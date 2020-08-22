@@ -4,8 +4,9 @@
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
 <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
 <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://solahome.github.io/media/css/live2d.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/css/live2d.css">
 <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
+<link rel="stylesheet" href="https://solahome.github.io/media/css/font-awesome.css">
 <title>sola的小屋</title>
 
 
@@ -19,7 +20,7 @@
     
     <div id=side>
         <div class="avatar-border">
-            <img src="https://solahome.github.io/images/avatar.png?v=1597993615984" class="avatar">
+            <img src="https://solahome.github.io/images/avatar.png?v=1598103348696" class="avatar">
         </div>
         <div class="sitename">sola的小屋</div>
         <span class="describtion" data-text='["故事的结尾总写在开头"]'>&nbsp;</span>
@@ -79,19 +80,19 @@
     <div id="footinfo">Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | Theme: <a
         href="https://github.com/850552586/gridea-theme-fog">Fog</a></div>
     
-    <div id="sitegotimeDate">载入天数...</div>
-    <div id="sitegotimes">载入时分秒...</div>
+    <div class="sitetime"><div id="sitegotimeDate">载入天数...</div>
+    <div id="sitegotimes">载入时分秒...</div></div>
     <div id="cussitetime" style="display:none">07/20/2020</div>
     
     
-    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <script async src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/busuanzi.pure.mini.js"></script>
     <div id="vistornum">
         <span id="busuanzi_container_site_uv">
             <i class="fa fa-heart" aria-hidden="true" style="color: red;"></i> 总访问量:<span id="busuanzi_value_site_pv"></span>&nbsp;&nbsp;|&nbsp;&nbsp;
             <i class="fa fa-user-o" aria-hidden="true"></i> 访问人数:<span id="busuanzi_value_site_uv"></span>
         </span>
     </div>
-    <div style="color:white"></div>
+    <div style="color:white"> </div>
     
     </div>
 
@@ -266,7 +267,8 @@
     }
 </script>
 </div>
-                <div id="main" class="col-xs-12 col-sm-7">
+                <div class="col-md-1 col-lg-3"></div>
+                <div id="main" class="col-xs-12 col-sm-12 col-md-10 col-lg-7">
                     <link rel="stylesheet" href="https://solahome.github.io/media/css/font-awesome.css">
 <div class="tag-container">
     
@@ -377,7 +379,7 @@
                         <div style="padding-bottom:10%"></div>
                     </div>
                 </div>
-                <div class="col-xs-6 col-sm-2"></div>
+                <div class="col-md-1 col-lg-2"></div>
                 
             </div>
             
@@ -406,9 +408,44 @@
         aplayer.attr("autoplay","true");
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/Aplayer.min.js"></script>
 <!-- require MetingJS -->
 <script src="https://cdn.jsdelivr.net/npm/meting@2/dist/Meting.min.js"></script>
+
+<script>
+    function aplayerbtnInit(){
+        var player = document.querySelectorAll('meting-js')[0].aplayer;
+        player.lrc.hide();
+        var mbabtn = $("#mbaplayer");
+        if(player.paused==false)
+        {
+            mbabtn.removeClass("fa-play-circle-o");
+            mbabtn.addClass("fa-pause-circle");
+        }
+        else
+        {
+            mbabtn.addClass("fa-play-circle-o");
+            mbabtn.removeClass("fa-pause-circle");
+        }
+    }
+
+    function aplayerPlay(){
+        var player = document.querySelectorAll('meting-js')[0].aplayer;
+        var mbabtn = $("#mbaplayer");
+        if(player.paused==true)
+        {
+            player.play();
+            mbabtn.removeClass("fa-play-circle-o");
+            mbabtn.addClass("fa-pause-circle");
+        }
+        else
+        {
+            player.pause();
+            mbabtn.addClass("fa-play-circle-o");
+            mbabtn.removeClass("fa-pause-circle");
+        }
+    }
+</script>
             
         </div>
         <div id="bg">
@@ -425,22 +462,39 @@
     <div class="nav-small">
         <head>
   <!-- 引入Bootstrap核心样式文件 -->
-  <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/css/bootstrap.min.css">
 </head>
+<style>
+  @media screen and (max-width:1200px) and (min-width: 768px) {
+    @media (min-width: 768px) {
+      .navbar-nav {
+        float: right;
+        margin: 0;
+      }
+    }
+  }
+  @media screen and (max-width:768px){
+    .mbapspan{
+      padding: 0;
+    }
+  }
+</style>
 
 <body>
   <nav class="navbar navbar-inverse navbar-fixed-top">
     <div class="container-fluid">
       <!-- Brand and toggle get grouped for better mobile display -->
       <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
-          data-target="#barmenu" aria-expanded="false" id="barbutton">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#barmenu"
+          aria-expanded="false" id="barbutton">
           <span class="sr-only">Toggle navigation</span>
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>
         </button>
         <a class="navbar-brand" href="https://solahome.github.io">sola的小屋&nbsp;&nbsp;|</a>
+        <span class="navbar-brand mbapspan"><i id="mbaplayer" class="fa fa-play-circle-o" aria-hidden="true"
+            style="font-size: 28px;top: 12px;position: absolute;" onclick="aplayerPlay();"></i></span>
       </div>
 
       <!-- Collect the nav links, forms, and other content for toggling -->
@@ -488,7 +542,7 @@
 
 
   <!-- 引入jQuery核心js文件 -->
-  <script src="http://cdn.static.runoob.com/libs/jquery/2.1.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
   <script>
   var btstate = false;
   var bt = $("#barbutton");
@@ -599,7 +653,7 @@
     var message_Path = '/live2d/'
     var home_Path = document.getElementById("domainname").innerHTML + "/"; //此处修改为你的域名，必须带斜杠
 </script>
-<script type="text/javascript" src="https://solahome.github.io/media/live2d/js/live2d.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/live2d.js"></script>
 <script type="text/javascript" src="https://solahome.github.io/media/live2d/js/message.js"></script>
 <script type="text/javascript">
     loadlive2d("live2d", "https://solahome.github.io/media/live2d/assets/haru01.model.json");
@@ -614,6 +668,10 @@
             for (var i = 0; i < 3; i++)
                 bgurl = bgurl.replace("\\", "/");
         bg.css("background", "url('" + bgurl + "')");
+
+        window.onload = function(){
+            aplayerbtnInit();
+        }
 </script>
 
 <script src="https://solahome.github.io/media/js/index.js"></script>

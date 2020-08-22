@@ -1,6 +1,6 @@
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0">
     <meta name="description" content="
 
 一个人与另一个人的相遇是时光中的一瞬，分别却是我们的常态，茫茫人海，我们相遇便是缘分
@@ -16,8 +16,8 @@
     <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/styles/default.min.css">
     
     <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/highlight.min.js"></script>
-    <script src="https://solahome.github.io/media/js/clipboard.min.js"></script>
-    <link rel="stylesheet" href="https://solahome.github.io/media/css/live2d.css">
+    <script src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/clipboard.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/css/live2d.css">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
     <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
     <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/5.13.1/css/all.min.css" rel="stylesheet">
@@ -48,13 +48,126 @@
     <div id="domainname" style="display:none">https://solahome.github.io</div>
     <!-- 响应式布局，针对PC端内容显示 -->
     <div id="content">
-        <div class="nav-large">
+        <div>
+            <div id="bar">
+                <head>
+  <!-- 引入Bootstrap核心样式文件 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/css/bootstrap.min.css">
+</head>
+<style>
+  @media screen and (max-width:1200px) and (min-width: 768px) {
+    @media (min-width: 768px) {
+      .navbar-nav {
+        float: right;
+        margin: 0;
+      }
+    }
+  }
+  @media screen and (max-width:768px){
+    .mbapspan{
+      padding: 0;
+    }
+  }
+</style>
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#barmenu"
+          aria-expanded="false" id="barbutton">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="https://solahome.github.io">sola的小屋&nbsp;&nbsp;|</a>
+        <span class="navbar-brand mbapspan"><i id="mbaplayer" class="fa fa-play-circle-o" aria-hidden="true"
+            style="font-size: 28px;top: 12px;position: absolute;" onclick="aplayerPlay();"></i></span>
+      </div>
+
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse navbar-collapse" id="barmenu">
+        <ul class="nav navbar-nav">
+          
+          
+          <li>
+            <a href="/">
+              首页
+            </a>
+          </li>
+          
+          
+          
+          <li>
+            <a href="/archives">
+              归档
+            </a>
+          </li>
+          
+          
+          
+          <li>
+            <a href="/tags">
+              标签
+            </a>
+          </li>
+          
+          
+          
+          <li>
+            <a href="/post/about">
+              关于
+            </a>
+          </li>
+          
+          
+          
+          
+        </ul>
+      </div><!-- /.navbar-collapse -->
+    </div><!-- /.container-fluid -->
+  </nav>
+
+
+  <!-- 引入jQuery核心js文件 -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
+  <script>
+  var btstate = false;
+  var bt = $("#barbutton");
+  var bm = $("#barmenu");
+  bt.click(function(){
+    dropdown();
+  })
+  function dropdown(){
+    console.log(btstate);
+    //下拉
+    if(btstate==false){
+      bt.removeClass("collapsed");
+      bt.attr("aria-expanded","true");
+      bm.attr("aria-expanded","true")
+      bm.fadeIn(700);
+      btstate = true;
+    }
+    else{
+      bt.addClass("collapsed");
+      bt.attr("aria-expanded","false");
+      bm.removeClass("in");
+      bm.hide();
+      bm.attr("aria-expanded","false");
+      btstate = false;
+    }
+  }
+  </script> 
+</body>
+            </div>
             <div class="row">
                 <div class="side"><body>
     
     <div id=side>
         <div class="avatar-border">
-            <img src="https://solahome.github.io/images/avatar.png?v=1597993615984" class="avatar">
+            <img src="https://solahome.github.io/images/avatar.png?v=1598103348696" class="avatar">
         </div>
         <div class="sitename">sola的小屋</div>
         <span class="describtion" data-text='["故事的结尾总写在开头"]'>&nbsp;</span>
@@ -114,19 +227,19 @@
     <div id="footinfo">Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | Theme: <a
         href="https://github.com/850552586/gridea-theme-fog">Fog</a></div>
     
-    <div id="sitegotimeDate">载入天数...</div>
-    <div id="sitegotimes">载入时分秒...</div>
+    <div class="sitetime"><div id="sitegotimeDate">载入天数...</div>
+    <div id="sitegotimes">载入时分秒...</div></div>
     <div id="cussitetime" style="display:none">07/20/2020</div>
     
     
-    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <script async src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/busuanzi.pure.mini.js"></script>
     <div id="vistornum">
         <span id="busuanzi_container_site_uv">
             <i class="fa fa-heart" aria-hidden="true" style="color: red;"></i> 总访问量:<span id="busuanzi_value_site_pv"></span>&nbsp;&nbsp;|&nbsp;&nbsp;
             <i class="fa fa-user-o" aria-hidden="true"></i> 访问人数:<span id="busuanzi_value_site_uv"></span>
         </span>
     </div>
-    <div style="color:white"></div>
+    <div style="color:white"> </div>
     
     </div>
 
@@ -310,7 +423,8 @@
                     </div>
                     <div class="close"></div>
                 </div>
-                <div id="main" class="col-xs-12 col-sm-7">
+                <div class="col-md-1 col-lg-3"></div>
+                <div id="main" class="col-xs-12 col-sm-12 col-md-10 col-lg-7">
                     <link rel="stylesheet" href="https://solahome.github.io/media/css/font-awesome.css">
 
 <body>
@@ -334,10 +448,9 @@
                 <!-- id 将作为查询条件 -->
                 <div id="pl" style="display:none">https://solahome.github.io/post/about/</div>
                 <div id="rootaddr" style="display:none">https://solahome.github.io</div>
-                <span id="hotnum" class="leancloud_visitors" data-flag-title="漫漫长路一相逢，便胜却人间无数">
-                    <h4 class="readercount"><i class="fa fa-eye" aria-hidden="true"
-                            style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i
-                            class="leancloud-visitors-count">loading...</i></h4>
+                <span id="hotnum">
+                    <h4><i class="fa fa-eye" aria-hidden="true" style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i
+                            class="hotnum">loading...</i></h4>
                 </span>
             </div>
             <div class="text ">
@@ -371,9 +484,9 @@
                                 src="https://solahome.github.io/media/images/weibo.png" alt=""></i></a>
                     <a class="qzone" href=""><i><img class="shareicon"
                                 src="https://solahome.github.io/media/images/qzone.png" alt=""></i></a>
-                                <a class="douban" href=""><i><img class="shareicon"
-                                    src="https://solahome.github.io/media/images/douban.png" alt=""></i></a>
-                                <a class="facebook" href=""><i><img class="shareicon"
+                    <a class="douban" href=""><i><img class="shareicon"
+                                src="https://solahome.github.io/media/images/douban.png" alt=""></i></a>
+                    <a class="facebook" href=""><i><img class="shareicon"
                                 src="https://solahome.github.io/media/images/facebook.png" alt=""></i></a>
                     <a class="twitter" href=""><i><img class="shareicon"
                                 src="https://solahome.github.io/media/images/twitter.png" alt=""></i></a>
@@ -400,7 +513,9 @@
             
             <div class="prev-post-pc">
                 <div id="ppcontainer" onclick="window.location.href= 'https://solahome.github.io/post/topythonbeginner/';return false">
+                    
                     <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-c326fcfdd903de8535927295f821224c_720w.jfif" style="width: 100%;" class="opimg">
+                    
                     <h4 class="optitle">写给刚刚开始学习Python的初学者</h4>
                 </div>
             </div>
@@ -412,6 +527,8 @@
         </div>
     </div>
     </div>
+    </div>
+
 </body>
 <script>
     //文章阅读热度
@@ -420,16 +537,84 @@
     pl = pl.replace(rootaddr, "");
     $("#hotnum").attr('id', pl);
 </script>
-                </div>
-                <div id="comment" style="background: white">
+                <div id="comment"  class="comment" style="background: white">
                     <div class="commentcontainer">
                         
                         <p> </p>
                         
                     </div>
                 </div>
+                </div>
+                <div class="col-md-1 col-lg-2"></div>
+                <div id="bg">
+                </div>
             </div>
             
+        
+        <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css">
+</head>
+<body>
+    <div class="miniMode">
+        <meting-js id="myaplayer" server="netease" type="playlist" fixed="true" order="default">
+        </meting-js>
+    </div>   
+</body>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
+<script>
+    var aplayerid = "486899256";
+    var aplayerserver = "netease";
+    var aplayerorder = "random";
+    var aplayerautoplay = "true";
+    var aplayer = $("#myaplayer");
+    aplayer.attr("server",aplayerserver);
+    aplayer.attr("id",aplayerid);
+    aplayer.attr("order",aplayerorder);
+    if(aplayerautoplay=="true")
+        aplayer.attr("autoplay","true");
+</script>
+
+<script src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/Aplayer.min.js"></script>
+<!-- require MetingJS -->
+<script src="https://cdn.jsdelivr.net/npm/meting@2/dist/Meting.min.js"></script>
+
+<script>
+    function aplayerbtnInit(){
+        var player = document.querySelectorAll('meting-js')[0].aplayer;
+        player.lrc.hide();
+        var mbabtn = $("#mbaplayer");
+        if(player.paused==false)
+        {
+            mbabtn.removeClass("fa-play-circle-o");
+            mbabtn.addClass("fa-pause-circle");
+        }
+        else
+        {
+            mbabtn.addClass("fa-play-circle-o");
+            mbabtn.removeClass("fa-pause-circle");
+        }
+    }
+
+    function aplayerPlay(){
+        var player = document.querySelectorAll('meting-js')[0].aplayer;
+        var mbabtn = $("#mbaplayer");
+        if(player.paused==true)
+        {
+            player.play();
+            mbabtn.removeClass("fa-play-circle-o");
+            mbabtn.addClass("fa-pause-circle");
+        }
+        else
+        {
+            player.pause();
+            mbabtn.addClass("fa-play-circle-o");
+            mbabtn.removeClass("fa-pause-circle");
+        }
+    }
+</script>
+        
         <div class="toc-container">
             <ul class="markdownIt-TOC">
 <li>
@@ -444,234 +629,20 @@
 </li>
 </ul>
 
+    </div>
+    </div>
+    </div>
+    <div class="tog">
+        <div class="toggleContainer">
+            <div class="toggle">
+                <i class="fas fa-angle-double-up"></i>
+            </div>
         </div>
-    </div>
-    </div>
-    <div class="toggleContainer">
-        <div class="toggle">
-            <i class="fas fa-angle-double-up"></i>
-        </div>
-    </div>
-    <div id="bg">
     </div>
     <div id="bgchoice" style="display: none">link</div>
     
     <div id="bgurl" style="display:none">https://cdn.jsdelivr.net/gh/solahome/blogimage/img/ChMkJ1g2YQyITaVCAAutCotWG0YAAYB0wCFXlAAC60i793.jpg</div>
     
-    </div>
-    <!-- 响应式布局，针对手机端内容显示 -->
-    <div class="nav-small">
-        <head>
-  <!-- 引入Bootstrap核心样式文件 -->
-  <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
-</head>
-
-<body>
-  <nav class="navbar navbar-inverse navbar-fixed-top">
-    <div class="container-fluid">
-      <!-- Brand and toggle get grouped for better mobile display -->
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
-          data-target="#barmenu" aria-expanded="false" id="barbutton">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="https://solahome.github.io">sola的小屋&nbsp;&nbsp;|</a>
-      </div>
-
-      <!-- Collect the nav links, forms, and other content for toggling -->
-      <div class="collapse navbar-collapse" id="barmenu">
-        <ul class="nav navbar-nav">
-          
-          
-          <li>
-            <a href="/">
-              首页
-            </a>
-          </li>
-          
-          
-          
-          <li>
-            <a href="/archives">
-              归档
-            </a>
-          </li>
-          
-          
-          
-          <li>
-            <a href="/tags">
-              标签
-            </a>
-          </li>
-          
-          
-          
-          <li>
-            <a href="/post/about">
-              关于
-            </a>
-          </li>
-          
-          
-          
-          
-        </ul>
-      </div><!-- /.navbar-collapse -->
-    </div><!-- /.container-fluid -->
-  </nav>
-
-
-  <!-- 引入jQuery核心js文件 -->
-  <script src="http://cdn.static.runoob.com/libs/jquery/2.1.1/jquery.min.js"></script>
-  <script>
-  var btstate = false;
-  var bt = $("#barbutton");
-  var bm = $("#barmenu");
-  bt.click(function(){
-    dropdown();
-  })
-  function dropdown(){
-    console.log(btstate);
-    //下拉
-    if(btstate==false){
-      bt.removeClass("collapsed");
-      bt.attr("aria-expanded","true");
-      bm.attr("aria-expanded","true")
-      bm.fadeIn(700);
-      btstate = true;
-    }
-    else{
-      bt.addClass("collapsed");
-      bt.attr("aria-expanded","false");
-      bm.removeClass("in");
-      bm.hide();
-      bm.attr("aria-expanded","false");
-      btstate = false;
-    }
-  }
-  </script> 
-</body>
-        <div style="margin-top:30px"></div>
-        <link rel="stylesheet" href="https://solahome.github.io/media/css/font-awesome.css">
-
-<body>
-    <div class="allcontent" id="postdetail">
-        <div class="postshow" style="padding-bottom: 0;">
-            
-            <div class="postdetailimg" style="width:100%;overflow: hidden;">
-                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/ChMkJllkKMeIJ6CSAAdGdB9XHNIAAeWIAJf87AAB0aM436.jfif" class="postimage" style="cursor:auto">
-            </div>
-            <div class="postinfo-detail">
-                <div class="postdate"><i class="fa fa-calendar"></i>2020-07-25</div>
-                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 1 min read</div>
-                <div class="posttag">
-                    
-                </div>
-            </div>
-            
-        <div id="articlecontent">
-            <div id="texttitle" style="text-align: center">
-                <h2>漫漫长路一相逢，便胜却人间无数</h2>
-                <!-- id 将作为查询条件 -->
-                <div id="pl" style="display:none">https://solahome.github.io/post/about/</div>
-                <div id="rootaddr" style="display:none">https://solahome.github.io</div>
-                <span id="hotnum" class="leancloud_visitors" data-flag-title="漫漫长路一相逢，便胜却人间无数">
-                    <h4 class="readercount"><i class="fa fa-eye" aria-hidden="true"
-                            style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i
-                            class="leancloud-visitors-count">loading...</i></h4>
-                </span>
-            </div>
-            <div class="text ">
-                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=503704380&auto=0&height=90"></iframe>
-<blockquote>
-<p><em><strong>一个人与另一个人的相遇是时光中的一瞬，分别却是我们的常态，茫茫人海，我们相遇便是缘分</strong></em></p>
-</blockquote>
-<h3 id="关于博主"><strong>关于博主</strong></h3>
-<p>博主非计算机科班，不过对计算机的一些内容比较感兴趣<br>
-博主可能对python、c、c++等语言有一些了解<br>
-博主对机器学习、深度学习比较感兴趣<br>
-博主可能之后也会学学一些Java、Cocos Creator等等（也许还会学习一下前端吧）</p>
-<h3 id="关于博客"><strong>关于博客</strong></h3>
-<p>之前一直想有一个自己的博客，可惜又不想花费太多时间，借着一个暑假里面的空闲，用Gridea工具搭建，主题使用的是fog，博主稍微做了一点点修改<br>
-在这个博客上，博主可能会分享一些学习感悟、学习笔记，当然可能也还会分享一些好玩的小东西<br>
-通过“标签”界面，你可以看到博主文章的大致分类，找到你想看的内容</p>
-
-            </div>
-            <hr style="width: 80%;">
-            
-            <div class="sharebtnContainer">
-                <button type="button" class="sharebtn">转载分享</button>
-            </div>
-            <div class="shareContainer">
-                <div class="share" style="height:30px;background: white;">
-                    <a class="qq" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/QQ.png" alt=""></i></a>
-                    <a class="wechat" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/wechat.png" alt=""></i></a>
-                    <a class="weibo" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/weibo.png" alt=""></i></a>
-                    <a class="qzone" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/qzone.png" alt=""></i></a>
-                                <a class="douban" href=""><i><img class="shareicon"
-                                    src="https://solahome.github.io/media/images/douban.png" alt=""></i></a>
-                                <a class="facebook" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/facebook.png" alt=""></i></a>
-                    <a class="twitter" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/twitter.png" alt=""></i></a>
-                </div>
-            </div>
-            
-            
-            <div class="donateContainer">
-                <img src="https://solahome.github.io/media/images/donate.png" alt="" class="donateImg">
-            </div>
-            <div class="donateContainer">
-                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/donate.png" alt="" class="donate">
-            </div>
-            
-            <div class="postfooter">
-                <ul class="post-copyright">
-                    <li><strong>文章作者：</strong>sola</li>
-            <li><strong>原文链接：</strong>https://solahome.github.io/post/about/</li>
-            <li><strong>版权声明：</strong>本博客所有文章除特别声明外，均采用<i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA
-                许可协议。转载请注明出处！</li>
-            </ul>
-        </div>
-        <div id="otherpost">
-            
-            <div class="prev-post-pc">
-                <div id="ppcontainer" onclick="window.location.href= 'https://solahome.github.io/post/topythonbeginner/';return false">
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-c326fcfdd903de8535927295f821224c_720w.jfif" style="width: 100%;" class="opimg">
-                    <h4 class="optitle">写给刚刚开始学习Python的初学者</h4>
-                </div>
-            </div>
-            <div class="prev-post">
-                上一篇 <a href="https://solahome.github.io/post/topythonbeginner/">写给刚刚开始学习Python的初学者</a>
-            </div>
-            
-            
-        </div>
-    </div>
-    </div>
-</body>
-<script>
-    //文章阅读热度
-    var pl = $("#pl").html();
-    var rootaddr = $("#rootaddr").html();
-    pl = pl.replace(rootaddr, "");
-    $("#hotnum").attr('id', pl);
-</script>
-        <div name="comment" style="background: white;margin-top:100px">
-            <div class="commentcontainer">
-                
-                <p> </p>
-                
-            </div>
-        </div>
     </div>
 </body>
 <script>
@@ -686,7 +657,9 @@
         }
     }
 </script>
-<script src="https://solahome.github.io/media/js/post.js"></script>
+<script>
+    hljs.initHighlightingOnLoad();
+</script>
 <script>
     //寻找所有code标签，加复制按钮鸭！(行内代码除外)
     var codes = document.getElementsByTagName('code');
@@ -724,7 +697,7 @@
     var message_Path = '/live2d/'
     var home_Path = document.getElementById("domainname").innerHTML + "/"; //此处修改为你的域名，必须带斜杠
 </script>
-<script type="text/javascript" src="https://solahome.github.io/media/live2d/js/live2d.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/live2d.js"></script>
 <script type="text/javascript" src="https://solahome.github.io/media/live2d/js/message.js"></script>
 <script type="text/javascript">
     loadlive2d("live2d", "https://solahome.github.io/media/live2d/assets/haru01.model.json");
@@ -758,16 +731,10 @@
     bg.css("background", "url('" + bgurl + "')");
 </script>
 
+
 <script src="https://solahome.github.io/media/js/index.js"></script>
 
 
-<script>
-    //文章阅读热度
-    var pl = $("#pl").html();
-    var rootaddr = $("#rootaddr").html();
-    pl = pl.replace(rootaddr, "");
-    $("#hotnum").attr('id', pl);
-</script>
 
 <!-- 动态更改上(下)一篇博客图片框长宽 -->
 <script>
@@ -836,17 +803,13 @@
         }
     })
 
+    //加载后的事件同步（阅读量、移动端评论等
     window.onload=function(){
+        getHotnum();
         var sharepc = $(".share").eq(0).html();
         $(".share").eq(1).html(sharepc);
-        setTimeout(function(){
-            var hn = $(".leancloud-visitors-count").eq(0).html();
-            hn = '<i class="fa fa-eye" aria-hidden="true"'+
-                            'style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i'+
-                            'class="leancloud-visitors-count">'+hn+'</i></h4>'
-            $(".readercount").eq(1).html(hn);
-        }, 1000);
         document.getElementById("veditor").setAttribute("placeholder", jrsc);
+        aplayerbtnInit();
     }
 </script>
 
@@ -871,4 +834,58 @@
         }
         lazyload();
     });
+</script>
+
+<!-- <script src="https://solahome.github.io/media/js/av-min.js"></script> -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@3.13.0/dist/av-min.js"></script> -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-live-query-min.js"></script> -->
+
+<script>
+    function getHotnum() {
+        //文章阅读热度（重构，利用leancloud原生api）
+        var pl = $("#pl").html();
+        var rootaddr = $("#rootaddr").html();
+        pl = pl.replace(rootaddr, "");
+
+        var appid = '';
+        var appkey = '';
+        console.log(appid, appkey)
+        if(AV==undefined)
+            AV.init({
+                appId: appid,
+                appKey: appkey
+            });
+        const query = new AV.Query('Counter');
+        query.equalTo('url', pl);
+        var time = 'Loading...';
+        query.find().then(function (results) {
+            console.log(results)
+            if (results.length == 0) {
+                console.log("0")
+                var NewCounter = AV.Object.extend('Counter');
+                var nc = new NewCounter();
+                nc.save({
+                    time: 1,
+                    title: "漫漫长路一相逢，便胜却人间无数",
+                    url: pl,
+                    xid: pl,
+                }).then(function (object) {
+                    $(".hotnum").eq(0).html(1);
+                    $(".hotnum").eq(1).html(1);
+                });
+            } else {
+                id = results[0].id;
+                var todo = AV.Object.createWithoutData('Counter', id);
+                time = results[0].attributes.time + 1;
+                todo.set("time", time);
+                todo.save();
+                console.log(todo);
+                $(".hotnum").eq(0).html(time);
+                $(".hotnum").eq(1).html(time);
+            }
+
+        }, function (error) {
+            console.log(error)
+        });
+    }
 </script>
