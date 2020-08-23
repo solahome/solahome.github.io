@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-08-22T13:35:53.546Z</updated>
+    <updated>2020-08-23T15:19:37.107Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -10,6 +10,38 @@
     <logo>https://solahome.github.io/images/avatar.png</logo>
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[Python编辑器的选择]]></title>
+        <id>https://solahome.github.io/post/pythoneditor/</id>
+        <link href="https://solahome.github.io/post/pythoneditor/">
+        </link>
+        <updated>2020-08-02T15:15:04.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1395593102&auto=0&height=90"></iframe>
+<h3 id="前言"><strong>前言</strong></h3>
+<p>想要对Python以及它的包管理器<a href="https://www.anaconda.com">Anaconda</a>有一个大致的了解可以看看前面的两篇文章：<br>
+<a href="https://solahome.github.io/post/topythonbeginner/">写给刚刚开始学习Python的初学者</a><br>
+<a href="https://solahome.github.io/post/aboutpythonanaconda/">关于Python的包管理器Anaconda的一些常见问题</a></p>
+<p>本文主要介绍Python的一些常用编辑器的特点，方便大家选择合适的编辑器。</p>
+<h3 id="visual-studio-codevscode"><strong><a href="https://code.visualstudio.com/">Visual Studio Code</a>(VSCode)</strong></h3>
+<p><a href="https://code.visualstudio.com/">VSCode</a>在安装<a href="https://www.anaconda.com">Anaconda</a>可能会提示安装，也可以自己下载安装，在<a href="https://www.anaconda.com">Anaconda</a>中安装，配置更加简便，<a href="https://code.visualstudio.com/">VSCode</a>作为轻量级编辑器，有种类繁多的插件，支持多种计算机语言，比较方便进行工程项目的编写，语法高亮功能可以通过一些插件实现。</p>
+<h4 id="vscode常用python插件"><strong>VSCode常用Python插件</strong></h4>
+<p><a href="https://marketplace.visualstudio.com/items?itemName=ms-python.python">Python</a></p>
+<p><a href="https://marketplace.visualstudio.com/items?itemName=ms-python.anaconda-extension-pack">Anaconda Extension Pack</a></p>
+<p><a href="https://marketplace.visualstudio.com/items?itemName=MS-CEINTL.vscode-language-pack-zh-hans">Chinese (Simplified) Language Pack for Visual Studio Code</a></p>
+<p><a href="https://marketplace.visualstudio.com/items?itemName=vscode-icons-team.vscode-icons">vscode-icons</a></p>
+<p><a href="https://marketplace.visualstudio.com/items?itemName=zhuangtongfa.Material-theme">One Dark Pro</a></p>
+<p><a href="https://marketplace.visualstudio.com/items?itemName=eryouhao.brackets-light-pro">Brackets Light Pro</a></p>
+<p><a href="https://marketplace.visualstudio.com/items?itemName=CoenraadS.bracket-pair-colorizer">Bracket Pair Colorizer</a></p>
+<h3 id="pycharm"><strong><a href="https://www.jetbrains.com/pycharm/">Pycharm</a></strong></h3>
+<p><a href="https://www.jetbrains.com/pycharm/">Pycharm</a>社区版免费，其大部分功能足够一般的个人开发，其功能相对<a href="https://code.visualstudio.com/">VSCode</a>更加完善，但占用空间更大，启动速度相对较慢，比较适合大型工程项目。</p>
+<h3 id="sublime-text3"><strong><a href="https://www.sublimetext.com/3">Sublime Text3</a></strong></h3>
+<p><a href="https://www.sublimetext.com/3">Sublime Text3</a>是一个相比<a href="https://code.visualstudio.com/">VSCode</a>可能更加轻量级的编辑器，支持多种计算机语言。个人认为比较适合进行单个Python文件的编写。</p>
+<h3 id="jupyterjupyterlab和jupyter-notebook"><strong><a href="https://jupyter.org/">Jupyter</a>(JupyterLab和Jupyter Notebook)</strong></h3>
+<p><a href="https://jupyter.org/">Jupyter</a> Notebook是一种笔记本形式的编写代码方式，比较适合将代码展现给其他人，也比较合适对一个Python文件进行分段调试结果。<a href="https://jupyter.org/">Jupyter</a>Lab是<a href="https://jupyter.org/">Jupyter</a> Notebook的一种升级情况，拥有更强大的功能，这两者都是依靠浏览器来显示的，只要安装了浏览器的设备都可以使用，甚至可以远程连接服务器使用。</p>
+<h3 id="后记"><strong>后记</strong></h3>
+<p>我也没有想到前面关于Python学习的准备工作能够写这么多（哈哈），不过仔细回忆起来，作为初学者，初学Python的时候也确乎是遇到了各种问题，好像想写都写不完的样子。关于Python学习的准备工作的文章到这里大概就差不多结束了，后面可能会有文章来介绍Python编程中的实际问题吧。</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[关于Python的包管理器Anaconda的一些常见问题]]></title>
         <id>https://solahome.github.io/post/aboutpythonanaconda/</id>
