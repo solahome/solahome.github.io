@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-08-23T15:36:58.845Z</updated>
+    <updated>2020-08-25T16:10:10.949Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -133,7 +133,7 @@
 </blockquote>
 <h3 id="关于博主"><strong>关于博主</strong></h3>
 <p>博主非计算机科班，不过对计算机的一些内容比较感兴趣<br>
-博主可能对python、c、c++等语言有一些了解<br>
+博主可能对python、c、c++等语言有一些了解，还稍微懂点汇编语言<br>
 博主对机器学习、深度学习比较感兴趣<br>
 博主可能之后也会学学一些Java、Cocos Creator等等（也许还会学习一下前端吧）</p>
 <h3 id="关于博客"><strong>关于博客</strong></h3>
