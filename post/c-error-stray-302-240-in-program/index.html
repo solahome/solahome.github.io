@@ -2,14 +2,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0">
     <meta name="description" content="
-
-一个人与另一个人的相遇是时光中的一瞬，分别却是我们的常态，茫茫人海，我们相遇便是缘分
-
-关于博主
-博主非计算机科班，不过对计算机的一些内容比较感兴趣
-博主可能对python、c、c++等语言有一些了解，还稍微懂点汇编语言
-博主对机器学习..." />
-    <meta name="keywords" content="" />
+最近准备写一下简单的C++代码，因为不太喜欢vc++和codeblocks的图形化界面，又不太想用Visual Studio这种大型的IDE，所以就配置了一下之前用的Sublime Text3，为了检测环境变量是否配置成功，我从复制了一段..." />
+    <meta name="keywords" content="C++,C" />
     <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
     
@@ -432,21 +426,29 @@
         <div class="postshow" style="padding-bottom: 0;">
             
             <div class="postdetailimg" style="width:100%;overflow: hidden;">
-                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/ChMkJllkKMeIJ6CSAAdGdB9XHNIAAeWIAJf87AAB0aM436.jfif" class="postimage" style="cursor:auto">
+                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-53ded6ea4345abe966b2b79e00fd0724_720w.jfif" class="postimage" style="cursor:auto">
             </div>
             <div class="postinfo-detail">
-                <div class="postdate"><i class="fa fa-calendar"></i>2020-07-25</div>
-                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 1 min read</div>
+                <div class="postdate"><i class="fa fa-calendar"></i>2020-08-06</div>
+                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 2 min read</div>
                 <div class="posttag">
+                    
+                    <a href="https://solahome.github.io/tag/J-Xcl_TvE/" class="postlink">
+                        <i class="fa fa-tag"></i> C++
+                    </a>
+                    
+                    <a href="https://solahome.github.io/tag/GZY5kSxl9h/" class="postlink">
+                        <i class="fa fa-tag"></i> C
+                    </a>
                     
                 </div>
             </div>
             
         <div id="articlecontent">
             <div id="texttitle" style="text-align: center">
-                <h2>漫漫长路一相逢，便胜却人间无数</h2>
+                <h2>C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program</h2>
                 <!-- id 将作为查询条件 -->
-                <div id="pl" style="display:none">https://solahome.github.io/post/about/</div>
+                <div id="pl" style="display:none">https://solahome.github.io/post/c-error-stray-302-240-in-program/</div>
                 <div id="rootaddr" style="display:none">https://solahome.github.io</div>
                 <span id="hotnum">
                     <h4><i class="fa fa-eye" aria-hidden="true" style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i
@@ -454,19 +456,26 @@
                 </span>
             </div>
             <div class="text ">
-                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=503704380&auto=0&height=90"></iframe>
-<blockquote>
-<p><em><strong>一个人与另一个人的相遇是时光中的一瞬，分别却是我们的常态，茫茫人海，我们相遇便是缘分</strong></em></p>
-</blockquote>
-<h3 id="关于博主"><strong>关于博主</strong></h3>
-<p>博主非计算机科班，不过对计算机的一些内容比较感兴趣<br>
-博主可能对python、c、c++等语言有一些了解，还稍微懂点汇编语言<br>
-博主对机器学习、深度学习比较感兴趣<br>
-博主可能之后也会学学一些Java、Cocos Creator等等（也许还会学习一下前端吧）</p>
-<h3 id="关于博客"><strong>关于博客</strong></h3>
-<p>之前一直想有一个自己的博客，可惜又不想花费太多时间，借着一个暑假里面的空闲，用Gridea工具搭建，主题使用的是fog，博主稍微做了一点点修改<br>
-在这个博客上，博主可能会分享一些学习感悟、学习笔记，当然可能也还会分享一些好玩的小东西<br>
-通过“标签”界面，你可以看到博主文章的大致分类，找到你想看的内容</p>
+                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=469719260&auto=0&height=90"></iframe>
+<p>最近准备写一下简单的C++代码，因为不太喜欢vc++和codeblocks的图形化界面，又不太想用Visual Studio这种大型的IDE，所以就配置了一下之前用的Sublime Text3，为了检测环境变量是否配置成功，我从复制了一段C++常见的“hello world”代码：</p>
+<h3 id="源代码"><strong>源代码</strong></h3>
+<pre><code class="language-c++">#include&lt;cstdio&gt;
+int main(void)
+{
+	printf(&quot;Hello, world!&quot;);
+	return 0;
+}
+</code></pre>
+<p><strong>注意：你现在看到的上面的这段代码是我已经修改过的正确的代码。</strong></p>
+<h3 id="错误信息"><strong>错误信息</strong></h3>
+<p>源代码与上面这段代码从直观上可以说没有什么明显的区别，代码在运行过程中出现了如下两种报错信息：</p>
+<pre><code>error: stray '\302' in program
+error: stray '\240' in program
+</code></pre>
+<h3 id="解决方式"><strong>解决方式</strong></h3>
+<p>这个问题看起来一般是很少会遇到的，大概率程序本身是没有语法错误，它的问题就出在源代码中可能含有一些隐藏的非ascii字符，或者是代码的编码方式有所不同。<br>
+一个常见的情况就是复制的时候，有些空格并不是普通的空格，但我们却没有看出来。<br>
+简单的解决办法是将出现空格的地方的空格去掉，在需要空格的地方将空格重新补上即可。</p>
 
             </div>
             <hr style="width: 80%;">
@@ -504,25 +513,25 @@
             <div class="postfooter">
                 <ul class="post-copyright">
                     <li><strong>文章作者：</strong>sola</li>
-            <li><strong>原文链接：</strong>https://solahome.github.io/post/about/</li>
+            <li><strong>原文链接：</strong>https://solahome.github.io/post/c-error-stray-302-240-in-program/</li>
             <li><strong>版权声明：</strong>本博客所有文章除特别声明外，均采用<i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA
                 许可协议。转载请注明出处！</li>
             </ul>
         </div>
         <div id="otherpost">
             
-            <div class="prev-post-pc">
-                <div id="ppcontainer" onclick="window.location.href= 'https://solahome.github.io/post/topythonbeginner/';return false">
+            
+            <div class="next-post-pc">
+                <div id="npcontainer" onclick="window.location.href= 'https://solahome.github.io/post/pythoneditor/';return false">
                     
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-c326fcfdd903de8535927295f821224c_720w.jfif" style="width: 100%;" class="opimg">
+                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-e12a5b7946e443adda652a65935f1af1_720w.jfif" style="width: 100%;" class="opimg">
                     
-                    <h4 class="optitle">写给刚刚开始学习Python的初学者</h4>
+                    <h4 class="optitle">Python编辑器的选择</h4>
                 </div>
             </div>
-            <div class="prev-post">
-                上一篇 <a href="https://solahome.github.io/post/topythonbeginner/">写给刚刚开始学习Python的初学者</a>
+            <div class="next-post">
+                下一篇 <a href="https://solahome.github.io/post/pythoneditor/">Python编辑器的选择</a>
             </div>
-            
             
         </div>
     </div>
@@ -621,8 +630,9 @@
 <ul>
 <li>
 <ul>
-<li><a href="#%E5%85%B3%E4%BA%8E%E5%8D%9A%E4%B8%BB"><strong>关于博主</strong></a></li>
-<li><a href="#%E5%85%B3%E4%BA%8E%E5%8D%9A%E5%AE%A2"><strong>关于博客</strong></a></li>
+<li><a href="#%E6%BA%90%E4%BB%A3%E7%A0%81"><strong>源代码</strong></a></li>
+<li><a href="#%E9%94%99%E8%AF%AF%E4%BF%A1%E6%81%AF"><strong>错误信息</strong></a></li>
+<li><a href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E5%BC%8F"><strong>解决方式</strong></a></li>
 </ul>
 </li>
 </ul>
@@ -866,7 +876,7 @@
                 var nc = new NewCounter();
                 nc.save({
                     time: 1,
-                    title: "漫漫长路一相逢，便胜却人间无数",
+                    title: "C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program",
                     url: pl,
                     xid: pl,
                 }).then(function (object) {

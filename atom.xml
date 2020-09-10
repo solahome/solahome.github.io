@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-08-25T16:10:10.949Z</updated>
+    <updated>2020-09-10T02:25:12.392Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -10,6 +10,34 @@
     <logo>https://solahome.github.io/images/avatar.png</logo>
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[C++运行中的错误：error: stray '\302'(或'\240') in program]]></title>
+        <id>https://solahome.github.io/post/c-error-stray-302-240-in-program/</id>
+        <link href="https://solahome.github.io/post/c-error-stray-302-240-in-program/">
+        </link>
+        <updated>2020-08-06T14:39:41.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=469719260&auto=0&height=90"></iframe>
+<p>最近准备写一下简单的C++代码，因为不太喜欢vc++和codeblocks的图形化界面，又不太想用Visual Studio这种大型的IDE，所以就配置了一下之前用的Sublime Text3，为了检测环境变量是否配置成功，我从复制了一段C++常见的“hello world”代码：</p>
+<h3 id="源代码"><strong>源代码</strong></h3>
+<pre><code class="language-c++">#include&lt;cstdio&gt;
+int main(void)
+{
+	printf(&quot;Hello, world!&quot;);
+	return 0;
+}
+</code></pre>
+<p><strong>注意：你现在看到的上面的这段代码是我已经修改过的正确的代码。</strong></p>
+<h3 id="错误信息"><strong>错误信息</strong></h3>
+<p>源代码与上面这段代码从直观上可以说没有什么明显的区别，代码在运行过程中出现了如下两种报错信息：</p>
+<pre><code>error: stray '\302' in program
+error: stray '\240' in program
+</code></pre>
+<h3 id="解决方式"><strong>解决方式</strong></h3>
+<p>这个问题看起来一般是很少会遇到的，大概率程序本身是没有语法错误，它的问题就出在源代码中可能含有一些隐藏的非ascii字符，或者是代码的编码方式有所不同。<br>
+一个常见的情况就是复制的时候，有些空格并不是普通的空格，但我们却没有看出来。<br>
+简单的解决办法是将出现空格的地方的空格去掉，在需要空格的地方将空格重新补上即可。</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Python编辑器的选择]]></title>
         <id>https://solahome.github.io/post/pythoneditor/</id>
