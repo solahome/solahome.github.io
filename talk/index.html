@@ -21,7 +21,7 @@
     
     <div id=side>
         <div class="avatar-border">
-            <img src="https://solahome.github.io/images/avatar.png?v=1599704708068" class="avatar">
+            <img src="https://solahome.github.io/images/avatar.png?v=1600097620492" class="avatar">
         </div>
         <div class="sitename">sola的小屋</div>
         <span class="describtion" data-text='["故事的结尾总写在开头"]'>&nbsp;</span>
@@ -75,6 +75,10 @@
     </div>
     
     
+    
+    <div class="mchocie describtion">
+        <a href="https://solahome.github.io/talk" class="menubutton">说说</a>
+    </div>
     
     
     <hr>
@@ -342,6 +346,8 @@
           
           
           
+          <li><a href="https://solahome.github.io/talk">说说</a></li>
+          
           
         </ul>
       </div><!-- /.navbar-collapse -->
@@ -517,7 +523,7 @@
     add();
 
     function get() {
-        var t = JSON.parse('[]');
+        var t = JSON.parse('[{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/s33550797.jfif","text":"最近忙里偷闲挤出了一点时间读了三秋缒老师的《不哭不哭，痛痛飞走吧》，虽然很早就知道到了三秋缒的作品了，比如说《三日间的幸福》等等，不过实际这本书算是实际上第一次读的三秋缒老师的书。“爱也许就是人类最伟大的发明，或者是全世界最温柔的谎言”。看完这本书给我了一种淡淡的忧伤的感觉，等过一段时间有空了给大家分享一下我读后的感受（好像好久都没有写过这种东西了 哈哈）","time":"2020-09-11"}]');
         talkindex = t.length - 1;
         for (var i = t.length - 1; i >= 0; i--) {
             var d = {};
@@ -549,7 +555,7 @@
                 <img src="' + talks[i].img + '" class="talkimg"> \
                 <div class="ainfo">\
                     <div class="ainfo-intro">\
-                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1599704708068">\
+                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1600097620492">\
                         <div class="author">' + talks[i].author + '</div>·\
                         <div class="time">' + talks[i].time + '</div>\
                     </div>\
@@ -562,7 +568,7 @@
             <div class="talk" v-for="t in talks"> \
                 <div class="ainfo">\
                     <div class="ainfo-intro">\
-                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1599704708068">\
+                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1600097620492">\
                         <div class="author">' + talks[i].author + '</div>·\
                         <div class="time">' + talks[i].time + '</div>\
                     </div>\
