@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-09-23T07:25:21.755Z</updated>
+    <updated>2020-09-25T10:06:25.903Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -10,6 +10,43 @@
     <logo>https://solahome.github.io/images/avatar.png</logo>
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[关于scanf/printf及cin/cout在刷题时的选择]]></title>
+        <id>https://solahome.github.io/post/aboutscanfprintfcincoutchoose/</id>
+        <link href="https://solahome.github.io/post/aboutscanfprintfcincoutchoose/">
+        </link>
+        <updated>2020-08-18T04:59:06.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=26201885&auto=0&height=90"></iframe>
+<h3 id="输入与输出问题"><strong>输入与输出问题</strong></h3>
+<p>最近在准备刷题的时候，才突然意识到关于输入和输出的一些小问题。</p>
+<p>大部分刷题网站、OJ和测试都是支持C和C++的，而且一般对C和C++的支持相比于其他计算机语言要更加的完备。而C++又兼容大部分C语言的语法，所以一般都是编写C++代码文件，但这个时候关于输入和输出用什么方式的选择就成为了一个问题：是用scanf/printf呢？还是cin/cout呢？</p>
+<h3 id="关于scanfprintf和cincout两者的基本用法"><strong>关于scanf/printf和cin/cout两者的基本用法</strong></h3>
+<h4 id="scanfprintf"><strong>scanf/printf</strong></h4>
+<p>格式化输入、输出，通过格式控制符来控制输入输出的样式：</p>
+<pre><code class="language-c++">#include&lt;cstdio&gt;
+int main(void)
+{
+	int a,b;
+    scanf(&quot;%d%d&quot;,&amp;a,&amp;b);
+    printf(&quot;a=%d,b=%d\n&quot;,a,b);
+	return 0;
+}
+</code></pre>
+<p>输入：</p>
+<pre><code>1 2
+</code></pre>
+<p>输出：</p>
+<pre><code>a=1,b=2
+</code></pre>
+<h4 id="cincout"><strong>cin/cout</strong></h4>
+<p>通过流来输入、输出数据：<br>
+流读取运算符&gt;&gt;和cin一起使用，可以输入数据。<br>
+流插入运算符&lt;&lt;和cout一起使用，可以输出数据。</p>
+<h3 id="两者比较"><strong>两者比较</strong></h3>
+<p>由于cin和cout可以不指定输入输出格式，所以相比而言比scanf和printf方便，但是cin和cout消耗的时间比scanf和printf要多很多，在很多对时间有要求题目中，可能输入还没结束就已经超时了。</p>
+<p>另外需要注意的是，为了避免不必要的麻烦，在一个程序中最好不要同时使用cout和printf。</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[C++运行中的错误：error: stray '\302'(或'\240') in program]]></title>
         <id>https://solahome.github.io/post/c-error-stray-302-240-in-program/</id>
