@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-09-25T10:06:25.903Z</updated>
+    <updated>2020-10-01T02:38:36.416Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -10,6 +10,30 @@
     <logo>https://solahome.github.io/images/avatar.png</logo>
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[Python中Tab键与空格键在处理代码缩进时的问题]]></title>
+        <id>https://solahome.github.io/post/pythontabkongge/</id>
+        <link href="https://solahome.github.io/post/pythontabkongge/">
+        </link>
+        <updated>2020-08-28T05:09:02.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=496869422&auto=0&height=90"></iframe>
+<p>在Python中，缩进相同但不挨着的代码什么关系？代码缩进Tab键和四个空格有什么区别吗？</p>
+<h3 id="python语言是通过缩进来组织代码块"><strong>Python语言是通过缩进来组织代码块</strong></h3>
+<p>Python语言是通过缩进来组织代码块。<br>
+在Python中具有相同缩进的代码会被自动视为一个代码块，无论有几个空格的缩进都是被允许的，但是要求缩进空格的数量统一。</p>
+<h3 id="代码缩进中tab和四个空格有什么区别"><strong>代码缩进中tab和四个空格有什么区别</strong></h3>
+<p>在ASCII码中，Tab键的编码是9，空格键的编码是32。当我们输入一个Tab键的时候，它可能看起来像是8个空格或者4个空格，但实际上，却不是同一个东西。<br>
+不同的编辑器里Tab键表示的长度也可能不一致，在一个编辑器里用Tab键进行缩进后，在其它编辑器里可能会得到并不相同的缩进。<br>
+Tab键和空格在Python中都可以表示缩进，在一般情况下，使用4个空格来表示一个缩进；也可以使用一个Tab键来表示一个缩进。</p>
+<h3 id="空格代替tab键的优点"><strong>空格代替Tab键的优点</strong></h3>
+<p>空格键在各种情况下的代码中都仍然是空格键。而Tab键则会在不同的标准下变为不同的字符宽度。<br>
+而且Tab键是制表符而不是缩进符，大量使用制表符当作缩进符有时会出现一些不必要的错误。</p>
+<h3 id="注意"><strong>注意</strong></h3>
+<p>需要注意的是在一个Python文件中，只使用一种缩进方式，要避免制表符Tab键和空格键的混用，以避免造成不必要的错误。</p>
+<h3 id="解决方法"><strong>解决方法</strong></h3>
+<p>通常建议可以对编辑器进行设置，将一个Tab键设置为4个空格，输入Tab键时进行自动转换。</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[关于scanf/printf及cin/cout在刷题时的选择]]></title>
         <id>https://solahome.github.io/post/aboutscanfprintfcincoutchoose/</id>
