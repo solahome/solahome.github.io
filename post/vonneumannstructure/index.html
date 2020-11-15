@@ -2,10 +2,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0">
     <meta name="description" content="
-输入与输出问题
-最近在准备刷题的时候，才突然意识到关于输入和输出的一些小问题。
-大部分刷题网站、OJ和测试都是支持C和C++的，而且一般对C和C++的支持相比于其他计算机语言要更加的完备。而C++又兼容大部分C语言的语法，所以一般都是编写..." />
-    <meta name="keywords" content="C++,C" />
+写在前面
+最近在看计算机组成原理，于是就有了这篇文章（其实也就是笔记），笔记参考了北京大学陆俊林（Lu Junlin）老师的Coursera的计算机组成课程，对老师在课程中所讲授的部分内容进行了整理。
+冯•诺依曼结构主要论述的两个重要的思..." />
+    <meta name="keywords" content="计算机组成原理" />
     <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
     
@@ -441,19 +441,15 @@
         <div class="postshow" style="padding-bottom: 0;">
             
             <div class="postdetailimg" style="width:100%;overflow: hidden;">
-                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-99c37fecb7a9d59389ab64d3a4be5537_720w.jfif" class="postimage" style="cursor:auto">
+                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-ca041b0a455256fe776571a822befas.jpg" class="postimage" style="cursor:auto">
             </div>
             <div class="postinfo-detail">
-                <div class="postdate"><i class="fa fa-calendar"></i>2020-08-18</div>
-                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 2 min read</div>
+                <div class="postdate"><i class="fa fa-calendar"></i>2020-10-18</div>
+                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 5 min read</div>
                 <div class="posttag">
                     
-                    <a href="https://solahome.github.io/tag/J-Xcl_TvE/" class="postlink">
-                        <i class="fa fa-tag"></i> C++
-                    </a>
-                    
-                    <a href="https://solahome.github.io/tag/GZY5kSxl9h/" class="postlink">
-                        <i class="fa fa-tag"></i> C
+                    <a href="https://solahome.github.io/tag/pZzTY20md/" class="postlink">
+                        <i class="fa fa-tag"></i> 计算机组成原理
                     </a>
                     
                 </div>
@@ -461,9 +457,9 @@
             
         <div id="articlecontent">
             <div id="texttitle" style="text-align: center">
-                <h2>关于scanf/printf及cin/cout在刷题时的选择</h2>
+                <h2>冯•诺依曼结构的要点</h2>
                 <!-- id 将作为查询条件 -->
-                <div id="pl" style="display:none">https://solahome.github.io/post/aboutscanfprintfcincoutchoose/</div>
+                <div id="pl" style="display:none">https://solahome.github.io/post/vonneumannstructure/</div>
                 <div id="rootaddr" style="display:none">https://solahome.github.io</div>
                 <span id="hotnum">
                     <h4><i class="fa fa-eye" aria-hidden="true" style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i
@@ -471,35 +467,48 @@
                 </span>
             </div>
             <div class="text ">
-                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=26201885&auto=0&height=90"></iframe>
-<h3 id="输入与输出问题"><strong>输入与输出问题</strong></h3>
-<p>最近在准备刷题的时候，才突然意识到关于输入和输出的一些小问题。</p>
-<p>大部分刷题网站、OJ和测试都是支持C和C++的，而且一般对C和C++的支持相比于其他计算机语言要更加的完备。而C++又兼容大部分C语言的语法，所以一般都是编写C++代码文件，但这个时候关于输入和输出用什么方式的选择就成为了一个问题：是用scanf/printf呢？还是cin/cout呢？</p>
-<h3 id="关于scanfprintf和cincout两者的基本用法"><strong>关于scanf/printf和cin/cout两者的基本用法</strong></h3>
-<h4 id="scanfprintf"><strong>scanf/printf</strong></h4>
-<p>格式化输入、输出，通过格式控制符来控制输入输出的样式：</p>
-<pre><code class="language-c++">#include&lt;cstdio&gt;
-int main(void)
-{
-	int a,b;
-    scanf(&quot;%d%d&quot;,&amp;a,&amp;b);
-    printf(&quot;a=%d,b=%d\n&quot;,a,b);
-	return 0;
-}
-</code></pre>
-<p>输入：</p>
-<pre><code>1 2
-</code></pre>
-<p>输出：</p>
-<pre><code>a=1,b=2
-</code></pre>
-<h4 id="cincout"><strong>cin/cout</strong></h4>
-<p>通过流来输入、输出数据：<br>
-流读取运算符&gt;&gt;和cin一起使用，可以输入数据。<br>
-流插入运算符&lt;&lt;和cout一起使用，可以输出数据。</p>
-<h3 id="两者比较"><strong>两者比较</strong></h3>
-<p>由于cin和cout可以不指定输入输出格式，所以相比而言比scanf和printf方便，但是cin和cout消耗的时间比scanf和printf要多很多，在很多对时间有要求题目中，可能输入还没结束就已经超时了。</p>
-<p>另外需要注意的是，为了避免不必要的麻烦，在一个程序中最好不要同时使用cout和printf。</p>
+                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1392942840&auto=0&height=90"></iframe>
+<h3 id="写在前面"><strong>写在前面</strong></h3>
+<p>最近在看计算机组成原理，于是就有了这篇文章（其实也就是笔记），笔记参考了北京大学<a href="https://www.coursera.org/instructor/pkuljl">陆俊林（Lu Junlin）</a>老师的<a href="https://www.coursera.org/learn/jisuanji-zucheng/home/welcome">Coursera的计算机组成课程</a>，对老师在课程中所讲授的部分内容进行了整理。</p>
+<h3 id="冯诺依曼结构主要论述的两个重要的思想"><strong>冯•诺依曼结构主要论述的两个重要的思想</strong></h3>
+<ol>
+<li>控制计算机的程序应该存放在存储器中，而不是用开关连线来实现。 开关连线会大大降低计算机的运行效率。</li>
+<li>计算机应该采用二进制，而不是十进制。 十进制的方式会导致计算机的内部结构变得异常的复杂。</li>
+</ol>
+<h3 id="冯诺依曼结构中计算机的内部结构的五大组成部分"><strong>冯诺依曼结构中计算机的内部结构的五大组成部分</strong></h3>
+<ol>
+<li>运算器、控制器、存储器、输入设备和输出设备。</li>
+<li>运算器，简称CA，这是中央算术运算的缩写。</li>
+<li>控制器，简称CC，这是中央控制的缩写。</li>
+<li>存储器，简称M。</li>
+<li>输入设备，简称I。</li>
+<li>输出设备，简称O。</li>
+</ol>
+<p>这五大部分连接形成一体。就构成了冯诺依曼结构的计算机。</p>
+<h3 id="冯诺依曼结构的小结"><strong>冯诺依曼结构的小结</strong></h3>
+<p>冯诺依曼结构说明了计算机应该由五大部分组成。<br>
+指出计算机的数据和程序均应该以二级制代码的形式，不加区别的存放在存储器中，存放的位置由存储器的地址指定。<br>
+计算机在工作时能够自动的从存储器中取出指令加以执行。<br>
+运算器、控制器和存储器是冯诺依曼结构的核心。<br>
+与现代计算机进行对照，运算器和控制器应该对应于现在计算机中的CPU， 而存储器应该对应于现在计算机中的主存储器。 我们又常称之为主存或者内存。<br>
+CPU和主存储器之间一般通过系统总线进行连接。 以个人计算机为例：在这块个人计算机的主板上会有CPU芯片和主存，通过主板上的系统总线进行连接。</p>
+<h3 id="冯诺依曼结构的运转方式"><strong>冯诺依曼结构的运转方式</strong></h3>
+<p>计算机运转的核心内容就是执行指令， 计算机执行一条指令的主要步骤呢包括如下四步：<br>
+第一步称为取址，<br>
+第二步称为译码，<br>
+第三步称为执行，<br>
+第四步称为回写。</p>
+<p>依次执行完这四部，计算机就完成了一条指令的执行。</p>
+<h4 id="第一步取址">第一步取址</h4>
+<p>查看下一条指令的地址，找到地址所在的位置后， 向主存发送请求，他并不知道存放的指令是什么，他只是根据地址向主存发出申请。主存并不是一些简单的存储单元， 他还有一些控制逻辑，这类控制逻辑会响应控制器的请求， 他会找到指定地址内存储的内容，并把内容给送回去， 控制器收到了地址里面的内容后，就把他放在存放当前位置， 这就完成了第一步，取址的工作。<br>
+而实际上这一步还需要有一项任务。 就是更新下一条指令的位置。只是先更新， 等一会去执行下一条指令的时候再根据这个位置去向主存发出请求。</p>
+<h4 id="第二步译码">第二步译码</h4>
+<p>译码就是分析刚才得到的内容。 这个内容第一说明了这项任务所需要用的方法。 第二说明了这项任务所需要的东西。 任务完成之后，把结果存放在某个地方， 这个取址得到的内容上指定了，存放到指定的位置里。这个任务就分析完了。 控制器就把他转换成若干组的控制信号一一完成， 这样译码这个阶段就算完成了。</p>
+<h4 id="第三步执行">第三步执行</h4>
+<p>第三步，对计算机执行指令是其核心的步骤， 就叫做执行。对程式来说一样，执行这个已经分析完的任务， 这个任务一共有4步：第一步是要去取运算要用的操作数，与刚才一样， 向主存发出请求，主存会响应，控制器会把返回的操作数放在运算器的其中一个入口；第二步是取这个运算的第二个操作数；第三步是执行这项运算，控制器会给出对应的信号给运算器，让它执行对应的运算， 经过短暂的时间之后，运算结果产生了。 执行阶段就到此结束了。 运算结果还放在运算器的这个输出端口上。</p>
+<h4 id="第四步回写">第四步回写</h4>
+<p>最后一步回写也就是保存结果的过程，用控制器把运算结果存放在A的通用计算器中， 就完成了执行指令的全部过程。<br>
+结束这条指令后，控制器也不会停下，会去执行下一条指令，重复上面的四个步骤。不断的重复，计算机就会自动运转起来了。</p>
 
             </div>
             <hr style="width: 80%;">
@@ -537,36 +546,24 @@ int main(void)
             <div class="postfooter">
                 <ul class="post-copyright">
                     <li><strong>文章作者：</strong>sola</li>
-            <li><strong>原文链接：</strong>https://solahome.github.io/post/aboutscanfprintfcincoutchoose/</li>
+            <li><strong>原文链接：</strong>https://solahome.github.io/post/vonneumannstructure/</li>
             <li><strong>版权声明：</strong>本博客所有文章除特别声明外，均采用<i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA
                 许可协议。转载请注明出处！</li>
             </ul>
         </div>
         <div id="otherpost">
             
-            <div class="prev-post-pc">
-                <div id="ppcontainer" onclick="window.location.href= 'https://solahome.github.io/post/pythontabkongge/';return false">
-                    
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-759dafe4b117a3a8be94423e56c476eb_720w.jfif" style="width: 100%;" class="opimg">
-                    
-                    <h4 class="optitle">Python中Tab键与空格键在处理代码缩进时的问题</h4>
-                </div>
-            </div>
-            <div class="prev-post">
-                上一篇 <a href="https://solahome.github.io/post/pythontabkongge/">Python中Tab键与空格键在处理代码缩进时的问题</a>
-            </div>
-            
             
             <div class="next-post-pc">
-                <div id="npcontainer" onclick="window.location.href= 'https://solahome.github.io/post/c-error-stray-302-240-in-program/';return false">
+                <div id="npcontainer" onclick="window.location.href= 'https://solahome.github.io/post/cheaderfile/';return false">
                     
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-53ded6ea4345abe966b2b79e00fd0724_720w.jfif" style="width: 100%;" class="opimg">
+                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-7a1431f6a3283554a1407f0eb134bf90_720w.jpg" style="width: 100%;" class="opimg">
                     
-                    <h4 class="optitle">C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program</h4>
+                    <h4 class="optitle">浅谈C和C++中的头文件</h4>
                 </div>
             </div>
             <div class="next-post">
-                下一篇 <a href="https://solahome.github.io/post/c-error-stray-302-240-in-program/">C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program</a>
+                下一篇 <a href="https://solahome.github.io/post/cheaderfile/">浅谈C和C++中的头文件</a>
             </div>
             
         </div>
@@ -666,14 +663,18 @@ int main(void)
 <ul>
 <li>
 <ul>
-<li><a href="#%E8%BE%93%E5%85%A5%E4%B8%8E%E8%BE%93%E5%87%BA%E9%97%AE%E9%A2%98"><strong>输入与输出问题</strong></a></li>
-<li><a href="#%E5%85%B3%E4%BA%8Escanfprintf%E5%92%8Ccincout%E4%B8%A4%E8%80%85%E7%9A%84%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95"><strong>关于scanf/printf和cin/cout两者的基本用法</strong></a>
+<li><a href="#%E5%86%99%E5%9C%A8%E5%89%8D%E9%9D%A2"><strong>写在前面</strong></a></li>
+<li><a href="#%E5%86%AF%E8%AF%BA%E4%BE%9D%E6%9B%BC%E7%BB%93%E6%9E%84%E4%B8%BB%E8%A6%81%E8%AE%BA%E8%BF%B0%E7%9A%84%E4%B8%A4%E4%B8%AA%E9%87%8D%E8%A6%81%E7%9A%84%E6%80%9D%E6%83%B3"><strong>冯•诺依曼结构主要论述的两个重要的思想</strong></a></li>
+<li><a href="#%E5%86%AF%E8%AF%BA%E4%BE%9D%E6%9B%BC%E7%BB%93%E6%9E%84%E4%B8%AD%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%9A%84%E5%86%85%E9%83%A8%E7%BB%93%E6%9E%84%E7%9A%84%E4%BA%94%E5%A4%A7%E7%BB%84%E6%88%90%E9%83%A8%E5%88%86"><strong>冯诺依曼结构中计算机的内部结构的五大组成部分</strong></a></li>
+<li><a href="#%E5%86%AF%E8%AF%BA%E4%BE%9D%E6%9B%BC%E7%BB%93%E6%9E%84%E7%9A%84%E5%B0%8F%E7%BB%93"><strong>冯诺依曼结构的小结</strong></a></li>
+<li><a href="#%E5%86%AF%E8%AF%BA%E4%BE%9D%E6%9B%BC%E7%BB%93%E6%9E%84%E7%9A%84%E8%BF%90%E8%BD%AC%E6%96%B9%E5%BC%8F"><strong>冯诺依曼结构的运转方式</strong></a>
 <ul>
-<li><a href="#scanfprintf"><strong>scanf/printf</strong></a></li>
-<li><a href="#cincout"><strong>cin/cout</strong></a></li>
+<li><a href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%E5%8F%96%E5%9D%80">第一步取址</a></li>
+<li><a href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%E8%AF%91%E7%A0%81">第二步译码</a></li>
+<li><a href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%E6%89%A7%E8%A1%8C">第三步执行</a></li>
+<li><a href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%E5%9B%9E%E5%86%99">第四步回写</a></li>
 </ul>
 </li>
-<li><a href="#%E4%B8%A4%E8%80%85%E6%AF%94%E8%BE%83"><strong>两者比较</strong></a></li>
 </ul>
 </li>
 </ul>
@@ -917,7 +918,7 @@ int main(void)
                 var nc = new NewCounter();
                 nc.save({
                     time: 1,
-                    title: "关于scanf/printf及cin/cout在刷题时的选择",
+                    title: "冯•诺依曼结构的要点",
                     url: pl,
                     xid: pl,
                 }).then(function (object) {

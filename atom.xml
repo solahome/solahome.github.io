@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-11-15T04:26:49.748Z</updated>
+    <updated>2020-11-15T15:48:47.011Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -11,17 +11,67 @@
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, sola的小屋</rights>
     <entry>
+        <title type="html"><![CDATA[冯•诺依曼结构的要点]]></title>
+        <id>https://solahome.github.io/post/vonneumannstructure/</id>
+        <link href="https://solahome.github.io/post/vonneumannstructure/">
+        </link>
+        <updated>2020-10-18T02:53:22.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1392942840&auto=0&height=90"></iframe>
+<h3 id="写在前面"><strong>写在前面</strong></h3>
+<p>最近在看计算机组成原理，于是就有了这篇文章（其实也就是笔记），笔记参考了北京大学<a href="https://www.coursera.org/instructor/pkuljl">陆俊林（Lu Junlin）</a>老师的<a href="https://www.coursera.org/learn/jisuanji-zucheng/home/welcome">Coursera的计算机组成课程</a>，对老师在课程中所讲授的部分内容进行了整理。</p>
+<h3 id="冯诺依曼结构主要论述的两个重要的思想"><strong>冯•诺依曼结构主要论述的两个重要的思想</strong></h3>
+<ol>
+<li>控制计算机的程序应该存放在存储器中，而不是用开关连线来实现。 开关连线会大大降低计算机的运行效率。</li>
+<li>计算机应该采用二进制，而不是十进制。 十进制的方式会导致计算机的内部结构变得异常的复杂。</li>
+</ol>
+<h3 id="冯诺依曼结构中计算机的内部结构的五大组成部分"><strong>冯诺依曼结构中计算机的内部结构的五大组成部分</strong></h3>
+<ol>
+<li>运算器、控制器、存储器、输入设备和输出设备。</li>
+<li>运算器，简称CA，这是中央算术运算的缩写。</li>
+<li>控制器，简称CC，这是中央控制的缩写。</li>
+<li>存储器，简称M。</li>
+<li>输入设备，简称I。</li>
+<li>输出设备，简称O。</li>
+</ol>
+<p>这五大部分连接形成一体。就构成了冯诺依曼结构的计算机。</p>
+<h3 id="冯诺依曼结构的小结"><strong>冯诺依曼结构的小结</strong></h3>
+<p>冯诺依曼结构说明了计算机应该由五大部分组成。<br>
+指出计算机的数据和程序均应该以二级制代码的形式，不加区别的存放在存储器中，存放的位置由存储器的地址指定。<br>
+计算机在工作时能够自动的从存储器中取出指令加以执行。<br>
+运算器、控制器和存储器是冯诺依曼结构的核心。<br>
+与现代计算机进行对照，运算器和控制器应该对应于现在计算机中的CPU， 而存储器应该对应于现在计算机中的主存储器。 我们又常称之为主存或者内存。<br>
+CPU和主存储器之间一般通过系统总线进行连接。 以个人计算机为例：在这块个人计算机的主板上会有CPU芯片和主存，通过主板上的系统总线进行连接。</p>
+<h3 id="冯诺依曼结构的运转方式"><strong>冯诺依曼结构的运转方式</strong></h3>
+<p>计算机运转的核心内容就是执行指令， 计算机执行一条指令的主要步骤呢包括如下四步：<br>
+第一步称为取址，<br>
+第二步称为译码，<br>
+第三步称为执行，<br>
+第四步称为回写。</p>
+<p>依次执行完这四部，计算机就完成了一条指令的执行。</p>
+<h4 id="第一步取址">第一步取址</h4>
+<p>查看下一条指令的地址，找到地址所在的位置后， 向主存发送请求，他并不知道存放的指令是什么，他只是根据地址向主存发出申请。主存并不是一些简单的存储单元， 他还有一些控制逻辑，这类控制逻辑会响应控制器的请求， 他会找到指定地址内存储的内容，并把内容给送回去， 控制器收到了地址里面的内容后，就把他放在存放当前位置， 这就完成了第一步，取址的工作。<br>
+而实际上这一步还需要有一项任务。 就是更新下一条指令的位置。只是先更新， 等一会去执行下一条指令的时候再根据这个位置去向主存发出请求。</p>
+<h4 id="第二步译码">第二步译码</h4>
+<p>译码就是分析刚才得到的内容。 这个内容第一说明了这项任务所需要用的方法。 第二说明了这项任务所需要的东西。 任务完成之后，把结果存放在某个地方， 这个取址得到的内容上指定了，存放到指定的位置里。这个任务就分析完了。 控制器就把他转换成若干组的控制信号一一完成， 这样译码这个阶段就算完成了。</p>
+<h4 id="第三步执行">第三步执行</h4>
+<p>第三步，对计算机执行指令是其核心的步骤， 就叫做执行。对程式来说一样，执行这个已经分析完的任务， 这个任务一共有4步：第一步是要去取运算要用的操作数，与刚才一样， 向主存发出请求，主存会响应，控制器会把返回的操作数放在运算器的其中一个入口；第二步是取这个运算的第二个操作数；第三步是执行这项运算，控制器会给出对应的信号给运算器，让它执行对应的运算， 经过短暂的时间之后，运算结果产生了。 执行阶段就到此结束了。 运算结果还放在运算器的这个输出端口上。</p>
+<h4 id="第四步回写">第四步回写</h4>
+<p>最后一步回写也就是保存结果的过程，用控制器把运算结果存放在A的通用计算器中， 就完成了执行指令的全部过程。<br>
+结束这条指令后，控制器也不会停下，会去执行下一条指令，重复上面的四个步骤。不断的重复，计算机就会自动运转起来了。</p>
+]]></content>
+    </entry>
+    <entry>
         <title type="html"><![CDATA[浅谈C和C++中的头文件]]></title>
         <id>https://solahome.github.io/post/cheaderfile/</id>
         <link href="https://solahome.github.io/post/cheaderfile/">
         </link>
         <updated>2020-09-17T02:50:16.000Z</updated>
         <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1475841362&auto=0&height=90"></iframe>
-<h3 id="选择什么计算机语言呢">选择什么计算机语言呢？</h3>
+<h3 id="选择什么计算机语言呢"><strong>选择什么计算机语言呢？</strong></h3>
 <p>在谈谈头文件之前，先让我们简单的来看看刷题时选择什么计算机语言。</p>
 <p>可以用来刷题的语言很多，比如说：C、C++、Java、Python、Go等等，都可以用来刷题。一般情况下，大多数平台都会支持C、C++、Java、Python，一般建议选择C或C++，因为它们通常更加通用，而且会更少出现问题。</p>
 <p>这样对C和C++的头文件有一个简单了解就非常有必要了。</p>
-<h3 id="先看看两段入门级的代码">先看看两段入门级的代码</h3>
+<h3 id="先看看两段入门级的代码"><strong>先看看两段入门级的代码</strong></h3>
 <h4 id="c语言">C语言</h4>
 <pre><code class="language-c">#include &lt;stdio.h&gt;
 
