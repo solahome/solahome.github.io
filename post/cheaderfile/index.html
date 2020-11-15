@@ -2,7 +2,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0">
     <meta name="description" content="
-最近准备写一下简单的C++代码，因为不太喜欢vc++和codeblocks的图形化界面，又不太想用Visual Studio这种大型的IDE，所以就配置了一下之前用的Sublime Text3，为了检测环境变量是否配置成功，我从复制了一段..." />
+选择什么计算机语言呢？
+在谈谈头文件之前，先让我们简单的来看看刷题时选择什么计算机语言。
+可以用来刷题的语言很多，比如说：C、C++、Java、Python、Go等等，都可以用来刷题。一般情况下，大多数平台都会支持C、C++、Java、P..." />
     <meta name="keywords" content="C++,C" />
     <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
@@ -432,11 +434,11 @@
         <div class="postshow" style="padding-bottom: 0;">
             
             <div class="postdetailimg" style="width:100%;overflow: hidden;">
-                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-53ded6ea4345abe966b2b79e00fd0724_720w.jfif" class="postimage" style="cursor:auto">
+                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-7a1431f6a3283554a1407f0eb134bf90_720w.jpg" class="postimage" style="cursor:auto">
             </div>
             <div class="postinfo-detail">
-                <div class="postdate"><i class="fa fa-calendar"></i>2020-08-06</div>
-                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 2 min read</div>
+                <div class="postdate"><i class="fa fa-calendar"></i>2020-09-17</div>
+                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 3 min read</div>
                 <div class="posttag">
                     
                     <a href="https://solahome.github.io/tag/J-Xcl_TvE/" class="postlink">
@@ -452,9 +454,9 @@
             
         <div id="articlecontent">
             <div id="texttitle" style="text-align: center">
-                <h2>C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program</h2>
+                <h2>浅谈C和C++中的头文件</h2>
                 <!-- id 将作为查询条件 -->
-                <div id="pl" style="display:none">https://solahome.github.io/post/c-error-stray-302-240-in-program/</div>
+                <div id="pl" style="display:none">https://solahome.github.io/post/cheaderfile/</div>
                 <div id="rootaddr" style="display:none">https://solahome.github.io</div>
                 <span id="hotnum">
                     <h4><i class="fa fa-eye" aria-hidden="true" style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i
@@ -462,26 +464,48 @@
                 </span>
             </div>
             <div class="text ">
-                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=469719260&auto=0&height=90"></iframe>
-<p>最近准备写一下简单的C++代码，因为不太喜欢vc++和codeblocks的图形化界面，又不太想用Visual Studio这种大型的IDE，所以就配置了一下之前用的Sublime Text3，为了检测环境变量是否配置成功，我从复制了一段C++常见的“hello world”代码：</p>
-<h3 id="源代码"><strong>源代码</strong></h3>
-<pre><code class="language-c++">#include&lt;cstdio&gt;
-int main(void)
+                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1475841362&auto=0&height=90"></iframe>
+<h3 id="选择什么计算机语言呢">选择什么计算机语言呢？</h3>
+<p>在谈谈头文件之前，先让我们简单的来看看刷题时选择什么计算机语言。</p>
+<p>可以用来刷题的语言很多，比如说：C、C++、Java、Python、Go等等，都可以用来刷题。一般情况下，大多数平台都会支持C、C++、Java、Python，一般建议选择C或C++，因为它们通常更加通用，而且会更少出现问题。</p>
+<p>这样对C和C++的头文件有一个简单了解就非常有必要了。</p>
+<h3 id="先看看两段入门级的代码">先看看两段入门级的代码</h3>
+<h4 id="c语言">C语言</h4>
+<pre><code class="language-c">#include &lt;stdio.h&gt;
+
+int main()
 {
-	printf(&quot;Hello, world!&quot;);
-	return 0;
+   printf(&quot;Hello, World! \n&quot;);   
+   return 0;
 }
 </code></pre>
-<p><strong>注意：你现在看到的上面的这段代码是我已经修改过的正确的代码。</strong></p>
-<h3 id="错误信息"><strong>错误信息</strong></h3>
-<p>源代码与上面这段代码从直观上可以说没有什么明显的区别，代码在运行过程中出现了如下两种报错信息：</p>
-<pre><code>error: stray '\302' in program
-error: stray '\240' in program
+<p>输出结果：</p>
+<pre><code>Hello, World! 
 </code></pre>
-<h3 id="解决方式"><strong>解决方式</strong></h3>
-<p>这个问题看起来一般是很少会遇到的，大概率程序本身是没有语法错误，它的问题就出在源代码中可能含有一些隐藏的非ascii字符，或者是代码的编码方式有所不同。<br>
-一个常见的情况就是复制的时候，有些空格并不是普通的空格，但我们却没有看出来。<br>
-简单的解决办法是将出现空格的地方的空格去掉，在需要空格的地方将空格重新补上即可。</p>
+<h4 id="c">C++</h4>
+<pre><code class="language-c++">#include &lt;iostream&gt;
+using namespace std;
+
+int main()
+{
+   cout &lt;&lt; &quot;Hello World&quot;;
+   return 0;
+}
+</code></pre>
+<p>输出结果：</p>
+<pre><code>Hello World!
+</code></pre>
+<p>先来看一下常见的C语言的代码结构：<br>
+头文件在最前面，如<code>#include&lt;stdio.h&gt;</code><br>
+这一行就是头文件，也是最常见的一行代码，基本上每个C语言程序代码都有这一行。下面我们就来简单地介绍一下这行代码。</p>
+<p>其中，<strong>stdio.h</strong>是标准输入输出库，<strong>stdio</strong>的全称是<em>standard input output</em>，<strong>h</strong>就是<em>head</em>的缩写，<strong>.h</strong>是头文件的文件格式。</p>
+<p>如果在程序中需要进行输入输出，那么就需要这个头文件。一般情况下，程序都是有输入和输出的，所以基本上每一个C语言程序都需要加上这个头文件。</p>
+<p>直观上来说，<em>stdio.h</em>就是一个文件（也就是我们常说的头文件），这个文件中包含了一些跟输入输出有关的代码（函数），如果一个程序需要输入输出，就要通过<code>#include&lt;头文件名称&gt;</code>这样的写法来包含这个文件，这样才可以使用<em>stdio.h</em>这个文件里与输入输出有关的函数。</p>
+<p>刷题时，我们通常会选择使用C++，而在C++的标准中，<em>stdio.h</em>更推荐改为：<em>cstdio</em>。<br>
+因为<code>#include&lt;stdio.h&gt;</code>和<code>#include&lt;cstdio&gt;</code>的写法在一定程度上来说是等价的。</p>
+<p>还有一些这样的例子，比如说：<br>
+<code>#include&lt;math.h&gt;</code>和<code>#include&lt;cmath&gt;</code>是等价的；<br>
+<code>#include&lt;string.h&gt;</code>和<code>#include&lt;cstring&gt;</code>也是等价的。</p>
 
             </div>
             <hr style="width: 80%;">
@@ -519,36 +543,24 @@ error: stray '\240' in program
             <div class="postfooter">
                 <ul class="post-copyright">
                     <li><strong>文章作者：</strong>sola</li>
-            <li><strong>原文链接：</strong>https://solahome.github.io/post/c-error-stray-302-240-in-program/</li>
+            <li><strong>原文链接：</strong>https://solahome.github.io/post/cheaderfile/</li>
             <li><strong>版权声明：</strong>本博客所有文章除特别声明外，均采用<i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA
                 许可协议。转载请注明出处！</li>
             </ul>
         </div>
         <div id="otherpost">
             
-            <div class="prev-post-pc">
-                <div id="ppcontainer" onclick="window.location.href= 'https://solahome.github.io/post/aboutscanfprintfcincoutchoose/';return false">
-                    
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-99c37fecb7a9d59389ab64d3a4be5537_720w.jfif" style="width: 100%;" class="opimg">
-                    
-                    <h4 class="optitle">关于scanf/printf及cin/cout在刷题时的选择</h4>
-                </div>
-            </div>
-            <div class="prev-post">
-                上一篇 <a href="https://solahome.github.io/post/aboutscanfprintfcincoutchoose/">关于scanf/printf及cin/cout在刷题时的选择</a>
-            </div>
-            
             
             <div class="next-post-pc">
-                <div id="npcontainer" onclick="window.location.href= 'https://solahome.github.io/post/pythoneditor/';return false">
+                <div id="npcontainer" onclick="window.location.href= 'https://solahome.github.io/post/pythontabkongge/';return false">
                     
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-e12a5b7946e443adda652a65935f1af1_720w.jfif" style="width: 100%;" class="opimg">
+                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-759dafe4b117a3a8be94423e56c476eb_720w.jfif" style="width: 100%;" class="opimg">
                     
-                    <h4 class="optitle">Python编辑器的选择</h4>
+                    <h4 class="optitle">Python中Tab键与空格键在处理代码缩进时的问题</h4>
                 </div>
             </div>
             <div class="next-post">
-                下一篇 <a href="https://solahome.github.io/post/pythoneditor/">Python编辑器的选择</a>
+                下一篇 <a href="https://solahome.github.io/post/pythontabkongge/">Python中Tab键与空格键在处理代码缩进时的问题</a>
             </div>
             
         </div>
@@ -648,9 +660,13 @@ error: stray '\240' in program
 <ul>
 <li>
 <ul>
-<li><a href="#%E6%BA%90%E4%BB%A3%E7%A0%81"><strong>源代码</strong></a></li>
-<li><a href="#%E9%94%99%E8%AF%AF%E4%BF%A1%E6%81%AF"><strong>错误信息</strong></a></li>
-<li><a href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E5%BC%8F"><strong>解决方式</strong></a></li>
+<li><a href="#%E9%80%89%E6%8B%A9%E4%BB%80%E4%B9%88%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%AF%AD%E8%A8%80%E5%91%A2">选择什么计算机语言呢？</a></li>
+<li><a href="#%E5%85%88%E7%9C%8B%E7%9C%8B%E4%B8%A4%E6%AE%B5%E5%85%A5%E9%97%A8%E7%BA%A7%E7%9A%84%E4%BB%A3%E7%A0%81">先看看两段入门级的代码</a>
+<ul>
+<li><a href="#c%E8%AF%AD%E8%A8%80">C语言</a></li>
+<li><a href="#c">C++</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -894,7 +910,7 @@ error: stray '\240' in program
                 var nc = new NewCounter();
                 nc.save({
                     time: 1,
-                    title: "C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program",
+                    title: "浅谈C和C++中的头文件",
                     url: pl,
                     xid: pl,
                 }).then(function (object) {

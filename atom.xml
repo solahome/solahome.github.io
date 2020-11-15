@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-10-01T02:38:36.416Z</updated>
+    <updated>2020-11-15T04:26:49.748Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -10,6 +10,56 @@
     <logo>https://solahome.github.io/images/avatar.png</logo>
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[浅谈C和C++中的头文件]]></title>
+        <id>https://solahome.github.io/post/cheaderfile/</id>
+        <link href="https://solahome.github.io/post/cheaderfile/">
+        </link>
+        <updated>2020-09-17T02:50:16.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1475841362&auto=0&height=90"></iframe>
+<h3 id="选择什么计算机语言呢">选择什么计算机语言呢？</h3>
+<p>在谈谈头文件之前，先让我们简单的来看看刷题时选择什么计算机语言。</p>
+<p>可以用来刷题的语言很多，比如说：C、C++、Java、Python、Go等等，都可以用来刷题。一般情况下，大多数平台都会支持C、C++、Java、Python，一般建议选择C或C++，因为它们通常更加通用，而且会更少出现问题。</p>
+<p>这样对C和C++的头文件有一个简单了解就非常有必要了。</p>
+<h3 id="先看看两段入门级的代码">先看看两段入门级的代码</h3>
+<h4 id="c语言">C语言</h4>
+<pre><code class="language-c">#include &lt;stdio.h&gt;
+
+int main()
+{
+   printf(&quot;Hello, World! \n&quot;);   
+   return 0;
+}
+</code></pre>
+<p>输出结果：</p>
+<pre><code>Hello, World! 
+</code></pre>
+<h4 id="c">C++</h4>
+<pre><code class="language-c++">#include &lt;iostream&gt;
+using namespace std;
+
+int main()
+{
+   cout &lt;&lt; &quot;Hello World&quot;;
+   return 0;
+}
+</code></pre>
+<p>输出结果：</p>
+<pre><code>Hello World!
+</code></pre>
+<p>先来看一下常见的C语言的代码结构：<br>
+头文件在最前面，如<code>#include&lt;stdio.h&gt;</code><br>
+这一行就是头文件，也是最常见的一行代码，基本上每个C语言程序代码都有这一行。下面我们就来简单地介绍一下这行代码。</p>
+<p>其中，<strong>stdio.h</strong>是标准输入输出库，<strong>stdio</strong>的全称是<em>standard input output</em>，<strong>h</strong>就是<em>head</em>的缩写，<strong>.h</strong>是头文件的文件格式。</p>
+<p>如果在程序中需要进行输入输出，那么就需要这个头文件。一般情况下，程序都是有输入和输出的，所以基本上每一个C语言程序都需要加上这个头文件。</p>
+<p>直观上来说，<em>stdio.h</em>就是一个文件（也就是我们常说的头文件），这个文件中包含了一些跟输入输出有关的代码（函数），如果一个程序需要输入输出，就要通过<code>#include&lt;头文件名称&gt;</code>这样的写法来包含这个文件，这样才可以使用<em>stdio.h</em>这个文件里与输入输出有关的函数。</p>
+<p>刷题时，我们通常会选择使用C++，而在C++的标准中，<em>stdio.h</em>更推荐改为：<em>cstdio</em>。<br>
+因为<code>#include&lt;stdio.h&gt;</code>和<code>#include&lt;cstdio&gt;</code>的写法在一定程度上来说是等价的。</p>
+<p>还有一些这样的例子，比如说：<br>
+<code>#include&lt;math.h&gt;</code>和<code>#include&lt;cmath&gt;</code>是等价的；<br>
+<code>#include&lt;string.h&gt;</code>和<code>#include&lt;cstring&gt;</code>也是等价的。</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Python中Tab键与空格键在处理代码缩进时的问题]]></title>
         <id>https://solahome.github.io/post/pythontabkongge/</id>
