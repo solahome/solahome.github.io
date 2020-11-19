@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2020-11-16T15:35:44.177Z</updated>
+    <updated>2020-11-19T15:16:01.217Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -10,6 +10,67 @@
     <logo>https://solahome.github.io/images/avatar.png</logo>
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[每日一题：1001 害死人不偿命的(3n+1)猜想]]></title>
+        <id>https://solahome.github.io/post/everydayproblempatb1001/</id>
+        <link href="https://solahome.github.io/post/everydayproblempatb1001/">
+        </link>
+        <updated>2020-11-19T13:49:33.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1484844664&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://pintia.cn/problem-sets/994805260223102976/problems/994805325918486528">https://pintia.cn/problem-sets/994805260223102976/problems/994805325918486528</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<p>卡拉兹(Callatz)猜想：</p>
+<p>对任何一个正整数 n，如果它是偶数，那么把它砍掉一半；如果它是奇数，那么把 (3n+1) 砍掉一半。这样一直反复砍下去，最后一定在某一步得到 n=1。卡拉兹在 1950 年的世界数学家大会上公布了这个猜想，传说当时耶鲁大学师生齐动员，拼命想证明这个貌似很傻很天真的命题，结果闹得学生们无心学业，一心只证 (3n+1)，以至于有人说这是一个阴谋，卡拉兹是在蓄意延缓美国数学界教学与科研的进展……</p>
+<p>我们今天的题目不是证明卡拉兹猜想，而是对给定的任一不超过 1000 的正整数 n，简单地数一下，需要多少步（砍几下）才能得到 n=1？</p>
+<p>输入格式：<br>
+每个测试输入包含 1 个测试用例，即给出正整数 n 的值。</p>
+<p>输出格式：<br>
+输出从 n 计算到 1 需要的步数。</p>
+<p>输入样例：</p>
+<pre><code>3
+</code></pre>
+<p>输出样例：</p>
+<pre><code>5
+</code></pre>
+<blockquote>
+<p>作者<br>
+CHEN, Yue<br>
+单位<br>
+浙江大学<br>
+代码长度限制<br>
+16 KB<br>
+时间限制<br>
+400 ms<br>
+内存限制<br>
+64 MB</p>
+</blockquote>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-c++">#include&lt;cstdio&gt;
+int main(void)
+{
+	int num;
+	int i = 0;
+	
+    scanf(&quot;%d&quot;,&amp;num);
+	while(num != 1){
+		if(num%2 == 0)
+    		num = num/2;
+    	else
+    		num = (3 * num + 1)/2;
+
+    	i++;
+	}
+    
+    printf(&quot;%d\n&quot;,i);
+	return 0;
+}
+</code></pre>
+<h3 id="后记">后记</h3>
+<p>这是决定开始“每日一题”后的第一题，来自于**PAT (Basic Level) Practice （中文）**的第一题，题目没有什么难度，算是一个比较简单的开始吧，希望我能够一直坚持下去吧。</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[冯•诺依曼结构的要点]]></title>
         <id>https://solahome.github.io/post/vonneumannstructure/</id>
