@@ -2,10 +2,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0">
     <meta name="description" content="
-输入与输出问题
-最近在准备刷题的时候，才突然意识到关于输入和输出的一些小问题。
-大部分刷题网站、OJ和测试都是支持C和C++的，而且一般对C和C++的支持相比于其他计算机语言要更加的完备。而C++又兼容大部分C语言的语法，所以一般都是编写..." />
-    <meta name="keywords" content="C++,C" />
+
+题目地址https://pintia.cn/problem-sets/994805260223102976/problems/994805324509200384
+
+题目内容
+
+作者
+CHEN, Yue
+单位
+浙江大学
+代码长度限制
+1..." />
+    <meta name="keywords" content="每日一题,C++" />
     <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
     
@@ -441,19 +449,19 @@
         <div class="postshow" style="padding-bottom: 0;">
             
             <div class="postdetailimg" style="width:100%;overflow: hidden;">
-                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-aeeabc6532455758eadca76dae475.jpg" class="postimage" style="cursor:auto">
+                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-aeabc5356eac336eadd35aeae35.jpg" class="postimage" style="cursor:auto">
             </div>
             <div class="postinfo-detail">
-                <div class="postdate"><i class="fa fa-calendar"></i>2020-08-18</div>
-                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 2 min read</div>
+                <div class="postdate"><i class="fa fa-calendar"></i>2020-11-20</div>
+                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 4 min read</div>
                 <div class="posttag">
+                    
+                    <a href="https://solahome.github.io/tag/e8WUZoyi0/" class="postlink">
+                        <i class="fa fa-tag"></i> 每日一题
+                    </a>
                     
                     <a href="https://solahome.github.io/tag/J-Xcl_TvE/" class="postlink">
                         <i class="fa fa-tag"></i> C++
-                    </a>
-                    
-                    <a href="https://solahome.github.io/tag/GZY5kSxl9h/" class="postlink">
-                        <i class="fa fa-tag"></i> C
                     </a>
                     
                 </div>
@@ -461,9 +469,9 @@
             
         <div id="articlecontent">
             <div id="texttitle" style="text-align: center">
-                <h2>关于scanf/printf及cin/cout在刷题时的选择</h2>
+                <h2>每日一题：1002 写出这个数</h2>
                 <!-- id 将作为查询条件 -->
-                <div id="pl" style="display:none">https://solahome.github.io/post/aboutscanfprintfcincoutchoose/</div>
+                <div id="pl" style="display:none">https://solahome.github.io/post/everydayproblempatb1002/</div>
                 <div id="rootaddr" style="display:none">https://solahome.github.io</div>
                 <span id="hotnum">
                     <h4><i class="fa fa-eye" aria-hidden="true" style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i
@@ -471,35 +479,114 @@
                 </span>
             </div>
             <div class="text ">
-                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=26201885&auto=0&height=90"></iframe>
-<h3 id="输入与输出问题"><strong>输入与输出问题</strong></h3>
-<p>最近在准备刷题的时候，才突然意识到关于输入和输出的一些小问题。</p>
-<p>大部分刷题网站、OJ和测试都是支持C和C++的，而且一般对C和C++的支持相比于其他计算机语言要更加的完备。而C++又兼容大部分C语言的语法，所以一般都是编写C++代码文件，但这个时候关于输入和输出用什么方式的选择就成为了一个问题：是用scanf/printf呢？还是cin/cout呢？</p>
-<h3 id="关于scanfprintf和cincout两者的基本用法"><strong>关于scanf/printf和cin/cout两者的基本用法</strong></h3>
-<h4 id="scanfprintf"><strong>scanf/printf</strong></h4>
-<p>格式化输入、输出，通过格式控制符来控制输入输出的样式：</p>
+                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1387592437&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://pintia.cn/problem-sets/994805260223102976/problems/994805324509200384">https://pintia.cn/problem-sets/994805260223102976/problems/994805324509200384</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<blockquote>
+<p>作者<br>
+CHEN, Yue<br>
+单位<br>
+浙江大学<br>
+代码长度限制<br>
+16 KB<br>
+时间限制<br>
+400 ms<br>
+内存限制<br>
+64 MB</p>
+</blockquote>
+<p>读入一个正整数 n，计算其各位数字之和，用汉语拼音写出和的每一位数字。</p>
+<p>输入格式：<br>
+每个测试输入包含 1 个测试用例，即给出自然数 n 的值。这里保证 n 小于 10<br>
+​100<br>
+​​ 。</p>
+<p>输出格式：<br>
+在一行内输出 n 的各位数字之和的每一位，拼音数字间有 1 空格，但一行中最后一个拼音数字后没有空格。</p>
+<p>输入样例：</p>
+<pre><code>1234567890987654321123456789
+</code></pre>
+<p>输出样例：</p>
+<pre><code>yi san wu
+</code></pre>
+<h3 id="我的解答">我的解答</h3>
 <pre><code class="language-c++">#include&lt;cstdio&gt;
+#include&lt;string&gt;
+using namespace std;
+
 int main(void)
 {
-	int a,b;
-    scanf(&quot;%d%d&quot;,&amp;a,&amp;b);
-    printf(&quot;a=%d,b=%d\n&quot;,a,b);
+	char num[100] = {0};
+	int i = 0;
+	int sum = 0;
+	string num_pinyin[10] = {&quot;ling&quot;, &quot;yi&quot;, &quot;er&quot;, &quot;san&quot;, &quot;si&quot;, &quot;wu&quot;, &quot;liu&quot;, &quot;qi&quot;, &quot;ba&quot;, &quot;jiu&quot;};
+	string out[3];
+
+    scanf(&quot;%s&quot;,&amp;num);
+    while((num[i] != 0)&amp;&amp;(i &lt;= 99)){
+    	sum = sum + ((int)num[i] - 48);
+    	i++;
+    }
+
+	if((sum/100) != 0){
+		out[0] = num_pinyin[sum/100];
+		out[1] = num_pinyin[(sum%100)/10];
+		out[2] = num_pinyin[sum%10];
+		printf(&quot;%s %s %s\n&quot;, out[0].c_str(), out[1].c_str(), out[2].c_str());
+	}
+	else if((sum/10) != 0){
+		out[0] = num_pinyin[sum/10];
+		out[1] = num_pinyin[sum%10];
+		printf(&quot;%s %s\n&quot;, out[0].c_str(), out[1].c_str());
+	}
+	else
+		printf(&quot;%s\n&quot;, num_pinyin[sum].c_str());
+
 	return 0;
 }
 </code></pre>
-<p>输入：</p>
-<pre><code>1 2
+<h3 id="后记">后记</h3>
+<p>第一次思考这个题目的时候，没有考虑到int型变量的范围限制，用int型进行输入的代码如下：</p>
+<pre><code class="language-c++">#include&lt;cstdio&gt;
+#include&lt;string&gt;
+using namespace std;
+//此种方法只适合在比较小范围类的num，因为输入的是int型变量
+int main(void)
+{
+	int num;
+	int i = 0;
+	int sum = 0;
+	string num_pinyin[10] = {&quot;ling&quot;, &quot;yi&quot;, &quot;er&quot;, &quot;san&quot;, &quot;si&quot;, &quot;wu&quot;, &quot;liu&quot;, &quot;qi&quot;, &quot;ba&quot;, &quot;jiu&quot;};
+	string out[3];
+
+    scanf(&quot;%d&quot;,&amp;num);
+
+	while((num/10) != 0){
+		i = num % 10;
+		sum = sum + i;
+		num = num/10;
+	}
+	sum = sum + num;
+//	printf(&quot;%d\n&quot;,sum);
+	if((sum/100) != 0){
+		out[0] = num_pinyin[sum/100];
+		out[1] = num_pinyin[(sum%100)/10];
+		out[2] = num_pinyin[sum%10];
+		printf(&quot;%s %s %s\n&quot;, out[0].c_str(), out[1].c_str(), out[2].c_str());
+	}
+	else if((sum/10) != 0){
+		out[0] = num_pinyin[sum/10];
+		out[1] = num_pinyin[sum%10];
+		printf(&quot;%s %s\n&quot;, out[0].c_str(), out[1].c_str());
+	}
+	else
+		printf(&quot;%s\n&quot;, num_pinyin[sum].c_str());
+
+	return 0;
+}
 </code></pre>
-<p>输出：</p>
-<pre><code>a=1,b=2
-</code></pre>
-<h4 id="cincout"><strong>cin/cout</strong></h4>
-<p>通过流来输入、输出数据：<br>
-流读取运算符&gt;&gt;和cin一起使用，可以输入数据。<br>
-流插入运算符&lt;&lt;和cout一起使用，可以输出数据。</p>
-<h3 id="两者比较"><strong>两者比较</strong></h3>
-<p>由于cin和cout可以不指定输入输出格式，所以相比而言比scanf和printf方便，但是cin和cout消耗的时间比scanf和printf要多很多，在很多对时间有要求题目中，可能输入还没结束就已经超时了。</p>
-<p>另外需要注意的是，为了避免不必要的麻烦，在一个程序中最好不要同时使用cout和printf。</p>
+<p>但将int型输入改为char型时，还要注意转换时的数值大小。</p>
+<p>另外，如果在C++中使用string，需要包括头文件<code>#include&lt;string&gt;</code>，以及要加上<code>using namespace std;</code>。而且，在输出字符串时，要注意添加<code>.c_str()</code>。</p>
 
             </div>
             <hr style="width: 80%;">
@@ -537,36 +624,24 @@ int main(void)
             <div class="postfooter">
                 <ul class="post-copyright">
                     <li><strong>文章作者：</strong>sola</li>
-            <li><strong>原文链接：</strong>https://solahome.github.io/post/aboutscanfprintfcincoutchoose/</li>
+            <li><strong>原文链接：</strong>https://solahome.github.io/post/everydayproblempatb1002/</li>
             <li><strong>版权声明：</strong>本博客所有文章除特别声明外，均采用<i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA
                 许可协议。转载请注明出处！</li>
             </ul>
         </div>
         <div id="otherpost">
             
-            <div class="prev-post-pc">
-                <div id="ppcontainer" onclick="window.location.href= 'https://solahome.github.io/post/pythontabkongge/';return false">
-                    
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-759dafe4b117a3a8be94423e56c476eb_720w.jfif" style="width: 100%;" class="opimg">
-                    
-                    <h4 class="optitle">Python中Tab键与空格键在处理代码缩进时的问题</h4>
-                </div>
-            </div>
-            <div class="prev-post">
-                上一篇 <a href="https://solahome.github.io/post/pythontabkongge/">Python中Tab键与空格键在处理代码缩进时的问题</a>
-            </div>
-            
             
             <div class="next-post-pc">
-                <div id="npcontainer" onclick="window.location.href= 'https://solahome.github.io/post/c-error-stray-302-240-in-program/';return false">
+                <div id="npcontainer" onclick="window.location.href= 'https://solahome.github.io/post/everydayproblempatb1001/';return false">
                     
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-53ded6ea4345abe966b2b79e00fd0724_720w.jfif" style="width: 100%;" class="opimg">
+                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-ad530e35336ead562e051a863eab2.jpg" style="width: 100%;" class="opimg">
                     
-                    <h4 class="optitle">C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program</h4>
+                    <h4 class="optitle">每日一题：1001 害死人不偿命的(3n+1)猜想</h4>
                 </div>
             </div>
             <div class="next-post">
-                下一篇 <a href="https://solahome.github.io/post/c-error-stray-302-240-in-program/">C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program</a>
+                下一篇 <a href="https://solahome.github.io/post/everydayproblempatb1001/">每日一题：1001 害死人不偿命的(3n+1)猜想</a>
             </div>
             
         </div>
@@ -666,14 +741,9 @@ int main(void)
 <ul>
 <li>
 <ul>
-<li><a href="#%E8%BE%93%E5%85%A5%E4%B8%8E%E8%BE%93%E5%87%BA%E9%97%AE%E9%A2%98"><strong>输入与输出问题</strong></a></li>
-<li><a href="#%E5%85%B3%E4%BA%8Escanfprintf%E5%92%8Ccincout%E4%B8%A4%E8%80%85%E7%9A%84%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95"><strong>关于scanf/printf和cin/cout两者的基本用法</strong></a>
-<ul>
-<li><a href="#scanfprintf"><strong>scanf/printf</strong></a></li>
-<li><a href="#cincout"><strong>cin/cout</strong></a></li>
-</ul>
-</li>
-<li><a href="#%E4%B8%A4%E8%80%85%E6%AF%94%E8%BE%83"><strong>两者比较</strong></a></li>
+<li><a href="#%E9%A2%98%E7%9B%AE%E5%86%85%E5%AE%B9">题目内容</a></li>
+<li><a href="#%E6%88%91%E7%9A%84%E8%A7%A3%E7%AD%94">我的解答</a></li>
+<li><a href="#%E5%90%8E%E8%AE%B0">后记</a></li>
 </ul>
 </li>
 </ul>
@@ -917,7 +987,7 @@ int main(void)
                 var nc = new NewCounter();
                 nc.save({
                     time: 1,
-                    title: "关于scanf/printf及cin/cout在刷题时的选择",
+                    title: "每日一题：1002 写出这个数",
                     url: pl,
                     xid: pl,
                 }).then(function (object) {
