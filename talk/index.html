@@ -21,7 +21,7 @@
     
     <div id=side>
         <div class="avatar-border">
-            <img src="https://solahome.github.io/images/avatar.png?v=1605886131796" class="avatar">
+            <img src="https://solahome.github.io/images/avatar.png?v=1607097500309" class="avatar">
         </div>
         <div class="sitename">sola的小屋</div>
         <span class="describtion" data-text='["故事的结尾总写在开头"]'>&nbsp;</span>
@@ -523,7 +523,7 @@
     add();
 
     function get() {
-        var t = JSON.parse('[{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/s33550797.jfif","text":"最近忙里偷闲挤出了一点时间读了三秋缒老师的《不哭不哭，痛痛飞走吧》，虽然很早就知道到了三秋缒的作品了，比如说《三日间的幸福》等等，不过实际这本书算是实际上第一次读的三秋缒老师的书。“爱也许就是人类最伟大的发明，或者是全世界最温柔的谎言”。看完这本书给我了一种淡淡的忧伤的感觉，等过一段时间有空了给大家分享一下我读后的感受（好像好久都没有写过这种东西了 哈哈）","time":"2020-09-11"},{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/s29560941.jfif","text":"最近有在零零星星的时间中连着读了五十岚雄策老师的好几本书——《恋爱的死神，与我被遗忘的夏天》、《七日间的幽灵，第八日的女友》、《与你相约在未来的七月雪》。五十岚雄策老师的故事一般最后都有一个挺幸福的结局，相比于那种淡淡的忧伤，五十岚雄策老师的作品最后一般都是一种淡淡的甜味。读多了令人潸然泪下的故事之后，不妨试试，转换一下心情吧。","time":"2020-09-20"},{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-7a1431f6a3283554a1407f0eb134bf90_720w.jpg","text":"最近发现vscode更新后越来越好用了，大家可以尝试一下哟o(^▽^)o","time":"2020-11-15"},{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-99c37fecb7a9d59389ab64d3a4be5537_720w.jfif","text":"开始了一个新的内容“每日一题”，应该会记录一些我现在刷的题，争取做到每天更新(ง •_•)ง","time":"2020-11-19"}]');
+        var t = JSON.parse('[{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/s33550797.jfif","text":"最近忙里偷闲挤出了一点时间读了三秋缒老师的《不哭不哭，痛痛飞走吧》，虽然很早就知道到了三秋缒的作品了，比如说《三日间的幸福》等等，不过实际这本书算是实际上第一次读的三秋缒老师的书。“爱也许就是人类最伟大的发明，或者是全世界最温柔的谎言”。看完这本书给我了一种淡淡的忧伤的感觉，等过一段时间有空了给大家分享一下我读后的感受（好像好久都没有写过这种东西了 哈哈）","time":"2020-09-11"},{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/s29560941.jfif","text":"最近有在零零星星的时间中连着读了五十岚雄策老师的好几本书——《恋爱的死神，与我被遗忘的夏天》、《七日间的幽灵，第八日的女友》、《与你相约在未来的七月雪》。五十岚雄策老师的故事一般最后都有一个挺幸福的结局，相比于那种淡淡的忧伤，五十岚雄策老师的作品最后一般都是一种淡淡的甜味。读多了令人潸然泪下的故事之后，不妨试试，转换一下心情吧。","time":"2020-09-20"},{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-7a1431f6a3283554a1407f0eb134bf90_720w.jpg","text":"最近发现vscode更新后越来越好用了，大家可以尝试一下哟o(^▽^)o","time":"2020-11-15"},{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-99c37fecb7a9d59389ab64d3a4be5537_720w.jfif","text":"开始了一个新的内容“每日一题”，应该会记录一些我现在刷的题，争取做到每天更新(ง •_•)ง","time":"2020-11-19"},{"author":"sola","img":"https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-759dafe4b117a3a8be94423e56c476eb_720w.jfif","text":"最近一连串考试终于是暂且告一段落了，之后大概就会恢复正常更新速度吧o(*≧▽≦)ツ","time":"2020-12-04"}]');
         talkindex = t.length - 1;
         for (var i = t.length - 1; i >= 0; i--) {
             var d = {};
@@ -555,7 +555,7 @@
                 <img src="' + talks[i].img + '" class="talkimg"> \
                 <div class="ainfo">\
                     <div class="ainfo-intro">\
-                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1605886131796">\
+                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1607097500309">\
                         <div class="author">' + talks[i].author + '</div>·\
                         <div class="time">' + talks[i].time + '</div>\
                     </div>\
@@ -568,7 +568,7 @@
             <div class="talk" v-for="t in talks"> \
                 <div class="ainfo">\
                     <div class="ainfo-intro">\
-                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1605886131796">\
+                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1607097500309">\
                         <div class="author">' + talks[i].author + '</div>·\
                         <div class="time">' + talks[i].time + '</div>\
                     </div>\
