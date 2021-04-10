@@ -296,7 +296,7 @@
         <a onclick="showAaplayer()"><i style="font-size: 20px;"><img
                     src='https://solahome.github.io/media/images/music.png' alt="音乐播放器" class="musicbtn"></i></a>
         <div class="avatar-border">
-            <img src="https://solahome.github.io/images/avatar.png?v=1618020955835" class="avatar">
+            <img src="https://solahome.github.io/images/avatar.png?v=1618024231211" class="avatar">
         </div>
         <div class="sitename">sola的小屋</div>
         <span class="describtion" data-text='["故事的结尾总写在开头"]'>&nbsp;</span>
@@ -483,8 +483,8 @@
         var ptitle = $("#ptitle").html();
         var rootaddr = $("#rootaddr").html();
         pl = pl.replace(rootaddr, "");
-        var appid = '';
-        var appkey = '';
+        var appid = 'rf25Ik1FHQCXwBBgkyhoyuqf-MdYXbMMI';
+        var appkey = 'bpiBy5JY0rdtAb3l3YCRkRdx';
         console.log(appid, appkey)
         if (AV == undefined)
             AV.init({
@@ -651,7 +651,7 @@
                 <img src="' + talks[i].img + '" class="talkimg"> \
                 <div class="ainfo">\
                     <div class="ainfo-intro">\
-                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1618020955835">\
+                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1618024231211">\
                         <div class="author">' + talks[i].author + '</div>·\
                         <div class="time">' + talks[i].time + '</div>\
                     </div>\
@@ -664,7 +664,7 @@
             <div class="talk" v-for="t in talks"> \
                 <div class="ainfo">\
                     <div class="ainfo-intro">\
-                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1618020955835">\
+                        <img class="intro1" src="https://solahome.github.io/images/avatar.png?v=1618024231211">\
                         <div class="author">' + talks[i].author + '</div>·\
                         <div class="time">' + talks[i].time + '</div>\
                     </div>\
@@ -1218,7 +1218,53 @@ CPU和主存储器之间一般通过系统总线进行连接。 以个人计算�
                     <div id="comment" class="comment" style="background: white">
                         <div class="commentcontainer">
                             
-                            <p>请到客户端“主题--自定义配置--valine”中填入ID和KEY</p>
+                            <style>
+    @media screen and (min-width: 1300px) {
+        .veditor::placeholder {
+            color: #b3b3b3;
+            font-size: 18px;
+            text-align: center;
+            line-height: 3rem;
+            font-family: kaiti;
+        }
+    }
+</style>
+
+<body>
+    <div id="vcomments">
+    </div>
+    <script src="https://solahome.github.io/media/js/valine.min.js"></script>
+    <script src="https://sdk.jinrishici.com/v2/browser/jinrishici.js" charset="utf-8"></script>
+    <script>
+        var valine = new Valine();
+        var curpath = window.location.pathname;
+        if (curpath[curpath.length - 1] != '/')
+            curpath += '/'
+        valine.init({
+            el: '#vcomments',
+            appId: 'rf25Ik1FHQCXwBBgkyhoyuqf-MdYXbMMI',
+            appKey: 'bpiBy5JY0rdtAb3l3YCRkRdx',
+            notify: true,
+            verify: false,
+            avatar: 'retro',
+            pageSize: 10,
+            placeholder: '既然来了，何不畅所欲言呢？',
+            visitor: true, // 阅读量统计
+            recordIP: true,
+            path: curpath //[重点] 记得添加path路径
+        });
+    </script>
+    <script type="text/javascript">
+        var jrsc = '既然来了，何不畅所欲言呢？';
+        jinrishici.load(function (result) {
+            // 自己的处理逻辑
+            jrsc = result.data.content + "\n「" + result.data.origin.title + "」" + result.data.origin
+                .dynasty + " · " + result.data.origin.author;
+        });
+    </script>
+
+</body>
+                            <div class="clear"></div>
                             
                         </div>
                     </div>
