@@ -1,186 +1,21 @@
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0">
-    <meta name="description" content="
-Python入门
-Python和其他大多数计算机语言一样，相比于其他的入门语言，比如说C语言，Python的语法甚至相对更简单一些（比如数字与字符串在一些情况下甚至不用int和char等来进行区分），这些会让Python入门相对更加容易，..." />
-    <meta name="keywords" content="Python,Python入门" />
-    <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
-    
-    <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/styles/default.min.css">
-    
-    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/highlight.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/clipboard.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/css/live2d.css">
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
-    <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/5.13.1/css/all.min.css" rel="stylesheet">
-    <!-- 数学公式 -->
-    
-    <title>sola的小屋</title>
-    
-    <style>
-        .markdownIt-TOC {
-            margin-left: 28%;
-            padding-left: 2px;
-            width: 80%;
-        }
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+<link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/css/live2d.css">
+<link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
+<link rel="stylesheet" href="https://solahome.github.io/media/css/font-awesome.css">
+<title>sola的小屋</title>
 
-        .markdownIt-TOC li {
-            padding-left: 8%;
-        }
-    </style>
-    
-</head>
 
 <body>
-    <div id="landlord">
-        <div class="message" style="opacity:0"></div>
-        <canvas id="live2d" width="240" height="250" class="live2d"></canvas>
-    </div>
-    <div id="domainname" style="display:none">https://solahome.github.io</div>
     <!-- 响应式布局，针对PC端内容显示 -->
     <div id="content">
-        <div>
-            <div id="bar">
-                <head>
-  <!-- 引入Bootstrap核心样式文件 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/css/bootstrap.min.css">
-</head>
-<style>
-  .navmobile {
-    z-index: 15;
-    max-height: 40vh;
-    overflow-y: scroll;
-    overflow-x: hidden;
-  }
-
-  @media screen and (max-width: 1200px) {
-    .navbar {
-      max-width: 100vw;
-    }
-  }
-
-  @media screen and (max-width:1200px) and (min-width: 768px) {
-    @media (min-width: 768px) {
-      .navbar-nav {
-        float: right;
-        margin: 0;
-      }
-    }
-  }
-
-  @media screen and (max-width:768px) {
-    .mbapspan {
-      padding: 0;
-    }
-  }
-</style>
-<div class="pjaxloading"  onclick="pjaxloadingClose()">
-  <div class="loadingbackground"></div>
-  <div id="loading">
-    <div class="loading">
-    </div>
-  </div>
-</div>
-<nav class="navbar navbar-inverse navbar-fixed-top navmobile">
-  <div class="container-fluid">
-    <!-- Brand and toggle get grouped for better mobile display -->
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#barmenu"
-        aria-expanded="false" id="barbutton">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <a data-pjax class="navbar-brand" href="https://solahome.github.io">sola的小屋&nbsp;&nbsp;|</a>
-      <span class="navbar-brand mbapspan"><i id="mbaplayer" class="fa fa-play-circle-o" aria-hidden="true"
-          style="font-size: 28px;top: 12px;position: absolute;" onclick="aplayerPlay();"></i></span>
-    </div>
-
-    <!-- Collect the nav links, forms, and other content for toggling -->
-    <div class="collapse navbar-collapse" id="barmenu">
-      <ul class="nav navbar-nav">
-        
-        
-        <li>
-          <a data-pjax href="/">
-            首页
-          </a>
-        </li>
-        
-        
-        
-        <li>
-          <a data-pjax href="/archives">
-            归档
-          </a>
-        </li>
-        
-        
-        
-        <li>
-          <a data-pjax href="/tags">
-            标签
-          </a>
-        </li>
-        
-        
-        
-        <li>
-          <a data-pjax href="/post/about">
-            关于
-          </a>
-        </li>
-        
-        
-        
-        <li><a data-pjax href="https://solahome.github.io/talk">说说</a></li>
-        
-          
-        <li><a data-pjax href="https://solahome.github.io/friends">友链</a></li>
-
-        
-        </ul>
-      </div><!-- /.navbar-collapse -->
-    </div><!-- /.container-fluid -->
-  </nav>
-
-
-  <!-- 引入jQuery核心js文件 -->
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
-  <script>
-    let btstate = false;
-    var bt = $("#barbutton");
-    var bm = $("#barmenu");
-    bt.click(function () {
-      dropdown();
-    })
-    function dropdown() {
-      console.log(btstate);
-      //下拉
-      if (btstate == false) {
-        bt.removeClass("collapsed");
-        bt.attr("aria-expanded", "true");
-        bm.attr("aria-expanded", "true")
-        bm.fadeIn(700);
-        btstate = true;
-      }
-      else {
-        bt.addClass("collapsed");
-        bt.attr("aria-expanded", "false");
-        bm.removeClass("in");
-        bm.hide();
-        bm.attr("aria-expanded", "false");
-        btstate = false;
-      }
-    }
-  </script> 
-            </div>
+        <div class="nav-large">
             <div class="row">
+                
                 <div class="side"><head>
     <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
@@ -1016,7 +851,6 @@ Python和其他大多数计算机语言一样，相比于其他的入门语言�
         }
     </script>
     </div>
-                
                 <div id="tab1" class="tab">
                     <div class="bars">
                         <span></span>
@@ -1025,222 +859,235 @@ Python和其他大多数计算机语言一样，相比于其他的入门语言�
                     </div>
                     <div class="close"></div>
                 </div>
-                <div class="col-md-1 col-lg-3"></div>
-                <div id="main" class="col-xs-12 col-sm-12 col-md-12 col-lg-7">
-                    <link rel="stylesheet" href="https://solahome.github.io/media/css/font-awesome.css">
+                <div class="col-lg-3"></div>
+                <div class="mobilebar"><head>
+  <!-- 引入Bootstrap核心样式文件 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/css/bootstrap.min.css">
+</head>
+<style>
+  .navmobile {
+    z-index: 15;
+    max-height: 40vh;
+    overflow-y: scroll;
+    overflow-x: hidden;
+  }
 
-<body>
-    <div class="allcontent" id="postdetail">
-        <div class="postshow postpadding" style="padding-bottom: 0;">
-            
-            <div class="postdetailimg">
-                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-c326fcfdd903de8535927295f821224c_720w.jfif" class="postimage" style="cursor:auto">
+  @media screen and (max-width: 1200px) {
+    .navbar {
+      max-width: 100vw;
+    }
+  }
+
+  @media screen and (max-width:1200px) and (min-width: 768px) {
+    @media (min-width: 768px) {
+      .navbar-nav {
+        float: right;
+        margin: 0;
+      }
+    }
+  }
+
+  @media screen and (max-width:768px) {
+    .mbapspan {
+      padding: 0;
+    }
+  }
+</style>
+<div class="pjaxloading"  onclick="pjaxloadingClose()">
+  <div class="loadingbackground"></div>
+  <div id="loading">
+    <div class="loading">
+    </div>
+  </div>
+</div>
+<nav class="navbar navbar-inverse navbar-fixed-top navmobile">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#barmenu"
+        aria-expanded="false" id="barbutton">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a data-pjax class="navbar-brand" href="https://solahome.github.io">sola的小屋&nbsp;&nbsp;|</a>
+      <span class="navbar-brand mbapspan"><i id="mbaplayer" class="fa fa-play-circle-o" aria-hidden="true"
+          style="font-size: 28px;top: 12px;position: absolute;" onclick="aplayerPlay();"></i></span>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="barmenu">
+      <ul class="nav navbar-nav">
+        
+        
+        <li>
+          <a data-pjax href="/">
+            首页
+          </a>
+        </li>
+        
+        
+        
+        <li>
+          <a data-pjax href="/archives">
+            归档
+          </a>
+        </li>
+        
+        
+        
+        <li>
+          <a data-pjax href="/tags">
+            标签
+          </a>
+        </li>
+        
+        
+        
+        <li>
+          <a data-pjax href="/post/about">
+            关于
+          </a>
+        </li>
+        
+        
+        
+        <li><a data-pjax href="https://solahome.github.io/talk">说说</a></li>
+        
+          
+        <li><a data-pjax href="https://solahome.github.io/friends">友链</a></li>
+
+        
+        </ul>
+      </div><!-- /.navbar-collapse -->
+    </div><!-- /.container-fluid -->
+  </nav>
+
+
+  <!-- 引入jQuery核心js文件 -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
+  <script>
+    let btstate = false;
+    var bt = $("#barbutton");
+    var bm = $("#barmenu");
+    bt.click(function () {
+      dropdown();
+    })
+    function dropdown() {
+      console.log(btstate);
+      //下拉
+      if (btstate == false) {
+        bt.removeClass("collapsed");
+        bt.attr("aria-expanded", "true");
+        bm.attr("aria-expanded", "true")
+        bm.fadeIn(700);
+        btstate = true;
+      }
+      else {
+        bt.addClass("collapsed");
+        bt.attr("aria-expanded", "false");
+        bm.removeClass("in");
+        bm.hide();
+        bm.attr("aria-expanded", "false");
+        btstate = false;
+      }
+    }
+  </script> </div>
+                    <div id="main" class="col-xs-12 col-sm-12 col-md-12 col-lg-7">
+                        <link rel="stylesheet" href="https://solahome.github.io/media/css/font-awesome.css">
+<div class="tag-container">
+    
+    <div class="postshow">
+        
+        <a data-pjax href="https://solahome.github.io/post/computercommunicationandnetwork01/">
+            <div id="post" style="width:100%">
+                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-cc04jngyb0ab5526fe7283581aguvj897.jpg" class="postimage">
+                <div class="posttitlebox">
+                    <div class="posttitle">
+                        计算机通讯与网络(01) 1.1 什么是因特网
+                    </div>
+                </div>
             </div>
-            <div class="postinfo-detail">
-                <div class="postdate"><i class="fa fa-calendar"></i>2020-07-26</div>
-                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 3 min read</div>
+            <div class="postinfo">
+                <div class="postdate"><i class="fa fa-calendar"></i>2021-04-12</div>
+                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 5 min read</div>
                 <div class="posttag">
                     
-                    <a data-pjax href="https://solahome.github.io/tag/iDbFrf1bf/" class="postlink">
-                        <i class="fa fa-tag"></i> Python
+                    <a data-pjax href="https://solahome.github.io/tag/FvBoy_1RN/" class="postlink">
+                        <i class="fa fa-tag"></i> 计算机通讯与网络
                     </a>
                     
-                    <a data-pjax href="https://solahome.github.io/tag/2Z9BH2X7P/" class="postlink">
-                        <i class="fa fa-tag"></i> Python入门
+                    <a data-pjax href="https://solahome.github.io/tag/Idm4e_KBMR/" class="postlink">
+                        <i class="fa fa-tag"></i> 计算机网络
                     </a>
                     
                 </div>
             </div>
-            
-        <div id="articlecontent">
-            <div id="texttitle" style="text-align: center">
-                <h2 id="ptitle">写给刚刚开始学习Python的初学者</h2>
-                <!-- id 将作为查询条件 -->
-                <div id="pl" style="display:none">https://solahome.github.io/post/topythonbeginner/</div>
-                <div id="rootaddr" style="display:none">https://solahome.github.io</div>
-                <span id="hotnum">
-                    <h4><i class="fa fa-eye" aria-hidden="true" style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i
-                            class="hotnum">loading...</i></h4>
-                </span>
-            </div>
-            <div class="text ">
-                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1354451040&auto=0&height=90"></iframe>
-<h3 id="python入门"><strong>Python入门</strong></h3>
-<p>Python和其他大多数计算机语言一样，相比于其他的入门语言，比如说C语言，Python的语法甚至相对更简单一些（比如数字与字符串在一些情况下甚至不用int和char等来进行区分），这些会让Python入门相对更加容易，但相对的也可能会带来一些问题。由于Python是一种解释性语言，所以与C语言有所不同，不太方便编译成如以.exe为后缀的可执行文件，所以有用C语言开发的<a href="https://cython.org/">CPython</a>解释器。也正是因为Python的一些特性，Python也存在一些安全性相关的问题。</p>
-<p>这里，我的个人建议是如果是第一次接触计算机编程，可以先从其他的语言开始（我的从C语言开始的），虽然也有朋友推荐通过简单的Python入门，不过个人感觉正是由于Python在某些语法的简化，可能会使一些编程的初学者不太注意一些细节，之后在学习其他编程语言时缺少一些规范性的基本知识。</p>
-<h3 id="python学习方法"><strong>Python学习方法</strong></h3>
-<p>和其他的一些语言一样，Python最好的学习方法就是看它的<a href="https://docs.python.org/zh-cn/3/">官方文档</a>，如果稍微有一些其他计算机语言的基础，直接活用<a href="https://docs.python.org/zh-cn/3/">官方文档</a>进行学习是效率和效果最好的。相比于现在已经停止更新的Python2版本，现在我们最好学习Python的Python3版本。如果需要在较短的时间掌握一定的基础，也可以挑选一些网上的视频快速观看，有一个大概的了解即可，之后遇到问题再去查找相关的解答。</p>
-<p>Python在数据分析和科学计算中有比较多的应用，因为Python具有较多的<em>包</em>来满足各种计算的需要，也正是因为这个，Python才更需要包管理和环境管理，不同版本的包之间是否相互协调是一个需要注意的问题（后面我会介绍一下使用<a href="https://www.anaconda.com">Anaconda</a>的进行环境管理中会遇到的一些问题的解决方案）。</p>
-<p>Python这一适合进行科学计算的性质使它广泛的被用于机器学习、深度学习中（我也是因为这一原因而接触到Python的）。</p>
-<p>最后推荐一个可以方便大家了解Python在运行中的内存处理机制的（即电脑上的Python代码是如何进行运行的）网站<a href="http://pythontutor.com/">http://pythontutor.com/</a>。</p>
+        </a>
+        
+</div>
 
-            </div>
-            <hr style="width: 80%;">
+</div>
+                        <div>
+                            <div class="pcpagi">
+    <div class="pagi">
+        <ul>
             
-            <div class="sharebtnContainer">
-                <button type="button" class="sharebtn">转载分享</button>
-            </div>
-            <div class="shareContainer">
-                <div class="share" style="height:30px;background: white;">
-                    <a class="qq" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/QQ.png" alt=""></i></a>
-                    <a class="wechat" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/wechat.png" alt=""></i></a>
-                    <a class="weibo" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/weibo.png" alt=""></i></a>
-                    <a class="qzone" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/qzone.png" alt=""></i></a>
-                    <a class="douban" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/douban.png" alt=""></i></a>
-                    <a class="facebook" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/facebook.png" alt=""></i></a>
-                    <a class="twitter" href=""><i><img class="shareicon"
-                                src="https://solahome.github.io/media/images/twitter.png" alt=""></i></a>
-                </div>
-            </div>
+            <li><a style="width:100px">&nbsp;</a></li>
             
-            
-            <div class="donateContainer">
-                <img src="https://solahome.github.io/media/images/donate.png" alt="" class="donateImg">
-            </div>
-            <div class="donateContainer">
-                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/donate.png" alt="" class="donate">
-            </div>
-            
-            <div class="postfooter">
-                <ul class="post-copyright">
-                    <li><strong>文章作者：</strong>sola</li>
-            <li><strong>原文链接：</strong>https://solahome.github.io/post/topythonbeginner/</li>
-            <li><strong>版权声明：</strong>本博客所有文章除特别声明外，均采用<i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA
-                许可协议。转载请注明出处！</li>
-            </ul>
-        </div>
-        <div id="otherpost">
-            
-            <a  data-pjax class="prev-post-pc" href="https://solahome.github.io/post/aboutpythonanaconda/"  style="color: black;">
-                <div id="ppcontainer">
+                    <li><a id="page1">1</a></li>
+                    <li><a id="page2" class="active">2</a></li>
+                    <li><a id="page3">3</a></li>
                     
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-dba93b19b74a89a4d808c1bce952f3b3_720w.jfif" style="width: 100%;" class="opimg">
-                    
-                    <h4 class="optitle">关于Python的包管理器Anaconda的一些常见问题</h4>
-                </div>
-            </a>
-            <div class="prev-post">
-                上一篇 <a  data-pjax href="https://solahome.github.io/post/aboutpythonanaconda/">关于Python的包管理器Anaconda的一些常见问题</a>
-            </div>
+            <li><a style="width:100px">&nbsp;</a></li>
             
-            
-            <a data-pjax class="next-post-pc" href="https://solahome.github.io/post/about/"  style="color: black;">
-                <div id="npcontainer">
-                    
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/ChMkJllkKMeIJ6CSAAdGdB9XHNIAAeWIAJf87AAB0aM436.jfif" style="width: 100%;" class="opimg">
-                    
-                    <h4 class="optitle">漫漫长路一相逢，便胜却人间无数</h4>
-                </div>
-            </a>
-            <div class="next-post">
-                下一篇 <a  data-pjax href="https://solahome.github.io/post/about/">漫漫长路一相逢，便胜却人间无数</a>
-            </div>
-            
-        </div>
+                </ul>
     </div>
-    </div>
-    </div>
-    <!-- 弹窗 -->
-    <div id="myModal" class="modal">
-        <img class="modal-content" id="img01">
-    </div>
-</body>
+</div>
+
+<div id="pagination-prev" style="display:none"> 
+</div>
+<div id="pagination-next" style="display:none"> </div>
+
+<div class="pagination-container">
+      
+    
+</div>
+
 <script>
-    //文章阅读热度
-    var pl = $("#pl").html();
-    var rootaddr = $("#rootaddr").html();
-    pl = pl.replace(rootaddr, "");
-    $("#hotnum").attr('id', pl);
-</script>
-                    <div class="toc-container">
-                        <ul class="markdownIt-TOC">
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#python%E5%85%A5%E9%97%A8"><strong>Python入门</strong></a></li>
-<li><a href="#python%E5%AD%A6%E4%B9%A0%E6%96%B9%E6%B3%95"><strong>Python学习方法</strong></a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-
-                    </div>
-                    <div class="tog">
-                        <div class="toggleContainer">
-                            <div class="toggle">
-                                <i class="fas fa-angle-double-up"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="comment" class="comment" style="background: white">
-                        <div class="commentcontainer">
-                            
-                            <style>
-    @media screen and (min-width: 1300px) {
-        .veditor::placeholder {
-            color: #b3b3b3;
-            font-size: 18px;
-            text-align: center;
-            line-height: 3rem;
-            font-family: kaiti;
+    var prevstr = document.getElementById("pagination-prev").innerHTML;
+    var nextstr = document.getElementById("pagination-next").innerHTML;
+    var page1 = document.getElementById("page1");
+    var page2 = document.getElementById("page2");
+    var page3 = document.getElementById("page3");
+    page1.innerHTML = '-';
+    page2.innerHTML = '1';
+    page3.innerHTML = '-';
+    if (prevstr.length > 5) {
+        if (prevstr.indexOf("page/") != -1) {
+            var prevnum = parseInt(prevstr.split("page/")[1]);
+            page1.innerHTML = prevnum;
+            page2.innerHTML = prevnum + 1;
+        } else {
+            page1.innerHTML = 1;
+            page2.innerHTML = 2;
         }
     }
-</style>
-
-<body>
-    <div id="vcomments">
-    </div>
-    <script src="https://solahome.github.io/media/js/valine.min.js"></script>
-    <script src="https://sdk.jinrishici.com/v2/browser/jinrishici.js" charset="utf-8"></script>
-    <script>
-        var valine = new Valine();
-        var curpath = window.location.pathname;
-        if (curpath[curpath.length - 1] != '/')
-            curpath += '/'
-        valine.init({
-            el: '#vcomments',
-            appId: 'rf25Ik1FHQCXwBBgkyhoyuqf-MdYXbMMI',
-            appKey: 'bpiBy5JY0rdtAb3l3YCRkRdx',
-            notify: true,
-            verify: false,
-            avatar: 'retro',
-            pageSize: 10,
-            placeholder: '既然来了，何不畅所欲言呢？',
-            visitor: true, // 阅读量统计
-            recordIP: true,
-            path: curpath //[重点] 记得添加path路径
-        });
-    </script>
-    <script type="text/javascript">
-        var jrsc = '既然来了，何不畅所欲言呢？';
-        jinrishici.load(function (result) {
-            // 自己的处理逻辑
-            jrsc = result.data.content + "\n「" + result.data.origin.title + "」" + result.data.origin
-                .dynasty + " · " + result.data.origin.author;
-        });
-    </script>
-
-</body>
-                            <div class="clear"></div>
-                            
+    if (nextstr.indexOf("page/") != -1) {
+        var nextnum = parseInt(nextstr.split("page/")[1]);
+        page3.innerHTML = nextnum;
+        page2.innerHTML = nextnum - 1;
+    }
+</script>
+                            <div style="padding-bottom:10%"></div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-1 col-lg-2"></div>
-                <div id="bg">
-                </div>
+                    <div class="col-lg-2"></div>
+                    
             </div>
             
-        
-        <head>
+                        <head>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css">
 </head>
 
@@ -1302,92 +1149,29 @@ Python和其他大多数计算机语言一样，相比于其他的入门语言�
         }
     }
 </script>
-        
-    </div>
-    
-    <div id="bgchoice" style="display: none">link
-    </div>
-    
-    <div id="bgurl" style="display:none">https://cdn.jsdelivr.net/gh/solahome/blogimage/img/ChMkJ1g2YQyITaVCAAutCotWG0YAAYB0wCFXlAAC60i793.jpg</div>
-    
+                        
+        </div>
+        <div id="bg">
+        </div>
+        <div id="bgchoice" style="display: none">link
+                    </div>
+                    
+                    <div id="bgurl" style="display:none">https://cdn.jsdelivr.net/gh/solahome/blogimage/img/ChMkJ1g2YQyITaVCAAutCotWG0YAAYB0wCFXlAAC60i793.jpg</div>
+                       
+            </div>
+</div>
+</div>
+
+        <div id="landlord">
+            <div class="message" style="opacity:0"></div>
+            <canvas id="live2d" width="240" height="250" class="live2d"></canvas>
+        </div>
+        <div id="domainname" style="display:none">https://solahome.github.io
+                </div>
 </body>
-<script>
-    var img = $("img");
-    for (var i = 0; i < img.length; i++) {
-        if (img.eq(i).attr("class") == undefined) {
-            img.eq(i).attr("class", "lazyload");
-            var imgsrc = img.eq(i).attr("src");
-            img.eq(i).attr("data-original", imgsrc);
-            img.eq(i).attr("src", "");
-            img.eq(i).hide();
-        }
-    }
 
-    function refreshImg(imgclass) {
-        // 获取弹窗
-        var modal = document.getElementById('myModal');
-
-        // 获取图片插入到弹窗 - 使用 "alt" 属性作为文本部分的内容
-        var img = document.getElementsByClassName(imgclass);
-        var modalImg = document.getElementById("img01");
-        var captionText = document.getElementById("caption");
-        for (var i in img) {
-            img[i].onclick = function () {
-                modal.style.display = "block";
-                modalImg.src = this.src;
-            }
-        }
-
-        // 图片关闭
-        var modalImg = document.getElementById('img01');
-        // 鼠标点击模型外区域关闭登录框
-        window.onclick = function (event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-            if (menupos == 'left')
-                return true;
-            if (event.target == social) {
-                social.style.display = "none";
-            }
-        }
-    }
-
-</script>
-<script>
-    hljs.initHighlightingOnLoad();
-</script>
-<script>
-    //寻找所有code标签，加复制按钮鸭！(行内代码除外)
-    var codes = document.getElementsByTagName('code');
-    if (codes.length) {
-        for (var i = 0; i < codes.length; i++) {
-            //高度/行高=文本行数
-            // var rowNum=Math.round(codes[i].height()/parseFloat(codes[i].css('line-height')));
-            // console.log("当前有"+rowNum+"行");
-            var code_id = "code_id_" + i;
-            codes[i].setAttribute("id", code_id);
-            var ci = "#" + code_id;
-            var codedot = $(ci);
-            var rowNum = Math.round(codedot.height() / parseFloat(codedot.css('line-height')));
-            if (rowNum <= 1) continue;
-            var btn = document.createElement("button");
-            btn.setAttribute("class", "copybt");
-            btn.setAttribute("data-clipboard-target", "#" + code_id);
-            btn.innerHTML = '复制代码';
-            codes[i].parentNode.insertBefore(btn, codes[i]);
-        }
-    };
-    var cop = new ClipboardJS('.copybt');
-    cop.on('success', function (e) {
-        e.trigger.innerHTML = "复制成功~"
-        e.trigger.style.background = "#894e54"
-        e.clearSelection();
-    });
-    cop.on('error', function (e) {
-        e.clearSelection();
-    });
-</script>
+</html>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
 
 <script type="text/javascript">
     var message_Path = '/live2d/'
@@ -1399,23 +1183,6 @@ Python和其他大多数计算机语言一样，相比于其他的入门语言�
     loadlive2d("live2d", "https://solahome.github.io/media/live2d/assets/haru01.model.json");
 </script>
 
-<script>
-    $(function () {
-        $('.toggleContainer').click(function () {
-            $('html,body').animate({
-                scrollTop: '0px'
-            }, 800);
-        });
-        $(window).scroll(function () {
-            var st = $(window).scrollTop();
-            if (st > 30) {
-                $(".toggleContainer").fadeIn(400);
-            } else {
-                $(".toggleContainer").fadeOut(100);
-            }
-        });
-    });
-</script>
 
 <script>
     var bgchoice = $('#bgchoice').html();
@@ -1425,112 +1192,10 @@ Python和其他大多数计算机语言一样，相比于其他的入门语言�
         for (var i = 0; i < 3; i++)
             bgurl = bgurl.replace("\\", "/");
     bg.css("background", "url('" + bgurl + "')");
-</script>
 
-
-<script src="https://solahome.github.io/media/js/index.js"></script>
-
-
-
-<!-- 动态更改上(下)一篇博客图片框长宽 -->
-<script>
-    npcontainer = document.querySelector('#npcontainer');
-    npstyle = window.getComputedStyle(npcontainer, null);
-    npwidth = npstyle.width;
-    npheight = 0.6 * Number(npwidth.replace("px", ""));
-    npheight = npheight.toString() + "px";
-    var op = $(".opimg");
-    op.css("height", npheight);
-</script>
-
-<script src="https://solahome.github.io/media/share/dist/Share.js"></script>
-
-<script>
-    var avatarSrc = $(".avatar").attr("src");
-    var dp = document.getElementsByClassName("describtion")[0].innerHTML;
-</script>
-
-
-<script>
-    var title = document.getElementById("texttitle").getElementsByTagName("h2");
-
-    var share = new Share('.share', {
-        title: title[0].innerHTML,
-        initialized: true,
-        //默认获取网站描述
-        description: dp,
-        //网站图片默认获取的是设置的用户头像
-        image: avatarSrc,
-        //激活的分享网站
-        sites: ["weibo", "qq", "wechat", "douban", "qzone", "facebook", "twitter", "google"],
-        //微信分享PC端会生成二维码分享,移动端如果可以唤起微信最好
-        wechatQrcodeTitle: "微信扫一扫：分享", // 微信二维码提示文字
-        wechatQrcodeHelper: '<p>微信里扫一下二维码</p><p>便可将本文分享至朋友圈。</p>',
-        //关闭的网站分享
-        disabled: ['google', 'linkedin'],
-        wechatQrcodePosition: 'bottom'
-    });
-
-    //点击分享按钮展现出分享icons
-    var sharebtnTag = false;
-    $(".sharebtn").click(function () {
-        if (!sharebtnTag) {
-            $(".share").show();
-            sharebtnTag = true;
-        }
-        else {
-            $(".share").hide();
-            sharebtnTag = false;
-        }
-    })
-
-    var donatebtnTag = false;
-    $(".donateImg").click(function () {
-        if (!donatebtnTag) {
-            $(".donate").show();
-            donatebtnTag = true;
-        }
-        else {
-            $(".donate").hide();
-            donatebtnTag = false;
-        }
-    })
-
-    //加载后的事件同步（阅读量、移动端评论等
     window.onload = function () {
-        getHotnum();
-        var sharepc = $(".share").eq(0).html();
-        $(".share").eq(1).html(sharepc);
-        document.getElementById("veditor").setAttribute("placeholder", jrsc);
         aplayerbtnInit();
     }
 </script>
 
-
-<script>
-    jQuery(document).ready(function ($) {
-        function lazyload() {
-            var oLazyload = $("img.lazyload"),
-                fLazyload = function (hLazyload) {
-                    var nLazyload = $(window).height() + $(document).scrollTop();
-                    oLazyload.each(function () {
-                        $(this).offset().top < nLazyload && ($(this).trigger("appear"), oLazyload =
-                            oLazyload.not(this));
-                    }), 0 == oLazyload.length && $(window).unbind("scroll", fLazyload);
-                };
-            oLazyload.each(function () {
-                $(this).one("appear", function () {
-                    $(this).attr("src", $(this).attr("data-original"));
-                    $(this).fadeIn(500);
-                });
-            }), $(window).bind("scroll", fLazyload), fLazyload();
-        }
-        lazyload();
-        refreshImg("lazyload");
-    });
-</script>
-
-<!-- <script src="https://solahome.github.io/media/js/av-min.js"></script> -->
-<!-- <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@3.13.0/dist/av-min.js"></script> -->
-<!-- <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-live-query-min.js"></script> -->
-
+<script src="https://solahome.github.io/media/js/index.js"></script>

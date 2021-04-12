@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://solahome.github.io</id>
     <title>sola的小屋</title>
-    <updated>2021-04-10T03:17:42.216Z</updated>
+    <updated>2021-04-12T11:32:04.636Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://solahome.github.io"/>
     <link rel="self" href="https://solahome.github.io/atom.xml"/>
@@ -10,6 +10,76 @@
     <logo>https://solahome.github.io/images/avatar.png</logo>
     <icon>https://solahome.github.io/favicon.ico</icon>
     <rights>All rights reserved 2021, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[计算机通讯与网络(01) 1.1 什么是因特网]]></title>
+        <id>https://solahome.github.io/post/computercommunicationandnetwork01/</id>
+        <link href="https://solahome.github.io/post/computercommunicationandnetwork01/">
+        </link>
+        <updated>2021-04-12T09:55:32.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1824222230&auto=0&height=90"></iframe>
+<p>[TOC]</p>
+<h1 id="11-什么是因特网">1.1 什么是因特网</h1>
+<h2 id="111-因特网的总概述">1.1.1 因特网的总概述</h2>
+<p>因特网是一个世界范围内的计算机网络，它将散落在世界各地的各种计算设备连接在一起。</p>
+<p>现在因特网已经互联了遍及全世界数10亿的计算设备，预计到2020年，可能会增加到250亿的设备连接在因特网上。</p>
+<hr>
+<h2 id="112-因特网的特点">1.1.2 因特网的特点</h2>
+<h3 id="1121-因特网的硬件构成">1.1.2.1 因特网的硬件构成</h3>
+<p>对于复杂的因特网，虽然它有成千上万的设备连接在一起，但是归纳起来它只有三大类的设备：</p>
+<h4 id="11211-第一类主机端系统">1.1.2.1.1 第一类：主机（端系统）</h4>
+<p>包括像PC机、服务器、智能手机等等，我们常用的是智能设备。</p>
+<h4 id="11212-第二类在网络中进行数据接收和转发的设备">1.1.2.1.2 第二类：在网络中进行数据接收和转发的设备</h4>
+<p>包括像路由器和交换机。</p>
+<h4 id="11213-第三类连接各个设备的物理链路">1.1.2.1.3 第三类：连接各个设备的物理链路</h4>
+<p>包括有光纤、同轴电缆、双绞线、无线电等等的设备</p>
+<hr>
+<h3 id="1122-构成因特网的软件">1.1.2.2 构成因特网的软件</h3>
+<p>在这个复杂的因特网上面所跑的软件，包括在每个主机上所构成的一系列的协议：</p>
+<h4 id="11221-应用层协议">1.1.2.2.1 应用层协议</h4>
+<p>比如HTTP协议、FTP协议</p>
+<h4 id="11222-传输层协议">1.1.2.2.2 传输层协议</h4>
+<p>比如说TCP协议、UDP协议</p>
+<h4 id="11223-网络层协议">1.1.2.2.3 网络层协议</h4>
+<p>比如说IP协议</p>
+<h4 id="11224-链路层协议">1.1.2.2.4 链路层协议</h4>
+<p>比如说ppp协议、以太网协议</p>
+<h4 id="11225-物理层协议">1.1.2.2.5 物理层协议</h4>
+<p><strong>上面所有的协议构成了一个复杂的协议栈，这些协议从软件的角度，可以看得到因特网的复杂性。</strong></p>
+<hr>
+<h2 id="113-什么是协议">1.1.3 什么是协议</h2>
+<h3 id="1131-协议的组成">1.1.3.1 协议的组成</h3>
+<p>人类活动是怎么进行交流的？我们人类是要通过语言进行互相交流的。<br>
+一种语言它定义了一些什么内容呢？主要是三个方面：第一个是要定义语法；第二个要定义语义；第三个要定义同步，也就是说要定义一个时序，谁先说谁后说。</p>
+<p><strong>在计算机的协议里面，也需要定义三个部分：包括语法、语义和同步关系。</strong></p>
+<h4 id="11311-语法">1.1.3.1.1 语法</h4>
+<p>主要要定义一些消息的格式：就是这个什么数据该放在什么地方。</p>
+<h4 id="11312-语义">1.1.3.1.2 语义</h4>
+<p>描述网络实体之间发送的数据消息的含义。</p>
+<h4 id="11313-同步">1.1.3.1.3 同步</h4>
+<p>描述在发送消息的过程中间，事件谁先发生谁后发生。</p>
+<hr>
+<h3 id="1132计算机通讯的过程">1.1.3.2计算机通讯的过程</h3>
+<p>首先发送请求进行通讯的请求报文，第二步收到对方的请求以后，对方会发一个响应报文表示现在可以响应通讯。</p>
+<p>接下来就开始进行具体的通讯了，计算机通讯它可能请求对方说现在要一个这样的一个文件内容，对方就会回答你要的文件，它把它的内容传给请求方。</p>
+<hr>
+<h2 id="114-因特网的结构">1.1.4 因特网的结构</h2>
+<p>这样一个复杂的因特网，实际上它是有很多个不同的小网互联起来，形成的一个因特网。我们称因特网是万网之网，因特网就是指internet，也就是说很多网互联起来形成的网络，这些互联的网络它可能会包括一些子网：</p>
+<h3 id="1141-第一类接入网">1.1.4.1 第一类：接入网</h3>
+<p>也就是最先用到的边缘系统所要用的网络，通过接入网连到因特网上去。</p>
+<h3 id="1142-第二类区域主干网">1.1.4.2 第二类：区域主干网</h3>
+<h3 id="1143-第三类主干网">1.1.4.3 第三类：主干网</h3>
+<p>通过这些不同的网络互联起来，形成了我们的因特网。</p>
+<hr>
+<h2 id="114-因特网上的服务">1.1.4 因特网上的服务</h2>
+<p>在因特网上面存在有大量的各种不同的服务，所以才有了成千上万的用户来使用因特网。</p>
+<h3 id="1141因特网能有这么多的服务的原因">1.1.4.1因特网能有这么多的服务的原因</h3>
+<p>因特网向应用程序提供了统一的服务的基础设施,用一个统一的套接字编程接口来为大家服务，不同的应用都用统一的接口来编制自己的应用程序。</p>
+<h4 id="举例">举例</h4>
+<p>自动驾驶、智能家电、智慧购物、社交网络、新闻浏览、电子游戏</p>
+<h2 id="reference">Reference</h2>
+<p><a href="https://www.icourse163.org/learn/HUST-1460870162#/learn/content?type=detail&amp;id=1240871076&amp;cid=1262752048">华中科技大学计算机通讯与网络 第一章 计算机网络和因特网概述 1.1 什么是因特网</a></p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[每日一题：1002 写出这个数]]></title>
         <id>https://solahome.github.io/post/everydayproblempatb1002/</id>
@@ -468,23 +538,6 @@ error: stray '\240' in program
 <p>添加环境变量，关于这个的说法比较多，其实它的意思可以理解成就是你是否可以在系统命令行中使用conda命令。如果添加了，就可以在系统命令行中直接使用conda命令，否则就只能在Anaconda Powershell Prompt和Anaconda Prompt中使用。</p>
 </li>
 </ol>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[写给刚刚开始学习Python的初学者]]></title>
-        <id>https://solahome.github.io/post/topythonbeginner/</id>
-        <link href="https://solahome.github.io/post/topythonbeginner/">
-        </link>
-        <updated>2020-07-26T15:44:41.000Z</updated>
-        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1354451040&auto=0&height=90"></iframe>
-<h3 id="python入门"><strong>Python入门</strong></h3>
-<p>Python和其他大多数计算机语言一样，相比于其他的入门语言，比如说C语言，Python的语法甚至相对更简单一些（比如数字与字符串在一些情况下甚至不用int和char等来进行区分），这些会让Python入门相对更加容易，但相对的也可能会带来一些问题。由于Python是一种解释性语言，所以与C语言有所不同，不太方便编译成如以.exe为后缀的可执行文件，所以有用C语言开发的<a href="https://cython.org/">CPython</a>解释器。也正是因为Python的一些特性，Python也存在一些安全性相关的问题。</p>
-<p>这里，我的个人建议是如果是第一次接触计算机编程，可以先从其他的语言开始（我的从C语言开始的），虽然也有朋友推荐通过简单的Python入门，不过个人感觉正是由于Python在某些语法的简化，可能会使一些编程的初学者不太注意一些细节，之后在学习其他编程语言时缺少一些规范性的基本知识。</p>
-<h3 id="python学习方法"><strong>Python学习方法</strong></h3>
-<p>和其他的一些语言一样，Python最好的学习方法就是看它的<a href="https://docs.python.org/zh-cn/3/">官方文档</a>，如果稍微有一些其他计算机语言的基础，直接活用<a href="https://docs.python.org/zh-cn/3/">官方文档</a>进行学习是效率和效果最好的。相比于现在已经停止更新的Python2版本，现在我们最好学习Python的Python3版本。如果需要在较短的时间掌握一定的基础，也可以挑选一些网上的视频快速观看，有一个大概的了解即可，之后遇到问题再去查找相关的解答。</p>
-<p>Python在数据分析和科学计算中有比较多的应用，因为Python具有较多的<em>包</em>来满足各种计算的需要，也正是因为这个，Python才更需要包管理和环境管理，不同版本的包之间是否相互协调是一个需要注意的问题（后面我会介绍一下使用<a href="https://www.anaconda.com">Anaconda</a>的进行环境管理中会遇到的一些问题的解决方案）。</p>
-<p>Python这一适合进行科学计算的性质使它广泛的被用于机器学习、深度学习中（我也是因为这一原因而接触到Python的）。</p>
-<p>最后推荐一个可以方便大家了解Python在运行中的内存处理机制的（即电脑上的Python代码是如何进行运行的）网站<a href="http://pythontutor.com/">http://pythontutor.com/</a>。</p>
 ]]></content>
     </entry>
 </feed>
