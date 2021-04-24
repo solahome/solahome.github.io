@@ -3,8 +3,13 @@
     <meta name="viewport"
         content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0">
     <meta name="description" content="
-最近准备写一下简单的C++代码，因为不太喜欢vc++和codeblocks的图形化界面，又不太想用Visual Studio这种大型的IDE，所以就配置了一下之前用的Sublime Text3，为了检测环境变量是否配置成功，我从复制了一段..." />
-    <meta name="keywords" content="C++,C" />
+人工智能 artificial intelligence
+以机器为载体，展式出的人类智能。
+也被称为机器智能 machine intelligence
+对人类智能的模拟：
+符号主义-逻辑推理 概念符号化、从判断到新结论
+问题求解-探寻搜索..." />
+    <meta name="keywords" content="读书笔记,机器学习,深度学习" />
     <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
     
@@ -1076,29 +1081,35 @@
         <div class="postshow postpadding" style="padding-bottom: 0;">
             
             <div class="postdetailimg">
-                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-53ded6ea4345abe966b2b79e00fd0724_720w.jfif" class="postimage" style="cursor:auto">
+                
+                <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/mmexport1589964711196.jfif" class="postimage">
+                
             </div>
             <div class="postinfo-detail">
-                <div class="postdate"><i class="fa fa-calendar"></i>2020-08-06</div>
-                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 2 min read</div>
-                <div class="posttag">
-                    
-                    <a data-pjax href="https://solahome.github.io/tag/J-Xcl_TvE/" class="postlink">
-                        <i class="fa fa-tag"></i> C++
-                    </a>
-                    
-                    <a data-pjax href="https://solahome.github.io/tag/GZY5kSxl9h/" class="postlink">
-                        <i class="fa fa-tag"></i> C
-                    </a>
-                    
-                </div>
+                <div class="postdate"><i class="fa fa-calendar"></i>2021-04-24</div>
+            <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 7 min read</div>
+            <div class="posttag">
+                
+                <a data-pjax href="https://solahome.github.io/tag/ipNDB9wVs/" class="postlink">
+                    <i class="fa fa-tag"></i> 读书笔记
+                </a>
+                
+                <a data-pjax href="https://solahome.github.io/tag/UgBiNdhnS_/" class="postlink">
+                    <i class="fa fa-tag"></i> 机器学习
+                </a>
+                
+                <a data-pjax href="https://solahome.github.io/tag/fhOwFCpgad/" class="postlink">
+                    <i class="fa fa-tag"></i> 深度学习
+                </a>
+                
             </div>
-            
+        </div>
+        
         <div id="articlecontent">
             <div id="texttitle" style="text-align: center">
-                <h2 id="ptitle">C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program</h2>
+                <h2 id="ptitle">读书笔记(一) 人工智能导论 绪论</h2>
                 <!-- id 将作为查询条件 -->
-                <div id="pl" style="display:none">https://solahome.github.io/post/c-error-stray-302-240-in-program/</div>
+                <div id="pl" style="display:none">https://solahome.github.io/post/readingnotes001/</div>
                 <div id="rootaddr" style="display:none">https://solahome.github.io</div>
                 <span id="hotnum">
                     <h4><i class="fa fa-eye" aria-hidden="true" style="color: #FF8C00;"></i>&nbsp;&nbsp;热度</i>: <i
@@ -1106,26 +1117,104 @@
                 </span>
             </div>
             <div class="text ">
-                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=469719260&auto=0&height=90"></iframe>
-<p>最近准备写一下简单的C++代码，因为不太喜欢vc++和codeblocks的图形化界面，又不太想用Visual Studio这种大型的IDE，所以就配置了一下之前用的Sublime Text3，为了检测环境变量是否配置成功，我从复制了一段C++常见的“hello world”代码：</p>
-<h3 id="源代码"><strong>源代码</strong></h3>
-<pre><code class="language-c++">#include&lt;cstdio&gt;
-int main(void)
-{
-	printf(&quot;Hello, world!&quot;);
-	return 0;
-}
-</code></pre>
-<p><strong>注意：你现在看到的上面的这段代码是我已经修改过的正确的代码。</strong></p>
-<h3 id="错误信息"><strong>错误信息</strong></h3>
-<p>源代码与上面这段代码从直观上可以说没有什么明显的区别，代码在运行过程中出现了如下两种报错信息：</p>
-<pre><code>error: stray '\302' in program
-error: stray '\240' in program
-</code></pre>
-<h3 id="解决方式"><strong>解决方式</strong></h3>
-<p>这个问题看起来一般是很少会遇到的，大概率程序本身是没有语法错误，它的问题就出在源代码中可能含有一些隐藏的非ascii字符，或者是代码的编码方式有所不同。<br>
-一个常见的情况就是复制的时候，有些空格并不是普通的空格，但我们却没有看出来。<br>
-简单的解决办法是将出现空格的地方的空格去掉，在需要空格的地方将空格重新补上即可。</p>
+                <iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=469440680&auto=0&height=90"></iframe>
+<h1 id="人工智能-artificial-intelligence">人工智能 artificial intelligence</h1>
+<p>以机器为载体，展式出的人类智能。<br>
+也被称为机器智能 machine intelligence</p>
+<p>对人类智能的模拟：<br>
+符号主义-逻辑推理 概念符号化、从判断到新结论<br>
+问题求解-探寻搜索 由已有信息约束条件求解<br>
+数据驱动-机器学习 从数据出发发现内在模式<br>
+行为主义-强化学习 通过环境奖罚反馈施加最佳行动<br>
+博弈对抗-群体智能 从数据拟合优化解到均衡解</p>
+<h2 id="11-人工智能的起源">1.1 人工智能的起源</h2>
+<p>1955年8月《人工智能达特茅斯夏季研究项目提案》<br>
+A Proposal for the Dartmouth Summer Research Project on Artificial Intelligence<br>
+① 自动计算模拟人脑高级功能<br>
+② 使用通用语言进行计算机编程以模仿人脑推理<br>
+③ 神经元相互连接形成概念<br>
+④ 对计算复杂性的度量<br>
+⑤ 算法自我提升<br>
+⑥ 算法的抽象能力<br>
+⑦ 随机性与创造力</p>
+<p>人工智能是以机器为载体所实现的人类智能或生物智能。</p>
+<p>产生两个问题：<br>
+① 承载计算的器械如何产生？<br>
+从手工计算时代迈入自动计算时代</p>
+<p>② 如何用计算器模拟人工智能？<br>
+符号逻辑-以推理为核心<br>
+联结主义-统计机器学习<br>
+行为学派-环境交互中学习策略</p>
+<h2 id="12-可计算载体形式化与机械化">1.2 可计算载体：形式化与机械化</h2>
+<p>形式化系统：完备性、一致性、可判定性<br>
+1900年 算术公理的相容性<br>
+the compatibility of the arithmetical axioms<br>
+1931年 哥德尔不完备定理<br>
+1937年 图灵《论数字计算在决断难题中的应用》</p>
+<h2 id="13-智能计算方法">1.3 智能计算方法</h2>
+<h3 id="131-符号主义为核心的逻辑推理">1.3.1 符号主义为核心的逻辑推理</h3>
+<p>人工智能问题求解中的三大方法：推理、搜索、约束满足<br>
+推理：高度概括、抽象、严格化和精确化的符号系统<br>
+亚里士多德：三段论 syllogism<br>
+归纳 inductive 推理：从特殊到一般由具体到抽象<br>
+演绎 deductive 推理：从前提推导到结论<br>
+因果 causality 推理：判断事物间存在原因和结果的关系<br>
+因果模型 structural causal model, SCM<br>
+因果图 causal diagram</p>
+<p>推理由易到难程度分成三个层次：<br>
+① 关联 association 可直接从数据中计算得到统计相关<br>
+② 干预 intervention 无法直接从观测数据中计算得到统计相关<br>
+③ 反事实 counterfactual 某个事情已经发生了，则在相同环境中，<br>
+这个事情不发生会带来怎样的新结果</p>
+<p>&quot;反事实&quot;可以用来定义事物间的因果关系。<br>
+反事实框架 counterfactual framework 或 potential outcomes是一种推断因果关系的标准。<br>
+事实是指在某个特定变量<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>的影响下可观测到的状态或结果<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span><br>
+反事实是指在该特定变量<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>取负向淔时可观测到的状态或结果<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span><br>
+<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>与<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>B</mi><mo mathvariant="normal">′</mo></msup></mrow><annotation encoding="application/x-tex">B&#x27;</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.751892em;vertical-align:0em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.05017em;">B</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.751892em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span></span></span></span></span></span></span></span>的差异存在且在统计上是显著的，则说明条件变量与结果变量之间存在因果关系。</p>
+<p>归纳推理 如果<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>A</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">A_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.65952em;vertical-align:0em;"></span><span class="mord mathdefault">i</span></span></span></span>为若干取值），那么<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>：不是必然性<br>
+演绎推理 如果<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>,那么<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>：<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>是<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>的子集<br>
+因果推理 因为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>,所以<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>：因果性不是相关性</p>
+<p>逻辑推理推动了专家系流 expert system 的产生。</p>
+<h3 id="132-问题求解为核心的探寻搜索">1.3.2 问题求解为核心的探寻搜索</h3>
+<p>① 无信息搜索 uninformed search<br>
+盲目搜索方法：广度优先搜索、深度优先搜索等<br>
+② 有信息搜索 informed search 启发式搜索<br>
+贪婪最佳优先搜索 greedy best first search<br>
+<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi><mo>∗</mo></mrow><annotation encoding="application/x-tex">A*</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span><span class="mord">∗</span></span></span></span>搜索<br>
+③ 对抗搜索 adversarial search<br>
+博弈搜索 game search<br>
+在一个竞争的环境中，智能体 agents 之间通过竞争实现相反的利益，一方最大化这个利益，另一方最小化这个利益<br>
+最小最大搜索 minimax search<br>
+Alpha-Beta 剪枝搜索 pruning search<br>
+蒙特卡洛树搜索 Monte-Carlo tree search</p>
+<h3 id="133-数据驱动为核心的机器学习">1.3.3 数据驱动为核心的机器学习</h3>
+<p>数据驱动 data-drive 从数据出发，从承载表达某一概念的数据中直接学习该概念所涉及的模式，然后基于学习得到的模板对未知数据进行分类或识别。</p>
+<p>机器学习算法可分为监督学习，无监督学习、半监督学习。</p>
+<p>一些常见的概念：<br>
+假设空间 hypothesis space<br>
+卷积神经网络 convolutional neural network, CNN<br>
+池化层 pooling<br>
+激活函数 activation<br>
+全连接层 fully connected<br>
+误差后向传播 error back-propagation</p>
+<p>监督学习算法：回归分析、提升算法 boosting、支持向量机和决策树等判别学习方法，隐狄利克雷分布 latent dirichlet allocation, LDA 和隐马尔可夫链等生成式学习方法。<br>
+无监督学习算法：聚类降维（主成分分析）和期望极大expectation maximization, EM 算法等。</p>
+<h3 id="134-行为主义为核心的强化学习">1.3.4 行为主义为核心的强化学习</h3>
+<p>强化学习 reinforcement learning, RL 赋予智能体自监督学习能力，使其能够自主与环境交互，不故出序列决策，完成序列化形式的任务，向学会学习“learning to learn”这一能力塑造目标而努力。</p>
+<p>强化学习起源于行为主义理论，强化学习解决的是序贯决策优化问题，即智能体与环境不断效，在某个状态采取某一行为后进入一个新的状态，根据环境给出的奖励或惩罚反馈 reward 来改进策略，以求获得最大的累积奖惩 accumulated reward。</p>
+<p>马尔可夫决策过程 markov decision process. MDP<br>
+刻画了当前状态采取某一行动后进入后读状态，且因为采取了这一行动会从环境获得一定的奖励反馈或惩罚反馈的机制。</p>
+<p><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>Q</mi></mrow><annotation encoding="application/x-tex">Q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8777699999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">Q</span></span></span></span>学习<br>
+<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span></span></span></span>函数记录了某个状态下采取某一动作所能够收到的奖励值或惩罚值。<br>
+<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>Q</mi></mrow><annotation encoding="application/x-tex">Q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8777699999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">Q</span></span></span></span>学习可以为智能体构造一个状态一行为效用 state-action utility 矩阵，矩阵中行和列分别代表状态和行为，矩阵的行列值为某一状态下采取某个行为所能够获得的回报。<br>
+将<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span></span></span></span>函数参数化 parametrize,用神经网络来拟合<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span></span></span></span>函数，深度学习与强化学习结合形成<br>
+深度强化学习 deep reinforcement learning, DRL</p>
+<p>1.3.5博弈对抗为核心的决策智能，<br>
+博弈论 Game Theory<br>
+纳什均衡：非合作博弈 non-cooperation Games 及其均衡解定存在<br>
+现代博弈论推动机器学习从“数据拟合”过程中以“求取最优解”为核心向博弈对抗过程中“求取均衡解”为核心的转变。</p>
+<h1 id="reference">Reference</h1>
+<p>吴飞编著. 人工智能导论. 北京：高等教育出版社, 2020.05.</p>
 
             </div>
             <hr style="width: 80%;">
@@ -1163,36 +1252,24 @@ error: stray '\240' in program
             <div class="postfooter">
                 <ul class="post-copyright">
                     <li><strong>文章作者：</strong>sola</li>
-            <li><strong>原文链接：</strong>https://solahome.github.io/post/c-error-stray-302-240-in-program/</li>
+            <li><strong>原文链接：</strong>https://solahome.github.io/post/readingnotes001/</li>
             <li><strong>版权声明：</strong>本博客所有文章除特别声明外，均采用<i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA
                 许可协议。转载请注明出处！</li>
             </ul>
         </div>
         <div id="otherpost">
             
-            <a  data-pjax class="prev-post-pc" href="https://solahome.github.io/post/aboutscanfprintfcincoutchoose/"  style="color: black;">
-                <div id="ppcontainer">
-                    
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-aeeabc6532455758eadca76dae475.jpg" style="width: 100%;" class="opimg">
-                    
-                    <h4 class="optitle">关于scanf/printf及cin/cout在刷题时的选择</h4>
-                </div>
-            </a>
-            <div class="prev-post">
-                上一篇 <a  data-pjax href="https://solahome.github.io/post/aboutscanfprintfcincoutchoose/">关于scanf/printf及cin/cout在刷题时的选择</a>
-            </div>
             
-            
-            <a data-pjax class="next-post-pc" href="https://solahome.github.io/post/pythoneditor/"  style="color: black;">
+            <a data-pjax class="next-post-pc" href="https://solahome.github.io/post/principlesofcomputerorganization01/"  style="color: black;">
                 <div id="npcontainer">
                     
-                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-e12a5b7946e443adda652a65935f1af1_720w.jfif" style="width: 100%;" class="opimg">
+                    <img src="https://cdn.jsdelivr.net/gh/solahome/blogimage/img/v2-abecadbaeed38443452aebfb464423.jpg" style="width: 100%;" class="opimg">
                     
-                    <h4 class="optitle">Python编辑器的选择</h4>
+                    <h4 class="optitle">计算机发展历程</h4>
                 </div>
             </a>
             <div class="next-post">
-                下一篇 <a  data-pjax href="https://solahome.github.io/post/pythoneditor/">Python编辑器的选择</a>
+                下一篇 <a  data-pjax href="https://solahome.github.io/post/principlesofcomputerorganization01/">计算机发展历程</a>
             </div>
             
         </div>
@@ -1213,17 +1290,21 @@ error: stray '\240' in program
 </script>
                     <div class="toc-container">
                         <ul class="markdownIt-TOC">
-<li>
+<li><a href="#%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD-artificial-intelligence">人工智能 artificial intelligence</a>
 <ul>
-<li>
+<li><a href="#11-%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD%E7%9A%84%E8%B5%B7%E6%BA%90">1.1 人工智能的起源</a></li>
+<li><a href="#12-%E5%8F%AF%E8%AE%A1%E7%AE%97%E8%BD%BD%E4%BD%93%E5%BD%A2%E5%BC%8F%E5%8C%96%E4%B8%8E%E6%9C%BA%E6%A2%B0%E5%8C%96">1.2 可计算载体：形式化与机械化</a></li>
+<li><a href="#13-%E6%99%BA%E8%83%BD%E8%AE%A1%E7%AE%97%E6%96%B9%E6%B3%95">1.3 智能计算方法</a>
 <ul>
-<li><a href="#%E6%BA%90%E4%BB%A3%E7%A0%81"><strong>源代码</strong></a></li>
-<li><a href="#%E9%94%99%E8%AF%AF%E4%BF%A1%E6%81%AF"><strong>错误信息</strong></a></li>
-<li><a href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E5%BC%8F"><strong>解决方式</strong></a></li>
+<li><a href="#131-%E7%AC%A6%E5%8F%B7%E4%B8%BB%E4%B9%89%E4%B8%BA%E6%A0%B8%E5%BF%83%E7%9A%84%E9%80%BB%E8%BE%91%E6%8E%A8%E7%90%86">1.3.1 符号主义为核心的逻辑推理</a></li>
+<li><a href="#132-%E9%97%AE%E9%A2%98%E6%B1%82%E8%A7%A3%E4%B8%BA%E6%A0%B8%E5%BF%83%E7%9A%84%E6%8E%A2%E5%AF%BB%E6%90%9C%E7%B4%A2">1.3.2 问题求解为核心的探寻搜索</a></li>
+<li><a href="#133-%E6%95%B0%E6%8D%AE%E9%A9%B1%E5%8A%A8%E4%B8%BA%E6%A0%B8%E5%BF%83%E7%9A%84%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0">1.3.3 数据驱动为核心的机器学习</a></li>
+<li><a href="#134-%E8%A1%8C%E4%B8%BA%E4%B8%BB%E4%B9%89%E4%B8%BA%E6%A0%B8%E5%BF%83%E7%9A%84%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0">1.3.4 行为主义为核心的强化学习</a></li>
 </ul>
 </li>
 </ul>
 </li>
+<li><a href="#reference">Reference</a></li>
 </ul>
 
                     </div>
