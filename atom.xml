@@ -1,0 +1,812 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://solahome.github.io</id>
+    <title>sola的小屋</title>
+    <updated>2023-03-15T14:14:24.452Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://solahome.github.io"/>
+    <link rel="self" href="https://solahome.github.io/atom.xml"/>
+    <subtitle>故事的结尾总写在开头</subtitle>
+    <logo>https://solahome.github.io/images/avatar.png</logo>
+    <icon>https://solahome.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2023, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[Leetcode每日一题：9. 回文数]]></title>
+        <id>https://solahome.github.io/post/leetcode-mei-ri-yi-ti-palindrome-number/</id>
+        <link href="https://solahome.github.io/post/leetcode-mei-ri-yi-ti-palindrome-number/">
+        </link>
+        <updated>2023-03-14T08:16:51.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="9-回文数">9. 回文数</h2>
+<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=385781&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://leetcode.cn/problems/palindrome-number/">https://leetcode.cn/problems/palindrome-number/</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<h4 id="中等">中等</h4>
+<p>给你一个整数 x ，如果 x 是一个回文整数，返回 true ；否则，返回 false 。</p>
+<p>回文数是指正序（从左向右）和倒序（从右向左）读都是一样的整数。</p>
+<ul>
+<li>例如，121 是回文，而 123 不是。</li>
+</ul>
+<p>示例 1：</p>
+<pre><code>输入：x = 121
+输出：true
+</code></pre>
+<p>示例 2：</p>
+<pre><code>输入：x = -121
+输出：false
+解释：从左向右读, 为 -121 。 从右向左读, 为 121- 。因此它不是一个回文数。
+</code></pre>
+<p>示例 3：</p>
+<pre><code>输入：x = 10
+输出：false
+解释：从右向左读, 为 01 。因此它不是一个回文数。
+</code></pre>
+<p>提示：</p>
+<pre><code>-2^31 &lt;= x &lt;= 2^31 - 1
+</code></pre>
+<p><strong>进阶：你能不将整数转为字符串来解决这个问题吗？</strong></p>
+<h3 id="解题思路">解题思路</h3>
+<p>不转换为字符串解决问题最直接的办法就是将数倒过了，然后判断和原数是否相等，先判定是否为负数，如是负数直接返回false，时间复杂度O(logn)，空间复杂度O(1)</p>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-python">class Solution:
+    def isPalindrome(self, x: int) -&gt; bool:
+        s=0
+        x_raw=x
+        if x&lt;0:
+            return False
+        
+        else:
+            while x&gt;0:
+                k=x%10
+                x=x//10
+                s=s*10+k
+            if x_raw==s:
+                return True
+            else:
+                return False
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Leetcode每日一题：11. 盛最多水的容器]]></title>
+        <id>https://solahome.github.io/post/leetcode-mei-ri-yi-ti-container-with-most-water/</id>
+        <link href="https://solahome.github.io/post/leetcode-mei-ri-yi-ti-container-with-most-water/">
+        </link>
+        <updated>2023-03-12T12:59:17.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="11-盛最多水的容器">11. 盛最多水的容器</h2>
+<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1330348068&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://leetcode.cn/problems/container-with-most-water/">https://leetcode.cn/problems/container-with-most-water/</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<h4 id="中等">中等</h4>
+<p>给定一个长度为 n 的整数数组 height 。有 n 条垂线，第 i 条线的两个端点是 (i, 0) 和 (i, height[i]) 。</p>
+<p>找出其中的两条线，使得它们与 x 轴共同构成的容器可以容纳最多的水。</p>
+<p>返回容器可以储存的最大水量。</p>
+<p><strong>说明</strong>：你不能倾斜容器。</p>
+<p>示例 1：</p>
+<pre><code>输入：[1,8,6,2,5,4,8,3,7]
+输出：49 
+解释：图中垂直线代表输入数组 [1,8,6,2,5,4,8,3,7]。在此情况下，容器能够容纳水（表示为蓝色部分）的最大值为 49。
+</code></pre>
+<p>示例 2：</p>
+<pre><code>输入：height = [1,1]
+输出：1
+</code></pre>
+<p>提示：</p>
+<pre><code>- n == height.length
+- 2 &lt;= n &lt;= 10^5
+- 0 &lt;= height[i] &lt;= 10^4
+</code></pre>
+<h3 id="解题思路">解题思路</h3>
+<p>直接全部循环搜索会超时，使用双指针，短板会决定水最高的高度，当左右两个挡板向内移动的时候，移动长板一定会使面积变小，移动短板则不能确定，两指针从左右边缘开始搜索至它们相邻，时间复杂度O(n),空间复杂度O(1)</p>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-python">class Solution:
+    def maxArea(self, height: List[int]) -&gt; int:
+        final=0
+        s=0
+        i=0
+        j=len(height)-1
+        while i&lt;j: 
+            s=(j-i)*min(height[i],height[j])
+            if s&gt;final:
+                final=s
+            if height[i]&lt;height[j]:
+                i=i+1
+            else:
+                j=j-1
+            if i&gt;=j:
+                break          
+                   
+        return final
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Leetcode每日一题：893. 特殊等价字符串组]]></title>
+        <id>https://solahome.github.io/post/leetcode-mei-ri-yi-ti-groups-of-special-equivalent-strings/</id>
+        <link href="https://solahome.github.io/post/leetcode-mei-ri-yi-ti-groups-of-special-equivalent-strings/">
+        </link>
+        <updated>2023-03-11T02:12:19.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="893-特殊等价字符串组">893. 特殊等价字符串组</h2>
+<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=167876&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://leetcode.cn/problems/groups-of-special-equivalent-strings/">https://leetcode.cn/problems/groups-of-special-equivalent-strings/</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<h4 id="中等">中等</h4>
+<p>给你一个字符串数组 words。</p>
+<p>一步操作中，你可以交换字符串 words[i] 的任意两个偶数下标对应的字符或任意两个奇数下标对应的字符。</p>
+<p>对两个字符串 words[i] 和 words[j] 而言，如果经过任意次数的操作，words[i] == words[j] ，那么这两个字符串是 特殊等价 的。</p>
+<ul>
+<li>
+<p>例如，words[i] = &quot;zzxy&quot; 和 words[j] = &quot;xyzz&quot; 是一对 特殊等价 字符串，因为可以按 &quot;zzxy&quot; -&gt; &quot;xzzy&quot; -&gt; &quot;xyzz&quot; 的操作路径使 words[i] == words[j] 。<br>
+现在规定，words 的 一组特殊等价字符串 就是 words 的一个同时满足下述条件的非空子集：</p>
+</li>
+<li>
+<p>该组中的每一对字符串都是 特殊等价 的</p>
+</li>
+<li>
+<p>该组字符串已经涵盖了该类别中的所有特殊等价字符串，容量达到理论上的最大值（也就是说，如果一个字符串不在该组中，那么这个字符串就 不会 与该组内任何字符串特殊等价）<br>
+返回 words 中 特殊等价字符串组 的数量。</p>
+</li>
+</ul>
+<p>示例 1：</p>
+<pre><code>输入：words = [&quot;abcd&quot;,&quot;cdab&quot;,&quot;cbad&quot;,&quot;xyzz&quot;,&quot;zzxy&quot;,&quot;zzyx&quot;]
+输出：3
+解释：
+其中一组为 [&quot;abcd&quot;, &quot;cdab&quot;, &quot;cbad&quot;]，因为它们是成对的特殊等价字符串，且没有其他字符串与这些字符串特殊等价。
+另外两组分别是 [&quot;xyzz&quot;, &quot;zzxy&quot;] 和 [&quot;zzyx&quot;]。特别需要注意的是，&quot;zzxy&quot; 不与 &quot;zzyx&quot; 特殊等价。
+</code></pre>
+<p>示例 2：</p>
+<pre><code>输入：words = [&quot;abc&quot;,&quot;acb&quot;,&quot;bac&quot;,&quot;bca&quot;,&quot;cab&quot;,&quot;cba&quot;]
+输出：3
+解释：3 组 [&quot;abc&quot;,&quot;cba&quot;]，[&quot;acb&quot;,&quot;bca&quot;]，[&quot;bac&quot;,&quot;cab&quot;]
+</code></pre>
+<p>提示：</p>
+<pre><code>- 1 &lt;= words.length &lt;= 1000
+- 1 &lt;= words[i].length &lt;= 20
+- 所有 words[i] 都只由小写字母组成。
+- 所有 words[i] 都具有相同的长度。
+</code></pre>
+<h3 id="解题思路">解题思路</h3>
+<p>特殊等价情况意味着奇数位和偶数位上的字符完全相同，所以先将奇偶位分开，然后排序后对比，同时在遍历对比过程中，进行计数，时间复杂度O(n^2)，空间复杂度O(n)</p>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-python">class Solution:
+    def numSpecialEquivGroups(self, words: List[str]) -&gt; int:
+        ji=[]
+        ou=[]
+        for i in range(len(words)):
+            ji.append([])
+            ou.append([])
+            for j in range(len(words[i])):
+                if j%2!=0:
+                    ji[i].append(words[i][j])
+                else:
+                    ou[i].append(words[i][j])
+                if ji[i]!=[]:
+                    ji[i].sort()
+                if ou[i]!=[]:
+                    ou[i].sort()
+        s=0
+        for i in range(len(words)):
+            if i!=len(words)-1 and ji[i]!=['0']:
+                s=s+1
+                for j in range(i+1,len(words)):
+                    if ji[j]==ji[i] and ou[j]==ou[i]:
+                        ji[j]=['0']
+
+            elif i==len(words)-1 and ji[i]!=['0']:
+                s=s+1
+        
+        return s
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Leetcode每日一题：7. 整数反转]]></title>
+        <id>https://solahome.github.io/post/leetcode-mei-ri-yi-ti-7-reverse-integer/</id>
+        <link href="https://solahome.github.io/post/leetcode-mei-ri-yi-ti-7-reverse-integer/">
+        </link>
+        <updated>2023-03-10T01:46:09.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="7-整数反转">7. 整数反转</h2>
+<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=346576&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://leetcode.cn/problems/reverse-integer/">https://leetcode.cn/problems/reverse-integer/</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<h4 id="中等">中等</h4>
+<p>给你一个 32 位的有符号整数 x ，返回将 x 中的数字部分反转后的结果。</p>
+<p>如果反转后整数超过 32 位的有符号整数的范围 [−2^31,  2^31 − 1] ，就返回 0。</p>
+<p><strong>假设环境不允许存储 64 位整数（有符号或无符号）。</strong></p>
+<p>示例 1：</p>
+<pre><code>输入：x = 123
+输出：321
+</code></pre>
+<p>示例 2：</p>
+<pre><code>输入：x = -123
+输出：-321
+</code></pre>
+<p>示例 3：</p>
+<pre><code>输入：x = 120
+输出：21
+</code></pre>
+<p>示例 4：</p>
+<pre><code>输入：x = 0
+输出：0
+</code></pre>
+<p>提示：</p>
+<pre><code>-2^31 &lt;= x &lt;= 2^31 - 1
+</code></pre>
+<h3 id="解题思路">解题思路</h3>
+<p>先正负判断，只考虑数值，然后将数取余倒过来，进行迭代，时间复杂度O(n)，空间复杂度O(n)</p>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-python">class Solution:
+    def reverse(self, x: int) -&gt; int:
+        if x &lt;0:
+            x_p = abs(x)
+            s = str(x_p)
+            n = len(s)
+            sum_w=0
+            while n&gt;0:
+                high=x_p%10
+                x_p=x_p//10
+                sum_w=sum_w*10+high
+                n=n-1
+            sum_w=-sum_w
+        
+        else:
+            x_p = x
+            s = str(x_p)
+            n = len(s)
+            sum_w=0
+            while n&gt;0:
+                high=x_p%10
+                x_p=x_p//10
+                sum_w=sum_w*10+high
+                n=n-1
+        
+        if sum_w&lt;(-2)**31 or sum_w&gt;2**31-1:
+            sum_w=0
+
+        return sum_w
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[每日一题：1006 换个格式输出整数]]></title>
+        <id>https://solahome.github.io/post/everydayproblempatb1006/</id>
+        <link href="https://solahome.github.io/post/everydayproblempatb1006/">
+        </link>
+        <updated>2021-09-06T14:09:36.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1842025914&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://pintia.cn/problem-sets/994805260223102976/problems/994805318855278592">https://pintia.cn/problem-sets/994805260223102976/problems/994805318855278592</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<blockquote>
+<p>作者<br>
+CHEN, Yue<br>
+单位<br>
+浙江大学<br>
+代码长度限制<br>
+16 KB<br>
+时间限制<br>
+400 ms<br>
+内存限制<br>
+64 MB</p>
+</blockquote>
+<p>让我们用字母 B 来表示“百”、字母 S 表示“十”，用 12...n 来表示不为零的个位数字 n（&lt;10），换个格式来输出任一个不超过 3 位的正整数。例如 234 应该被输出为 BBSSS1234，因为它有 2 个“百”、3 个“十”、以及个位的 4。</p>
+<p>输入格式：<br>
+每个测试输入包含 1 个测试用例，给出正整数 n（&lt;1000）。</p>
+<p>输出格式：<br>
+每个测试用例的输出占一行，用规定的格式输出 n。</p>
+<p>输入样例1：</p>
+<pre><code>234
+</code></pre>
+<p>输出样例1：</p>
+<pre><code>BBSSS1234
+</code></pre>
+<p>输入样例2：</p>
+<pre><code>23
+</code></pre>
+<p>输出样例2：</p>
+<pre><code>SS123
+</code></pre>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-c++">#include &lt;iostream&gt;
+
+using namespace std;
+
+int main()
+{
+    int n;
+    scanf(&quot;%d&quot;,&amp;n);
+    int bai=0,shi=0,gei=0;
+    bai=n/100;
+    shi=(n-100*bai)/10;
+    gei=n%10;
+    if(bai==0){
+        if(shi==0){
+            for(int i=0;i&lt;gei;i++){
+                printf(&quot;%d&quot;,(i+1));
+            }
+            printf(&quot;\n&quot;);
+        }
+        
+        else{
+            for(int i=0;i&lt;shi;i++){
+                printf(&quot;%c&quot;,'S');
+            }
+            for(int i=0;i&lt;gei;i++){
+                printf(&quot;%d&quot;,(i+1));
+            }
+            printf(&quot;\n&quot;);
+        }
+    }
+    else{
+        for(int i=0;i&lt;bai;i++){
+            printf(&quot;%c&quot;,'B');
+        }
+        for(int i=0;i&lt;shi;i++){
+            printf(&quot;%c&quot;,'S');
+        }
+        for(int i=0;i&lt;gei;i++){
+            printf(&quot;%d&quot;,(i+1));
+        }
+        printf(&quot;\n&quot;);
+    }
+
+    return 0;
+}
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[每日一题：1005 继续(3n+1)猜想]]></title>
+        <id>https://solahome.github.io/post/everydayproblempatb1005/</id>
+        <link href="https://solahome.github.io/post/everydayproblempatb1005/">
+        </link>
+        <updated>2021-08-17T08:55:33.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1868811465&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://pintia.cn/problem-sets/994805260223102976/problems/994805320306507776">https://pintia.cn/problem-sets/994805260223102976/problems/994805320306507776</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<blockquote>
+<p>作者<br>
+CHEN, Yue<br>
+单位<br>
+浙江大学<br>
+代码长度限制<br>
+16 KB<br>
+时间限制<br>
+400 ms<br>
+内存限制<br>
+64 MB</p>
+</blockquote>
+<p>卡拉兹(Callatz)猜想已经在1001中给出了描述。在这个题目里，情况稍微有些复杂。</p>
+<p>当我们验证卡拉兹猜想的时候，为了避免重复计算，可以记录下递推过程中遇到的每一个数。例如对 n=3 进行验证的时候，我们需要计算 3、5、8、4、2、1，则当我们对 n=5、8、4、2 进行验证的时候，就可以直接判定卡拉兹猜想的真伪，而不需要重复计算，因为这 4 个数已经在验证3的时候遇到过了，我们称 5、8、4、2 是被 3“覆盖”的数。我们称一个数列中的某个数 n 为“关键数”，如果 n 不能被数列中的其他数字所覆盖。</p>
+<p>现在给定一系列待验证的数字，我们只需要验证其中的几个关键数，就可以不必再重复验证余下的数字。你的任务就是找出这些关键数字，并按从大到小的顺序输出它们。</p>
+<p>输入格式：<br>
+每个测试输入包含 1 个测试用例，第 1 行给出一个正整数 K (&lt;100)，第 2 行给出 K 个互不相同的待验证的正整数 n (1&lt;n≤100)的值，数字间用空格隔开。</p>
+<p>输出格式：<br>
+每个测试用例的输出占一行，按从大到小的顺序输出关键数字。数字间用 1 个空格隔开，但一行中最后一个数字后没有空格。</p>
+<p>输入样例：</p>
+<pre><code>6
+3 5 6 7 8 11
+</code></pre>
+<p>输出样例：</p>
+<pre><code>7 6
+</code></pre>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-c++">#include &lt;iostream&gt;
+
+using namespace std;
+
+int mathhere(int a){
+    int value=0;
+    if(a%2==0){
+        value=a/2;
+    }
+    else{
+        value=(3*a+1)/2;
+    }
+    return value;
+}
+
+int search(int a,int *b,int n){
+    int key=-1;
+    for(int i=0;i&lt;n;i++){
+        if(a==b[i]){
+            key=i;
+        }
+    }
+    return key;
+}
+
+int main()
+{
+    int n;
+    scanf(&quot;%d&quot;,&amp;n);
+    int a[101]={0};
+    for(int i=0;i&lt;n;i++){
+        cin&gt;&gt;a[i];
+    }
+    
+    int b[101]={0};
+    for(int i=0;i&lt;n;i++){
+        b[i]=a[i];
+    }
+    
+    int temp[101]={0};
+    int k=0;
+    int putout=0;
+    for(int i=0;i&lt;n;i++){
+        putout=b[i];
+        while(putout!=1){
+            putout=mathhere(putout);
+            if(search(putout,b,n)!=-1){
+                b[search(putout,b,n)]=1;
+            }
+        }
+    }
+    //存储
+    for(int i=0;i&lt;n;i++){
+        if(b[i]!=1){
+            temp[k]=b[i];
+            k++;
+        }
+    }
+    //排序
+    int tempv=0;
+    for(int i=0;i&lt;k-1;i++){
+        for(int j=0;j&lt;k-1-i;j++){
+            if(temp[j]&lt;temp[j+1]){
+                tempv=temp[j];
+                temp[j]=temp[j+1];
+                temp[j+1]=tempv;
+            }
+        }
+    }
+    
+    for(int i=0;i&lt;k-1;i++){
+        printf(&quot;%d &quot;,temp[i]);
+    }
+    printf(&quot;%d\n&quot;,temp[k-1]);
+
+    return 0;
+}
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[每日一题：1004 成绩排名]]></title>
+        <id>https://solahome.github.io/post/everydayproblempatb1004/</id>
+        <link href="https://solahome.github.io/post/everydayproblempatb1004/">
+        </link>
+        <updated>2021-07-16T07:54:36.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1834823818&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://pintia.cn/problem-sets/994805260223102976/problems/994805321640296448">https://pintia.cn/problem-sets/994805260223102976/problems/994805321640296448</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<blockquote>
+<p>作者<br>
+CHEN, Yue<br>
+单位<br>
+浙江大学<br>
+代码长度限制<br>
+16 KB<br>
+时间限制<br>
+400 ms<br>
+内存限制<br>
+64 MB</p>
+</blockquote>
+<p>读入 n（&gt;0）名学生的姓名、学号、成绩，分别输出成绩最高和成绩最低学生的姓名和学号。</p>
+<p>输入格式：<br>
+每个测试输入包含 1 个测试用例，格式为</p>
+<pre><code>第 1 行：正整数 n
+第 2 行：第 1 个学生的姓名 学号 成绩
+第 3 行：第 2 个学生的姓名 学号 成绩
+  ... ... ...
+第 n+1 行：第 n 个学生的姓名 学号 成绩
+</code></pre>
+<p>其中姓名和学号均为不超过 10 个字符的字符串，成绩为 0 到 100 之间的一个整数，这里保证在一组测试用例中没有两个学生的成绩是相同的。</p>
+<p>输出格式：<br>
+对每个测试用例输出 2 行，第 1 行是成绩最高学生的姓名和学号，第 2 行是成绩最低学生的姓名和学号，字符串间有 1 空格。</p>
+<p>输入样例：</p>
+<pre><code>3
+Joe Math990112 89
+Mike CS991301 100
+Mary EE990830 95
+</code></pre>
+<p>输出样例：</p>
+<pre><code>Mike CS991301
+Joe Math990112
+</code></pre>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-c++">#include &lt;iostream&gt;
+
+using namespace std;
+
+int rank_good(int n,int *scores){
+    int s=scores[0];
+    int num=0;
+    for(int i=0;i&lt;n;i++){
+        if(scores[i]&gt;s){
+            s=scores[i];
+            num=i;
+        }
+    }
+    return num;
+}
+
+int rank_bad(int n,int *scores){
+    int s=scores[0];
+    int num=0;
+    for(int i=0;i&lt;n;i++){
+        if(scores[i]&lt;s){
+            s=scores[i];
+            num=i;
+        }
+    }
+    return num;
+}
+
+int main()
+{
+    typedef struct{
+        char name[11];
+        char id[11];
+        int score;
+    } checklist;
+    
+    int n;
+    scanf(&quot;%d&quot;,&amp;n);
+    checklist student[n];
+    
+    for(int i=0;i&lt;n;i++){
+        cin&gt;&gt;student[i].name;
+        cin&gt;&gt;student[i].id;
+        cin&gt;&gt;student[i].score;
+    }
+    
+/*    
+    for(int i=0;i&lt;n;i++){
+        cout&lt;&lt;student[i].name&lt;&lt;endl;
+        cout&lt;&lt;student[i].id&lt;&lt;endl;
+        cout&lt;&lt;student[i].score&lt;&lt;endl;
+    }
+*/
+
+
+    
+    int scorest[n];
+    for(int i=0;i&lt;n;i++){
+        scorest[i]=student[i].score;
+    }
+    int first_number,last_number;
+    first_number = rank_good(n,scorest);
+    last_number = rank_bad(n,scorest);
+    
+    cout&lt;&lt;student[first_number].name&lt;&lt;' '&lt;&lt;student[first_number].id&lt;&lt;endl;
+    cout&lt;&lt;student[last_number].name&lt;&lt;' '&lt;&lt;student[last_number].id&lt;&lt;endl;
+    return 0;
+}
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[wsl的相关命令]]></title>
+        <id>https://solahome.github.io/post/wsl/</id>
+        <link href="https://solahome.github.io/post/wsl/">
+        </link>
+        <updated>2021-05-05T03:59:59.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=22737627&auto=0&height=90"></iframe>
+<p>将wsl的位置转移：<br>
+wsl的默认位置为C盘，由于系统盘通常没有足够多的空间，故想将其移动到其他的位置，直接移动文件夹显然是不行的，那么这里借用一个名为LxRunOffline的软件。<br>
+其GitHub地址为<a href="https://github.com/DDoSolitary/LxRunOffline">https://github.com/DDoSolitary/LxRunOffline</a></p>
+<p>迁移位置的命令：<br>
+如要将其直接安装在'F:\subsystem\Ubuntu2004'</p>
+<pre><code> LxRunOffline install -n Ubuntu  -d F:\subsystem\Ubuntu2004 -f F:\subsystem\Ubuntu_2004.2020.424.0_x64\install.tar.gz -s
+</code></pre>
+<p>查看wsl的版本：</p>
+<pre><code>wsl -l -v
+</code></pre>
+<p>将wsl的版本由wsl1调整到wsl2(这里选择的是Ubuntu作为子系统)</p>
+<pre><code>wsl --set-version Ubuntu 2
+</code></pre>
+<p>取消注册（这个操作不会删除目录）:</p>
+<pre><code>lxrunoffline ur -n Ubuntu
+</code></pre>
+<p>卸载：</p>
+<pre><code>lxrunoffline uninstall -n Ubuntu
+</code></pre>
+<p>wsl离线包：<br>
+<a href="https://docs.microsoft.com/en-us/windows/wsl/install-manual">下载地址</a></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[读书笔记(一) 人工智能导论 绪论]]></title>
+        <id>https://solahome.github.io/post/readingnotes001/</id>
+        <link href="https://solahome.github.io/post/readingnotes001/">
+        </link>
+        <updated>2021-04-24T03:46:04.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=469440680&auto=0&height=90"></iframe>
+<h1 id="人工智能-artificial-intelligence">人工智能 artificial intelligence</h1>
+<p>以机器为载体，展式出的人类智能。<br>
+也被称为机器智能 machine intelligence</p>
+<p>对人类智能的模拟：<br>
+符号主义-逻辑推理 概念符号化、从判断到新结论<br>
+问题求解-探寻搜索 由已有信息约束条件求解<br>
+数据驱动-机器学习 从数据出发发现内在模式<br>
+行为主义-强化学习 通过环境奖罚反馈施加最佳行动<br>
+博弈对抗-群体智能 从数据拟合优化解到均衡解</p>
+<h2 id="11-人工智能的起源">1.1 人工智能的起源</h2>
+<p>1955年8月《人工智能达特茅斯夏季研究项目提案》<br>
+A Proposal for the Dartmouth Summer Research Project on Artificial Intelligence<br>
+① 自动计算模拟人脑高级功能<br>
+② 使用通用语言进行计算机编程以模仿人脑推理<br>
+③ 神经元相互连接形成概念<br>
+④ 对计算复杂性的度量<br>
+⑤ 算法自我提升<br>
+⑥ 算法的抽象能力<br>
+⑦ 随机性与创造力</p>
+<p>人工智能是以机器为载体所实现的人类智能或生物智能。</p>
+<p>产生两个问题：<br>
+① 承载计算的器械如何产生？<br>
+从手工计算时代迈入自动计算时代</p>
+<p>② 如何用计算器模拟人工智能？<br>
+符号逻辑-以推理为核心<br>
+联结主义-统计机器学习<br>
+行为学派-环境交互中学习策略</p>
+<h2 id="12-可计算载体形式化与机械化">1.2 可计算载体：形式化与机械化</h2>
+<p>形式化系统：完备性、一致性、可判定性<br>
+1900年 算术公理的相容性<br>
+the compatibility of the arithmetical axioms<br>
+1931年 哥德尔不完备定理<br>
+1937年 图灵《论数字计算在决断难题中的应用》</p>
+<h2 id="13-智能计算方法">1.3 智能计算方法</h2>
+<h3 id="131-符号主义为核心的逻辑推理">1.3.1 符号主义为核心的逻辑推理</h3>
+<p>人工智能问题求解中的三大方法：推理、搜索、约束满足<br>
+推理：高度概括、抽象、严格化和精确化的符号系统<br>
+亚里士多德：三段论 syllogism<br>
+归纳 inductive 推理：从特殊到一般由具体到抽象<br>
+演绎 deductive 推理：从前提推导到结论<br>
+因果 causality 推理：判断事物间存在原因和结果的关系<br>
+因果模型 structural causal model, SCM<br>
+因果图 causal diagram</p>
+<p>推理由易到难程度分成三个层次：<br>
+① 关联 association 可直接从数据中计算得到统计相关<br>
+② 干预 intervention 无法直接从观测数据中计算得到统计相关<br>
+③ 反事实 counterfactual 某个事情已经发生了，则在相同环境中，<br>
+这个事情不发生会带来怎样的新结果</p>
+<p>&quot;反事实&quot;可以用来定义事物间的因果关系。<br>
+反事实框架 counterfactual framework 或 potential outcomes是一种推断因果关系的标准。<br>
+事实是指在某个特定变量<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>的影响下可观测到的状态或结果<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span><br>
+反事实是指在该特定变量<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>取负向淔时可观测到的状态或结果<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span><br>
+<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>与<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>B</mi><mo mathvariant="normal">′</mo></msup></mrow><annotation encoding="application/x-tex">B&#x27;</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.751892em;vertical-align:0em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.05017em;">B</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.751892em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span></span></span></span></span></span></span></span>的差异存在且在统计上是显著的，则说明条件变量与结果变量之间存在因果关系。</p>
+<p>归纳推理 如果<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>A</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">A_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.65952em;vertical-align:0em;"></span><span class="mord mathdefault">i</span></span></span></span>为若干取值），那么<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>：不是必然性<br>
+演绎推理 如果<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>,那么<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>：<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>是<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>的子集<br>
+因果推理 因为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span></span></span></span>,所以<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.05017em;">B</span></span></span></span>：因果性不是相关性</p>
+<p>逻辑推理推动了专家系流 expert system 的产生。</p>
+<h3 id="132-问题求解为核心的探寻搜索">1.3.2 问题求解为核心的探寻搜索</h3>
+<p>① 无信息搜索 uninformed search<br>
+盲目搜索方法：广度优先搜索、深度优先搜索等<br>
+② 有信息搜索 informed search 启发式搜索<br>
+贪婪最佳优先搜索 greedy best first search<br>
+<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>A</mi><mo>∗</mo></mrow><annotation encoding="application/x-tex">A*</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault">A</span><span class="mord">∗</span></span></span></span>搜索<br>
+③ 对抗搜索 adversarial search<br>
+博弈搜索 game search<br>
+在一个竞争的环境中，智能体 agents 之间通过竞争实现相反的利益，一方最大化这个利益，另一方最小化这个利益<br>
+最小最大搜索 minimax search<br>
+Alpha-Beta 剪枝搜索 pruning search<br>
+蒙特卡洛树搜索 Monte-Carlo tree search</p>
+<h3 id="133-数据驱动为核心的机器学习">1.3.3 数据驱动为核心的机器学习</h3>
+<p>数据驱动 data-drive 从数据出发，从承载表达某一概念的数据中直接学习该概念所涉及的模式，然后基于学习得到的模板对未知数据进行分类或识别。</p>
+<p>机器学习算法可分为监督学习，无监督学习、半监督学习。</p>
+<p>一些常见的概念：<br>
+假设空间 hypothesis space<br>
+卷积神经网络 convolutional neural network, CNN<br>
+池化层 pooling<br>
+激活函数 activation<br>
+全连接层 fully connected<br>
+误差后向传播 error back-propagation</p>
+<p>监督学习算法：回归分析、提升算法 boosting、支持向量机和决策树等判别学习方法，隐狄利克雷分布 latent dirichlet allocation, LDA 和隐马尔可夫链等生成式学习方法。<br>
+无监督学习算法：聚类降维（主成分分析）和期望极大expectation maximization, EM 算法等。</p>
+<h3 id="134-行为主义为核心的强化学习">1.3.4 行为主义为核心的强化学习</h3>
+<p>强化学习 reinforcement learning, RL 赋予智能体自监督学习能力，使其能够自主与环境交互，不故出序列决策，完成序列化形式的任务，向学会学习“learning to learn”这一能力塑造目标而努力。</p>
+<p>强化学习起源于行为主义理论，强化学习解决的是序贯决策优化问题，即智能体与环境不断效，在某个状态采取某一行为后进入一个新的状态，根据环境给出的奖励或惩罚反馈 reward 来改进策略，以求获得最大的累积奖惩 accumulated reward。</p>
+<p>马尔可夫决策过程 markov decision process. MDP<br>
+刻画了当前状态采取某一行动后进入后读状态，且因为采取了这一行动会从环境获得一定的奖励反馈或惩罚反馈的机制。</p>
+<p><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>Q</mi></mrow><annotation encoding="application/x-tex">Q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8777699999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">Q</span></span></span></span>学习<br>
+<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span></span></span></span>函数记录了某个状态下采取某一动作所能够收到的奖励值或惩罚值。<br>
+<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>Q</mi></mrow><annotation encoding="application/x-tex">Q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8777699999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">Q</span></span></span></span>学习可以为智能体构造一个状态一行为效用 state-action utility 矩阵，矩阵中行和列分别代表状态和行为，矩阵的行列值为某一状态下采取某个行为所能够获得的回报。<br>
+将<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span></span></span></span>函数参数化 parametrize,用神经网络来拟合<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span></span></span></span>函数，深度学习与强化学习结合形成<br>
+深度强化学习 deep reinforcement learning, DRL</p>
+<p>1.3.5博弈对抗为核心的决策智能，<br>
+博弈论 Game Theory<br>
+纳什均衡：非合作博弈 non-cooperation Games 及其均衡解定存在<br>
+现代博弈论推动机器学习从“数据拟合”过程中以“求取最优解”为核心向博弈对抗过程中“求取均衡解”为核心的转变。</p>
+<h1 id="reference">Reference</h1>
+<p>吴飞编著. 人工智能导论. 北京：高等教育出版社, 2020.05.</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[计算机发展历程]]></title>
+        <id>https://solahome.github.io/post/principlesofcomputerorganization01/</id>
+        <link href="https://solahome.github.io/post/principlesofcomputerorganization01/">
+        </link>
+        <updated>2021-04-18T15:05:32.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1808492017&auto=0&height=90"></iframe>
+<h1 id="第1章-计算机系统概述">第1章 计算机系统概述</h1>
+<h1 id="11-计算机发展历程">1.1 计算机发展历程</h1>
+<p>分类：数字计算机、模拟计算机</p>
+<h2 id="111-国外计算机发展概况">1.1.1 国外计算机发展概况</h2>
+<h3 id="1-电子管计算机">1. 电子管计算机：</h3>
+<ul>
+<li>几千个存储单元、每秒几千次至几万次运算</li>
+<li>输入输出：穿孔卡片或纸带</li>
+<li>列表项体积大、功耗高、可靠性较差</li>
+<li>列表项机器语言</li>
+</ul>
+<h3 id="2-晶体管计算机">2. 晶体管计算机：</h3>
+<ul>
+<li>磁芯存储器、存储容量10万个存储单元以上</li>
+<li>每秒数十万次到数百万次运算</li>
+<li>输入输出：穿孔卡片或打印机</li>
+<li>汇编语言</li>
+<li>开始使用 FORTRAN、COBOL和ALGOL等高级语言</li>
+</ul>
+<h3 id="3-集成电路计算机">3. 集成电路计算机：</h3>
+<ul>
+<li>主存：半导体存储器，辅存：磁盘</li>
+<li>外部设备、操作系统</li>
+<li>每秒数百万次至数千万次运算</li>
+<li>计算机类型多样化、系列化</li>
+<li>微程序、流水线、并行性</li>
+</ul>
+<h3 id="4-超大规模集成电路计算机">4. 超大规模集成电路计算机：</h3>
+<ul>
+<li>微处理器</li>
+<li>MIPS （每秒10^6条指令）</li>
+<li>GIPS （每秒10^9条指令）</li>
+<li>TIPS 1每秒10^12条指令）</li>
+<li>精减指令系统计算机 RISC</li>
+<li>复杂指令系统计算机 CISC</li>
+<li>多机并行处理与网络化</li>
+<li>大规模并行处理系统、分布式系统、计算机网络</li>
+</ul>
+<h2 id="112-摩尔定律">1.1.2 摩尔定律</h2>
+<p><strong>“当价格不变时，集成电路上可容纳的晶体管数量大约18~24个月翻一番，性能也将提升一倍。”</strong><br>
+2013年开始逐步放缓至3年翻一番</p>
+<h3 id="意义与影响">意义与影响</h3>
+<p>（1）单个芯片集成度提高，成本变化不大，总成本明显下降<br>
+（2）高集成度芯片中，电路间距离更近，连线更短、速度快<br>
+（3）增加芯片内部的连线，减少了外部连线，可靠性提高<br>
+（4）计算机体积越来越小，减少电能消耗，适应性更好</p>
+<h2 id="113-集成电路工艺发展概括">1.1.3 集成电路工艺发展概括</h2>
+<h3 id="集成电路生产三大环节">集成电路生产三大环节</h3>
+<p>IC设计、IC制造、IC封测</p>
+<h3 id="基本光刻工艺流程">基本光刻工艺流程</h3>
+<p>清洗、前烘、底胶、软烘、曝光、显影、坚膜、刻蚀，去胶。</p>
+<h3 id="光刻的基本原理">光刻的基本原理</h3>
+<p>在硅片表面覆盖层具有高度光敏感性的光刻胶，用紫外光透过掩模照射到晶圆表面，被光线照射到的光刻胶发生反应，通过蚀刻曝光或未受曝光的部分来形成沟槽，然而进行沉积、蚀刻、掺杂等操作，架构出不同材质和线路，生成基础轮廓，从而实现半导体器件在晶圆表面的构建过程。</p>
+<h3 id="目前晶体管制程工艺最大的挑战">目前晶体管制程工艺最大的挑战</h3>
+<p>有效地提高晶体管开关响应速度、减少漏电。</p>
+<h2 id="114-我国计算机发展概况">1.1.4 我国计算机发展概况</h2>
+<p>1958年 第一台小型电子管数字计算机。<br>
+1959年 第一台大型通用电子管数字计算机<br>
+1964年 第一台441-B晶体管通用电子计算机<br>
+......<br>
+1995年 “银河一五”通用并行巨型机<br>
+......<br>
+2009年 “天河一号”超级计算机<br>
+2016年 “神威太湖之光”</p>
+<h1 id="reference">Reference</h1>
+<p>谭志虎. 计算机组成原理 微课版. 北京：人民邮电出版社, 2021.02.</p>
+]]></content>
+    </entry>
+</feed>
