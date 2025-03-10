@@ -1,0 +1,1218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://solahome.github.io</id>
+    <title>sola的小屋</title>
+    <updated>2025-03-10T09:04:50.758Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://solahome.github.io"/>
+    <link rel="self" href="https://solahome.github.io/atom.xml"/>
+    <subtitle>故事的结尾总写在开头</subtitle>
+    <logo>https://solahome.github.io/images/avatar.png</logo>
+    <icon>https://solahome.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2025, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[数字设计与计算机架构课程的第三讲笔记]]></title>
+        <id>https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-03/</id>
+        <link href="https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-03/">
+        </link>
+        <updated>2025-01-02T08:59:44.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="数字设计与计算机架构课程笔记">数字设计与计算机架构课程笔记</h1>
+<p><strong><a href="https://safari.ethz.ch/digitaltechnik/spring2023/doku.php?id=start">ETH Zürich 2023春季学期</a>·第三讲：组合逻辑</strong></p>
+<hr>
+<h4 id="一-现代计算机的基本构建模块"><strong>一、现代计算机的基本构建模块</strong></h4>
+<ol>
+<li>
+<p><strong>晶体管</strong></p>
+<ul>
+<li><strong>类型</strong>：n型MOS（nMOS）和p型MOS（pMOS）。</li>
+<li><strong>功能</strong>：作为电压控制开关，通过栅极电压控制导通/截止。</li>
+<li><strong>互补作用</strong>：
+<ul>
+<li><strong>nMOS</strong>：栅极高电平导通，用于“拉低”输出（连接地）。</li>
+<li><strong>pMOS</strong>：栅极低电平导通，用于“拉高”输出（连接电源）。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>逻辑门</strong></p>
+<ul>
+<li><strong>CMOS结构</strong>：
+<ul>
+<li><strong>NOT门</strong>：单个nMOS和pMOS互补连接。</li>
+<li><strong>NAND/AND门</strong>：串联nMOS和并联pMOS（NAND），或相反（AND）。</li>
+</ul>
+</li>
+<li><strong>优势</strong>：低静态功耗、高抗干扰能力。</li>
+</ul>
+</li>
+<li>
+<p><strong>延迟与功耗</strong></p>
+<ul>
+<li><strong>动态功耗</strong>：由信号翻转（充放电）引起，与频率和负载电容成正比。</li>
+<li><strong>静态功耗</strong>：由泄漏电流导致，随晶体管尺寸缩小而增加。</li>
+<li><strong>延迟影响因素</strong>：晶体管尺寸、负载电容、互联线长度。</li>
+</ul>
+</li>
+<li>
+<p><strong>摩尔定律</strong></p>
+<ul>
+<li><strong>核心趋势</strong>：集成电路上可容纳的晶体管数量每18-24个月翻一番。</li>
+<li><strong>技术挑战</strong>：
+<ul>
+<li><strong>面积</strong>：晶体管尺寸缩小受物理极限限制（量子隧穿效应）。</li>
+<li><strong>功耗</strong>：动态功耗因频率提升而增加，静态功耗因泄漏电流增大。</li>
+<li><strong>延迟</strong>：互联线延迟占主导，需通过并行处理、流水线等优化。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h4 id="二-组合逻辑电路设计"><strong>二、组合逻辑电路设计</strong></h4>
+<ol>
+<li>
+<p><strong>逻辑电路基础</strong></p>
+<ul>
+<li><strong>规范</strong>：
+<ul>
+<li><strong>功能规范</strong>：输入输出关系（布尔方程）。</li>
+<li><strong>时序规范</strong>：延迟、建立/保持时间。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>布尔代数与逻辑简化</strong></p>
+<ul>
+<li><strong>核心目标</strong>：
+<ul>
+<li>减少逻辑门数量，降低面积、功耗和延迟。</li>
+<li>优化电路结构，提升性能。</li>
+</ul>
+</li>
+<li><strong>工具</strong>：
+<ul>
+<li><strong>布尔代数规则</strong>：交换律、结合律、分配律、德摩根定理等。</li>
+<li><strong>卡诺图</strong>：图形化简化多变量逻辑表达式。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>标准形式</strong></p>
+<ul>
+<li><strong>积之和（SOP）</strong>：最小项的逻辑或（如：AB + AC）。</li>
+<li><strong>和之积（POS）</strong>：最大项的逻辑与（如：(A+B)(A+C)）。</li>
+<li><strong>唯一性</strong>：通过最小项/最大项索引确保唯一表示。</li>
+</ul>
+</li>
+<li>
+<p><strong>组合逻辑块</strong></p>
+<ul>
+<li><strong>译码器</strong>：将n位输入转换为2ⁿ个输出，用于地址解码。</li>
+<li><strong>多路选择器（MUX）</strong>：通过控制信号选择多个输入之一。</li>
+<li><strong>全加器</strong>：实现两个1位加数及进位输入的加法，输出和与进位。</li>
+<li><strong>PLA（可编程逻辑阵列）</strong>：基于SOP形式的可编程逻辑电路。</li>
+</ul>
+</li>
+</ol>
+<h4 id="三-扩展知识"><strong>三、扩展知识</strong></h4>
+<ol>
+<li>
+<p><strong>逻辑完备性</strong></p>
+<ul>
+<li><strong>定义</strong>：一组逻辑门可实现任意布尔函数。</li>
+<li><strong>完备集</strong>：{AND, OR, NOT}、{NAND}、{NOR}。</li>
+</ul>
+</li>
+<li>
+<p><strong>摩尔定律论文阅读</strong></p>
+<ul>
+<li><strong>关键内容</strong>：历史趋势、物理限制、未来技术方向（如3D封装、新材料）。</li>
+</ul>
+</li>
+</ol>
+<h4 id="四-总结"><strong>四、总结</strong></h4>
+<ul>
+<li><strong>晶体管与逻辑门</strong>：CMOS技术通过互补开关实现高效逻辑。</li>
+<li><strong>布尔代数与简化</strong>：减少电路复杂度，提升性能。</li>
+<li><strong>组合逻辑块</strong>：构建复杂数字系统的基础模块。</li>
+<li><strong>摩尔定律挑战</strong>：需通过材料创新、架构优化突破物理极限。</li>
+</ul>
+<hr>
+<div class="tvcontainer">
+<iframe class="tv"  src="//player.bilibili.com/player.html?isOutside=true&aid=113340395294825&bvid=BV13nyeYYECw&cid=26387480952&p=3&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+</div>]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[数字设计与计算机架构课程的第二讲笔记（3）]]></title>
+        <id>https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-3/</id>
+        <link href="https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-3/">
+        </link>
+        <updated>2024-12-02T08:11:02.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="数字设计与计算机架构课程笔记">数字设计与计算机架构课程笔记</h1>
+<p><strong><a href="https://safari.ethz.ch/digitaltechnik/spring2023/doku.php?id=start">ETH Zürich 2023春季学期</a>·第二讲：权衡、指标和设计心态</strong></p>
+<hr>
+<h2 id="一-不同计算平台的架构设计">一、不同计算平台的架构设计</h2>
+<h3 id="一通用处理器cpu">（一）通用处理器（CPU）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>高性能</strong>：能执行科学计算、商业应用、游戏等各类通用计算任务。</li>
+<li><strong>高能效</strong>：在有限功耗预算下实现高性能。</li>
+<li><strong>通用性</strong>：支持多种操作系统与应用软件。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>复杂指令集</strong>：具备丰富指令集，可处理复杂计算任务。</li>
+<li><strong>多核架构</strong>：通过多核并行执行多任务提升性能。</li>
+<li><strong>多层次缓存</strong>：减少内存访问延迟，提高性能。</li>
+<li><strong>指令级并行</strong>：实现同时执行多个指令，提升性能。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：Intel Core i7处理器、AMD Ryzen处理器</li>
+</ol>
+<h3 id="二图形处理器gpu">（二）图形处理器（GPU）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>高并行度</strong>：执行图形渲染、机器学习等大量并行计算任务。</li>
+<li><strong>高性能</strong>：在有限功耗下提供高性能。</li>
+<li><strong>可编程性</strong>：支持可编程着色器，完成各类图形渲染任务。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>SIMD架构</strong>：采用该架构同时执行多个相同指令，提高并行度。</li>
+<li><strong>大量处理单元</strong>：包含众多处理单元，并行执行大量计算任务。</li>
+<li><strong>高带宽内存</strong>：可快速传输数据。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：NVIDIA GeForce RTX系列、AMD Radeon RX系列</li>
+</ol>
+<h3 id="三张量处理器tpu">（三）张量处理器（TPU）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>高性能</strong>：执行大规模机器学习训练与推理任务。</li>
+<li><strong>高能效</strong>：在有限功耗下实现高性能。</li>
+<li><strong>专用于机器学习</strong>：专为机器学习任务设计，提升性能与能效。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>定制数据路径</strong>：更高效执行机器学习运算。</li>
+<li><strong>大量矩阵乘法单元</strong>：并行执行大量矩阵乘法运算。</li>
+<li><strong>高带宽内存</strong>：快速传输数据。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：Google Tensor Processing Unit (TPU)</li>
+</ol>
+<h3 id="四现场可编程门阵列fpga">（四）现场可编程门阵列（FPGA）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>可定制性</strong>：依据不同应用场景定制硬件电路。</li>
+<li><strong>高性能</strong>：在有限功耗下提供高性能。</li>
+<li><strong>灵活性</strong>：通过重新编程适应不同应用场景。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>可编程逻辑单元</strong>：可配置成各种逻辑电路。</li>
+<li><strong>可编程互连</strong>：将逻辑单元连接成不同电路结构。</li>
+<li><strong>片上存储器</strong>：存储程序和数据。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：Xilinx Virtex系列、Intel Stratix系列</li>
+</ol>
+<h3 id="五近内存计算nmc">（五）近内存计算（NMC）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>减少数据移动</strong>：将计算单元移至靠近内存处，降低数据移动次数。</li>
+<li><strong>提高性能</strong>：减少数据移动以提升系统性能。</li>
+<li><strong>降低能耗</strong>：减少数据移动以降低系统能耗。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>在内存中执行计算</strong>：计算单元位于内存模块，直接在内存中计算。</li>
+<li><strong>定制数据路径</strong>：高效执行内存计算。</li>
+<li><strong>可编程性</strong>：重新编程适应不同应用场景。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：UPMEM Processing - in - DRAM Engine</li>
+</ol>
+<h3 id="六处理内存pim">（六）处理内存（PIM）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>在内存中执行计算</strong>：计算单元集成在内存芯片，直接在内存中计算。</li>
+<li><strong>减少数据移动</strong>：减少数据移动提升系统性能。</li>
+<li><strong>降低能耗</strong>：减少数据移动降低系统能耗。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>计算单元集成在内存芯片中</strong>：直接在内存中执行计算。</li>
+<li><strong>定制数据路径</strong>：高效执行内存计算。</li>
+<li><strong>可编程性</strong>：重新编程适应不同应用场景。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：Samsung AxDIMM</li>
+</ol>
+<h2 id="二-逻辑门的选择">二、逻辑门的选择</h2>
+<h3 id="一cmos技术优势">（一）CMOS技术优势</h3>
+<ol>
+<li><strong>功耗低</strong>：稳态时电流几乎为零，静态功耗极低。</li>
+<li><strong>集成度高</strong>：可实现高密度集成，将大量晶体管集成在单个芯片。</li>
+<li><strong>可靠性高</strong>：不易受噪声干扰。</li>
+<li><strong>成本效益高</strong>：技术成熟，生产成本低，性价比高。</li>
+</ol>
+<h3 id="二其他逻辑门技术">（二）其他逻辑门技术</h3>
+<ol>
+<li><strong>TTL（晶体管 - 晶体管逻辑）</strong>：曾为主流，现因功耗高、集成度低，逐渐被CMOS取代。</li>
+<li><strong>ECL（发射极耦合逻辑）</strong>：速度快，但功耗极高，用于高速应用，如高性能计算、电信设备。</li>
+<li><strong>BiCMOS（双极 - CMOS）</strong>：结合双极与CMOS晶体管优点，速度和功耗介于TTL和CMOS之间。</li>
+<li><strong>GaAs（砷化镓）</strong>：速度比硅基CMOS快，成本高，用于高性能通信和军事应用。</li>
+</ol>
+<h3 id="三选择逻辑门的因素">（三）选择逻辑门的因素</h3>
+<ol>
+<li><strong>性能需求</strong>：高速运算应用选ECL或GaAs技术电路。</li>
+<li><strong>功耗要求</strong>：电池供电或移动设备选低功耗的CMOS电路。</li>
+<li><strong>成本</strong>：成本敏感应用选成熟的CMOS技术。</li>
+<li><strong>可用性</strong>：选择成熟易获取的技术缩短设计周期。</li>
+</ol>
+<h3 id="四特定应用场景">（四）特定应用场景</h3>
+<ol>
+<li><strong>通用处理器</strong>：常用CMOS技术实现高性能与低功耗。</li>
+<li><strong>GPU</strong>：采用CMOS技术，辅以流水线等特殊电路设计提高图形渲染速度。</li>
+<li><strong>FPGA</strong>：使用可编程CMOS逻辑门实现灵活逻辑功能。</li>
+<li><strong>ASIC</strong>：根据特定应用需求选择合适逻辑门技术。</li>
+</ol>
+<p><strong>总结</strong>：选择逻辑门需综合考虑性能、功耗、成本和可用性，CMOS是主流，但特定场景下其他技术可能更合适。</p>
+<h2 id="三-布尔代数与逻辑电路简化">三、布尔代数与逻辑电路简化</h2>
+<h3 id="一布尔代数规则">（一）布尔代数规则</h3>
+<ol>
+<li><strong>基本规则</strong>：AND、OR、NOT、XOR等运算符定义与运算规则。</li>
+<li><strong>等幂律</strong>：X + X = X，X * X = X</li>
+<li><strong>零律</strong>：X + 0 = X，X * 1 = X</li>
+<li><strong>吸收律</strong>：X + X * Y = X，X * (X + Y) = X</li>
+<li><strong>分配律</strong>：X + (Y * Z) = (X + Y) * (X + Z)，X * (Y + Z) = (X * Y) + (X * Z)</li>
+<li><strong>德摩根定律</strong>：(X + Y) = X * Y，(X * Y) = X + Y</li>
+</ol>
+<h3 id="二逻辑简化方法">（二）逻辑简化方法</h3>
+<ol>
+<li><strong>布尔代数规则</strong>：运用规则转换布尔表达式，消除冗余项或合并项。</li>
+<li><strong>合并项</strong>：合并相同变量项，如A * B和A * C合并为A * (B + C)。</li>
+<li><strong>消除冗余项</strong>：去除不影响电路输出的项，如A * (A + B)简化为A。</li>
+<li><strong>替换运算符</strong>：用等价运算符替换，如德摩根定律将AND换为OR。</li>
+<li><strong>卡诺图</strong>：可视化布尔函数相邻性，发现简化机会。</li>
+<li><strong>Quine - McCluskey算法</strong>：自动找到布尔表达式最小化形式。</li>
+<li><strong>逻辑综合工具</strong>：现代EDA工具自动进行逻辑综合，转换为最优逻辑电路结构。</li>
+</ol>
+<h3 id="三逻辑简化的目标">（三）逻辑简化的目标</h3>
+<ol>
+<li><strong>减少电路面积</strong>：减少晶体管数量，减小电路尺寸。</li>
+<li><strong>降低功耗</strong>：减少开关活动，降低功耗。</li>
+<li><strong>提高速度</strong>：减少电路级数，提高运算速度。</li>
+<li><strong>降低成本</strong>：减少晶体管数量与电路面积，降低生产成本。</li>
+</ol>
+<p><strong>总结</strong>：布尔代数是逻辑电路优化重要工具，除卡诺图外，还可通过多种方法实现逻辑电路简化。</p>
+<h2 id="四-逻辑电路功耗设计">四、逻辑电路功耗设计</h2>
+<h3 id="一降低动态功耗">（一）降低动态功耗</h3>
+<ol>
+<li><strong>降低供电电压</strong>：显著降低动态功耗，但可能影响电路速度与性能。</li>
+<li><strong>降低开关频率</strong>：减少电容充放电次数，降低动态功耗。</li>
+<li><strong>减少翻转率</strong>：如使用时钟门控或低功耗设计技术减少信号翻转次数。</li>
+<li><strong>优化电路结构</strong>：选择CMOS等功耗低的逻辑门技术，采用流水线等优化电路结构。</li>
+</ol>
+<h3 id="二降低静态功耗">（二）降低静态功耗</h3>
+<ol>
+<li><strong>使用低泄漏晶体管</strong>：如SOI晶体管，减少静态功耗。</li>
+<li><strong>降低晶体管尺寸</strong>：尺寸减小，泄漏电流减小，降低静态功耗。</li>
+<li><strong>使用功率门控</strong>：将部分或全部电路区域置于低功耗模式。</li>
+<li><strong>优化电路结构</strong>：选择低功耗逻辑门技术并优化结构。</li>
+</ol>
+<h3 id="三其他功耗降低技术">（三）其他功耗降低技术</h3>
+<ol>
+<li><strong>电源管理</strong>：如动态电压和频率调节（DVFS），根据需求调整供电电压和频率。</li>
+<li><strong>时钟门控</strong>：使部分或全部电路区域进入低功耗模式。</li>
+<li><strong>低功耗设计技术</strong>：多阈值电压、低功耗逻辑门、电路级功耗降低等技术。</li>
+</ol>
+<p><strong>总结</strong>：设计逻辑电路时，可通过降低动态和静态功耗降低整体功耗，方法包括选择合适技术、优化结构、采用功耗降低与电源管理技术等。</p>
+<hr>
+<div class="tvcontainer">
+<iframe class="tv"  src="//player.bilibili.com/player.html?isOutside=true&aid=113340395294825&bvid=BV13nyeYYECw&cid=26387480952&p=2&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+</div>]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[数字设计与计算机架构课程的第二讲笔记（2）]]></title>
+        <id>https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-2/</id>
+        <link href="https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-2/">
+        </link>
+        <updated>2024-11-29T07:25:24.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="数字设计与计算机架构课程笔记">数字设计与计算机架构课程笔记</h1>
+<p><strong><a href="https://safari.ethz.ch/digitaltechnik/spring2023/doku.php?id=start">ETH Zürich 2023春季学期</a>·第二讲：权衡、指标和设计心态</strong></p>
+<hr>
+<h2 id="一-计算机系统基础">一、计算机系统基础</h2>
+<h3 id="11-系统组成">1.1 系统组成</h3>
+<ul>
+<li><strong>计算</strong>：执行算术/逻辑运算（如ALU功能）。</li>
+<li><strong>通信</strong>：数据在组件间传输（如总线架构）。</li>
+<li><strong>存储/内存</strong>：快速访问程序与数据（如缓存层次结构）。</li>
+</ul>
+<h3 id="12-体系结构层次">1.2 体系结构层次</h3>
+<p>从抽象到物理的层级：</p>
+<ol>
+<li><strong>问题</strong> → 2. <strong>算法</strong> → 3. <strong>逻辑</strong> → 4. <strong>设备</strong> → 5. <strong>电子</strong></li>
+</ol>
+<hr>
+<h2 id="二-处理器类型与设计目标">二、处理器类型与设计目标</h2>
+<h3 id="21-通用-vs-专用处理器">2.1 通用 vs 专用处理器</h3>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>优势</th>
+<th>劣势</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>通用CPU</strong></td>
+<td>灵活性高、可编程性强</td>
+<td>能效/性能非最优</td>
+</tr>
+<tr>
+<td><strong>专用ASIC</strong></td>
+<td>高性能、高能效</td>
+<td>灵活性差、开发成本高</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-现代处理器架构">2.2 现代处理器架构</h3>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>功能特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU</strong></td>
+<td>执行通用指令（如程序控制、分支预测）</td>
+</tr>
+<tr>
+<td><strong>GPU</strong></td>
+<td>并行处理图形与大规模数据（如SIMD架构）</td>
+</tr>
+<tr>
+<td><strong>FPGA</strong></td>
+<td>可重构逻辑功能（如硬件原型设计）</td>
+</tr>
+<tr>
+<td><strong>ASIC</strong></td>
+<td>定制化优化特定任务（如AI推理）</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="三-基础构建模块">三、基础构建模块</h2>
+<h3 id="31-晶体管与逻辑门">3.1 晶体管与逻辑门</h3>
+<ul>
+<li><strong>MOS晶体管</strong>：
+<ul>
+<li><strong>n型</strong>：电子导电（低电平导通）。</li>
+<li><strong>p型</strong>：空穴导电（高电平导通）。</li>
+</ul>
+</li>
+<li><strong>CMOS逻辑门</strong>：
+<ul>
+<li><strong>优势</strong>：静态功耗低、噪声容限高。</li>
+<li><strong>实现</strong>：互补nMOS/pMOS网络（如NAND门由并联nMOS与串联pMOS构成）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="32-组合逻辑电路">3.2 组合逻辑电路</h3>
+<ul>
+<li><strong>功能特性</strong>：
+<ul>
+<li>输出仅依赖当前输入（无记忆）。</li>
+<li>标准形式：SOP（积之和）与POS（和之积）。</li>
+</ul>
+</li>
+<li><strong>逻辑简化方法</strong>：
+<ul>
+<li><strong>布尔代数规则</strong>（如吸收律、德摩根定律）。</li>
+<li><strong>Karnaugh图</strong>：通过相邻项合并最小化表达式（如BCD增量函数简化）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="33-组合逻辑构建块">3.3 组合逻辑构建块</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>功能描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>解码器</strong></td>
+<td>二进制输入→独热码输出</td>
+</tr>
+<tr>
+<td><strong>多路选择器</strong></td>
+<td>按选择信号选通输入</td>
+</tr>
+<tr>
+<td><strong>全加器</strong></td>
+<td>实现二进制加法（含进位）</td>
+</tr>
+<tr>
+<td><strong>PLA</strong></td>
+<td>可编程逻辑阵列（SOP/POS配置）</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="四-数据移动与能耗瓶颈">四、数据移动与能耗瓶颈</h2>
+<h3 id="41-能量对比">4.1 能量对比</h3>
+<ul>
+<li><strong>计算能耗</strong>：执行算术和逻辑运算所需的能量。</li>
+<li><strong>数据移动能耗</strong>：将数据从内存移动到处理器，或在不同内存层次之间移动所需的能量。</li>
+</ul>
+<h3 id="42-瓶颈成因">4.2 瓶颈成因</h3>
+<ol>
+<li><strong>内存层次结构</strong>：数据需跨多层传输（寄存器→缓存→主存）。</li>
+<li><strong>访问模式</strong>：缓存未命中导致频繁主存访问。</li>
+<li><strong>物理距离</strong>：存储器与处理器分离增加延迟与能耗。</li>
+</ol>
+<h3 id="43-优化技术">4.3 优化技术</h3>
+<ul>
+<li><strong>存内计算 (PIM)</strong>：在DRAM内集成计算单元（如Samsung AxDIMM）。</li>
+<li><strong>近内存计算</strong>：将处理器嵌入内存芯片（如UPMEM引擎）。</li>
+<li><strong>缓存优化</strong>：提升命中率以减少主存访问。</li>
+</ul>
+<hr>
+<h2 id="五-逻辑设计关键问题">五、逻辑设计关键问题</h2>
+<h3 id="51-逻辑门选择">5.1 逻辑门选择</h3>
+<ul>
+<li><strong>CMOS技术</strong>：主流方案（低功耗、高集成度）。</li>
+<li><strong>特殊场景</strong>：
+<ul>
+<li><strong>ECL</strong>：高速（如高性能计算）。</li>
+<li><strong>GaAs</strong>：高频（如通信设备）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="52-功耗优化">5.2 功耗优化</h3>
+<ul>
+<li><strong>动态功耗</strong>：降低电压、时钟门控。</li>
+<li><strong>静态功耗</strong>：低泄漏晶体管、功率门控。</li>
+</ul>
+<hr>
+<p><strong>总结</strong>：本笔记整合了数字设计的核心构建模块（晶体管、逻辑门、组合逻辑）、现代架构挑战（数据移动瓶颈）及优化策略，强调权衡分析与能效设计原则，为后续微处理器设计提供理论基础。</p>
+<hr>
+<div class="tvcontainer">
+<iframe class="tv"  src="//player.bilibili.com/player.html?isOutside=true&aid=113340395294825&bvid=BV13nyeYYECw&cid=26387480952&p=2&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+</div>]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[数字设计与计算机架构课程的第二讲笔记（1）]]></title>
+        <id>https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-1/</id>
+        <link href="https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-1/">
+        </link>
+        <updated>2024-11-26T09:16:37.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="数字设计与计算机架构课程笔记">数字设计与计算机架构课程笔记</h1>
+<p><strong><a href="https://safari.ethz.ch/digitaltechnik/spring2023/doku.php?id=start">ETH Zürich 2023春季学期</a>·第二讲：权衡、指标和设计心态</strong></p>
+<hr>
+<h2 id="一-课程概述">一、课程概述</h2>
+<h3 id="11-课程目标">1.1 课程目标</h3>
+<ul>
+<li><strong>核心目标</strong>
+<ul>
+<li>理解数字设计与计算机架构的基础原理，包括组合逻辑、时序逻辑、处理器微架构等，掌握硬件与软件接口设计，如指令集架构ISA、汇编语言编程。</li>
+<li>评估设计中的权衡，如性能、能效、成本等，并学会系统性调试，鼓励创新设计，探索新型内存技术、数据流架构等。</li>
+</ul>
+</li>
+</ul>
+<h3 id="12-课程内容">1.2 课程内容</h3>
+<ul>
+<li><strong>模块划分</strong>
+<ul>
+<li><strong>基础设计</strong>：组合逻辑、时序逻辑、硬件描述语言（Verilog）。</li>
+<li><strong>处理器架构</strong>：单周期/多周期/流水线微架构、乱序执行、超标量执行。</li>
+<li><strong>存储技术</strong>：缓存层次、虚拟内存、多核缓存一致性。</li>
+<li><strong>新兴范式</strong>：数据流架构、VLIW（超长指令字）、SIMD/GPU并行化。</li>
+<li><strong>其他</strong>：计算机架构的现状、不同平台的设计目标和权衡、设计原则探讨。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="二-核心概念与设计原则">二、核心概念与设计原则</h2>
+<h3 id="21-权衡-tradeoffs">2.1 权衡 (Tradeoffs)</h3>
+<ul>
+<li><strong>定义</strong>：在互相冲突的设计目标间进行优先级决策。</li>
+<li><strong>关键权衡维度</strong>：
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>性能 vs 能效</strong></td>
+<td>高频CPU提升性能但增加功耗，如Intel Alder Lake的混合核心设计。</td>
+</tr>
+<tr>
+<td><strong>灵活性 vs 效率</strong></td>
+<td>CPU通用性强但能效低，ASIC专用性强但灵活性差，如Google TPU。</td>
+</tr>
+<tr>
+<td><strong>成本 vs 可靠性</strong></td>
+<td>冗余设计提高可靠性但增加成本，如航天级处理器。</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+<h3 id="22-指标-metrics">2.2 指标 (Metrics)</h3>
+<ul>
+<li><strong>性能指标</strong>：指令吞吐量（IPC）、时钟频率、延迟。</li>
+<li><strong>能效指标</strong>：每瓦特性能（TOPS/W）、动态功耗。</li>
+<li><strong>其他指标</strong>：面积（晶体管密度）、可扩展性（多核扩展效率）、用户体验（响应时间）。</li>
+</ul>
+<h3 id="23-设计原则-design-principles">2.3 设计原则 (Design Principles)</h3>
+<ul>
+<li><strong>原则 vs 先例</strong>
+<ul>
+<li><strong>基于原则的设计</strong>：从基础物理/数学规律出发，如CMOS电路优化。</li>
+<li><strong>基于先例的设计</strong>：沿用历史方案，如x86指令集兼容性。</li>
+</ul>
+</li>
+<li><strong>跨领域启发</strong>
+<ul>
+<li><strong>Santiago Calatrava（建筑师）</strong>：材料最优利用，类比芯片面积优化。</li>
+<li><strong>Frank Lloyd Wright（建筑师）</strong>：形式追随功能，如RISC指令集简化设计。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="三-基础构建模块">三、基础构建模块</h2>
+<h3 id="31-晶体管与逻辑门">3.1 晶体管与逻辑门</h3>
+<ul>
+<li><strong>晶体管类型</strong>
+<ul>
+<li><strong>nMOS</strong>：低电平导通，用于下拉网络。</li>
+<li><strong>pMOS</strong>：高电平导通，用于上拉网络。</li>
+</ul>
+</li>
+<li><strong>CMOS逻辑门</strong>
+<ul>
+<li><strong>结构</strong>：互补nMOS/pMOS组合，如NAND门由并联nMOS与串联pMOS构成。</li>
+<li><strong>优势</strong>：静态功耗低、噪声容限高。</li>
+</ul>
+</li>
+</ul>
+<h3 id="32-组合逻辑电路">3.2 组合逻辑电路</h3>
+<ul>
+<li><strong>功能规范</strong>
+<ul>
+<li>输入到输出的纯逻辑函数，无记忆功能。</li>
+<li>标准形式：SOP（积之和）与POS（和之积）。</li>
+</ul>
+</li>
+<li><strong>逻辑简化方法</strong>
+<ul>
+<li><strong>布尔代数</strong>：应用结合律、分配律等，如(A + A'B = A + B)。</li>
+<li><strong>Karnaugh图</strong>：通过相邻单元格合并最小项，如4变量K-map覆盖BCD增量函数。</li>
+</ul>
+</li>
+</ul>
+<h3 id="33-组合逻辑构建块">3.3 组合逻辑构建块</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>功能</th>
+<th>应用示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>解码器</strong></td>
+<td>二进制输入到独热码输出</td>
+<td>指令译码，如MIPS ISA。</td>
+</tr>
+<tr>
+<td><strong>多路选择器</strong></td>
+<td>从多路输入中选择一路输出</td>
+<td>数据通路选择，如ALU输入。</td>
+</tr>
+<tr>
+<td><strong>可编程逻辑阵列 (PLA)</strong></td>
+<td>可配置SOP/POS逻辑实现</td>
+<td>定制化ALU功能。</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="四-现代架构挑战与平台">四、现代架构挑战与平台</h2>
+<h3 id="41-计算机架构的现状">4.1 计算机架构的现状</h3>
+<ul>
+<li><strong>面临挑战</strong>：数据密集型工作负载、新的（设备）技术、日益复杂的应用程序和系统。</li>
+<li><strong>数据的重要性</strong>：数据在现代计算中起关键作用，数据移动对性能和能源效率影响显著，数据搬运能耗远高于计算。</li>
+<li><strong>新颖概念</strong>：新的计算范式、新的加速器和系统、新的内存、存储系统、互连和设备。</li>
+</ul>
+<h3 id="42-数据驱动的设计">4.2 数据驱动的设计</h3>
+<ul>
+<li><strong>数据移动瓶颈解决方案</strong>：
+<ul>
+<li><strong>存内计算 (PIM)</strong>：三星Function-in-Memory DRAM直接在内存中处理数据。</li>
+<li><strong>近内存计算</strong>：UPMEM引擎将处理器嵌入DRAM芯片。</li>
+</ul>
+</li>
+</ul>
+<h3 id="43-处理器平台对比">4.3 处理器平台对比</h3>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>优势</th>
+<th>劣势</th>
+<th>应用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU</strong></td>
+<td>通用性强、编程灵活</td>
+<td>能效低</td>
+<td>通用计算，如服务器。</td>
+</tr>
+<tr>
+<td><strong>GPU</strong></td>
+<td>高并行吞吐量</td>
+<td>延迟敏感型任务性能差</td>
+<td>图形渲染、AI训练。</td>
+</tr>
+<tr>
+<td><strong>FPGA</strong></td>
+<td>可重构硬件加速</td>
+<td>开发复杂度高</td>
+<td>原型验证、低延迟处理。</td>
+</tr>
+<tr>
+<td><strong>TPU</strong></td>
+<td>张量计算优化、能效高</td>
+<td>专用性强</td>
+<td>机器学习推理。</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="五-新兴技术与趋势">五、新兴技术与趋势</h2>
+<h3 id="51-新兴内存技术">5.1 新兴内存技术</h3>
+<ul>
+<li><strong>存算一体技术</strong>：
+<ul>
+<li><strong>ReRAM/CBRAM</strong>：非易失性内存，支持存内计算，如IBM的模拟AI加速器。</li>
+</ul>
+</li>
+<li><strong>3D集成技术</strong>：
+<ul>
+<li>晶圆级堆叠。</li>
+</ul>
+</li>
+</ul>
+<h3 id="52-新型计算范式">5.2 新型计算范式</h3>
+<ul>
+<li><strong>数据流架构</strong>：按数据依赖关系动态调度指令，如Google的TPU v4。</li>
+<li><strong>量子计算</strong>：超导量子位与纠错码（当前课程未深入涉及）。</li>
+</ul>
+<hr>
+<p><strong>总结</strong>：本讲系统阐述了数字设计的核心构建模块（晶体管、逻辑门、组合逻辑）、权衡与指标方法论，以及现代架构的挑战（数据移动、异构计算）。通过结合经典设计原则与新兴技术（如PIM），为后续处理器设计与优化奠定基础。</p>
+<hr>
+<div class="tvcontainer">
+<iframe class="tv"  src="//player.bilibili.com/player.html?isOutside=true&aid=113340395294825&bvid=BV13nyeYYECw&cid=26387480952&p=2&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+</div>]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Leetcode每日一题：9. 回文数]]></title>
+        <id>https://solahome.github.io/post/leetcode-mei-ri-yi-ti-palindrome-number/</id>
+        <link href="https://solahome.github.io/post/leetcode-mei-ri-yi-ti-palindrome-number/">
+        </link>
+        <updated>2023-03-14T08:16:51.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="9-回文数">9. 回文数</h2>
+<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=385781&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://leetcode.cn/problems/palindrome-number/">https://leetcode.cn/problems/palindrome-number/</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<h4 id="中等">中等</h4>
+<p>给你一个整数 x ，如果 x 是一个回文整数，返回 true ；否则，返回 false 。</p>
+<p>回文数是指正序（从左向右）和倒序（从右向左）读都是一样的整数。</p>
+<ul>
+<li>例如，121 是回文，而 123 不是。</li>
+</ul>
+<p>示例 1：</p>
+<pre><code>输入：x = 121
+输出：true
+</code></pre>
+<p>示例 2：</p>
+<pre><code>输入：x = -121
+输出：false
+解释：从左向右读, 为 -121 。 从右向左读, 为 121- 。因此它不是一个回文数。
+</code></pre>
+<p>示例 3：</p>
+<pre><code>输入：x = 10
+输出：false
+解释：从右向左读, 为 01 。因此它不是一个回文数。
+</code></pre>
+<p>提示：</p>
+<pre><code>-2^31 &lt;= x &lt;= 2^31 - 1
+</code></pre>
+<p><strong>进阶：你能不将整数转为字符串来解决这个问题吗？</strong></p>
+<h3 id="解题思路">解题思路</h3>
+<p>不转换为字符串解决问题最直接的办法就是将数倒过了，然后判断和原数是否相等，先判定是否为负数，如是负数直接返回false，时间复杂度O(logn)，空间复杂度O(1)</p>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-python">class Solution:
+    def isPalindrome(self, x: int) -&gt; bool:
+        s=0
+        x_raw=x
+        if x&lt;0:
+            return False
+        
+        else:
+            while x&gt;0:
+                k=x%10
+                x=x//10
+                s=s*10+k
+            if x_raw==s:
+                return True
+            else:
+                return False
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Leetcode每日一题：11. 盛最多水的容器]]></title>
+        <id>https://solahome.github.io/post/leetcode-mei-ri-yi-ti-container-with-most-water/</id>
+        <link href="https://solahome.github.io/post/leetcode-mei-ri-yi-ti-container-with-most-water/">
+        </link>
+        <updated>2023-03-12T12:59:17.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="11-盛最多水的容器">11. 盛最多水的容器</h2>
+<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1330348068&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://leetcode.cn/problems/container-with-most-water/">https://leetcode.cn/problems/container-with-most-water/</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<h4 id="中等">中等</h4>
+<p>给定一个长度为 n 的整数数组 height 。有 n 条垂线，第 i 条线的两个端点是 (i, 0) 和 (i, height[i]) 。</p>
+<p>找出其中的两条线，使得它们与 x 轴共同构成的容器可以容纳最多的水。</p>
+<p>返回容器可以储存的最大水量。</p>
+<p><strong>说明</strong>：你不能倾斜容器。</p>
+<p>示例 1：</p>
+<pre><code>输入：[1,8,6,2,5,4,8,3,7]
+输出：49 
+解释：图中垂直线代表输入数组 [1,8,6,2,5,4,8,3,7]。在此情况下，容器能够容纳水（表示为蓝色部分）的最大值为 49。
+</code></pre>
+<p>示例 2：</p>
+<pre><code>输入：height = [1,1]
+输出：1
+</code></pre>
+<p>提示：</p>
+<pre><code>- n == height.length
+- 2 &lt;= n &lt;= 10^5
+- 0 &lt;= height[i] &lt;= 10^4
+</code></pre>
+<h3 id="解题思路">解题思路</h3>
+<p>直接全部循环搜索会超时，使用双指针，短板会决定水最高的高度，当左右两个挡板向内移动的时候，移动长板一定会使面积变小，移动短板则不能确定，两指针从左右边缘开始搜索至它们相邻，时间复杂度O(n),空间复杂度O(1)</p>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-python">class Solution:
+    def maxArea(self, height: List[int]) -&gt; int:
+        final=0
+        s=0
+        i=0
+        j=len(height)-1
+        while i&lt;j: 
+            s=(j-i)*min(height[i],height[j])
+            if s&gt;final:
+                final=s
+            if height[i]&lt;height[j]:
+                i=i+1
+            else:
+                j=j-1
+            if i&gt;=j:
+                break          
+                   
+        return final
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Leetcode每日一题：893. 特殊等价字符串组]]></title>
+        <id>https://solahome.github.io/post/leetcode-mei-ri-yi-ti-groups-of-special-equivalent-strings/</id>
+        <link href="https://solahome.github.io/post/leetcode-mei-ri-yi-ti-groups-of-special-equivalent-strings/">
+        </link>
+        <updated>2023-03-11T02:12:19.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="893-特殊等价字符串组">893. 特殊等价字符串组</h2>
+<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=167876&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://leetcode.cn/problems/groups-of-special-equivalent-strings/">https://leetcode.cn/problems/groups-of-special-equivalent-strings/</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<h4 id="中等">中等</h4>
+<p>给你一个字符串数组 words。</p>
+<p>一步操作中，你可以交换字符串 words[i] 的任意两个偶数下标对应的字符或任意两个奇数下标对应的字符。</p>
+<p>对两个字符串 words[i] 和 words[j] 而言，如果经过任意次数的操作，words[i] == words[j] ，那么这两个字符串是 特殊等价 的。</p>
+<ul>
+<li>
+<p>例如，words[i] = &quot;zzxy&quot; 和 words[j] = &quot;xyzz&quot; 是一对 特殊等价 字符串，因为可以按 &quot;zzxy&quot; -&gt; &quot;xzzy&quot; -&gt; &quot;xyzz&quot; 的操作路径使 words[i] == words[j] 。<br>
+现在规定，words 的 一组特殊等价字符串 就是 words 的一个同时满足下述条件的非空子集：</p>
+</li>
+<li>
+<p>该组中的每一对字符串都是 特殊等价 的</p>
+</li>
+<li>
+<p>该组字符串已经涵盖了该类别中的所有特殊等价字符串，容量达到理论上的最大值（也就是说，如果一个字符串不在该组中，那么这个字符串就 不会 与该组内任何字符串特殊等价）<br>
+返回 words 中 特殊等价字符串组 的数量。</p>
+</li>
+</ul>
+<p>示例 1：</p>
+<pre><code>输入：words = [&quot;abcd&quot;,&quot;cdab&quot;,&quot;cbad&quot;,&quot;xyzz&quot;,&quot;zzxy&quot;,&quot;zzyx&quot;]
+输出：3
+解释：
+其中一组为 [&quot;abcd&quot;, &quot;cdab&quot;, &quot;cbad&quot;]，因为它们是成对的特殊等价字符串，且没有其他字符串与这些字符串特殊等价。
+另外两组分别是 [&quot;xyzz&quot;, &quot;zzxy&quot;] 和 [&quot;zzyx&quot;]。特别需要注意的是，&quot;zzxy&quot; 不与 &quot;zzyx&quot; 特殊等价。
+</code></pre>
+<p>示例 2：</p>
+<pre><code>输入：words = [&quot;abc&quot;,&quot;acb&quot;,&quot;bac&quot;,&quot;bca&quot;,&quot;cab&quot;,&quot;cba&quot;]
+输出：3
+解释：3 组 [&quot;abc&quot;,&quot;cba&quot;]，[&quot;acb&quot;,&quot;bca&quot;]，[&quot;bac&quot;,&quot;cab&quot;]
+</code></pre>
+<p>提示：</p>
+<pre><code>- 1 &lt;= words.length &lt;= 1000
+- 1 &lt;= words[i].length &lt;= 20
+- 所有 words[i] 都只由小写字母组成。
+- 所有 words[i] 都具有相同的长度。
+</code></pre>
+<h3 id="解题思路">解题思路</h3>
+<p>特殊等价情况意味着奇数位和偶数位上的字符完全相同，所以先将奇偶位分开，然后排序后对比，同时在遍历对比过程中，进行计数，时间复杂度O(n^2)，空间复杂度O(n)</p>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-python">class Solution:
+    def numSpecialEquivGroups(self, words: List[str]) -&gt; int:
+        ji=[]
+        ou=[]
+        for i in range(len(words)):
+            ji.append([])
+            ou.append([])
+            for j in range(len(words[i])):
+                if j%2!=0:
+                    ji[i].append(words[i][j])
+                else:
+                    ou[i].append(words[i][j])
+                if ji[i]!=[]:
+                    ji[i].sort()
+                if ou[i]!=[]:
+                    ou[i].sort()
+        s=0
+        for i in range(len(words)):
+            if i!=len(words)-1 and ji[i]!=['0']:
+                s=s+1
+                for j in range(i+1,len(words)):
+                    if ji[j]==ji[i] and ou[j]==ou[i]:
+                        ji[j]=['0']
+
+            elif i==len(words)-1 and ji[i]!=['0']:
+                s=s+1
+        
+        return s
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Leetcode每日一题：7. 整数反转]]></title>
+        <id>https://solahome.github.io/post/leetcode-mei-ri-yi-ti-7-reverse-integer/</id>
+        <link href="https://solahome.github.io/post/leetcode-mei-ri-yi-ti-7-reverse-integer/">
+        </link>
+        <updated>2023-03-10T01:46:09.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="7-整数反转">7. 整数反转</h2>
+<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=346576&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://leetcode.cn/problems/reverse-integer/">https://leetcode.cn/problems/reverse-integer/</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<h4 id="中等">中等</h4>
+<p>给你一个 32 位的有符号整数 x ，返回将 x 中的数字部分反转后的结果。</p>
+<p>如果反转后整数超过 32 位的有符号整数的范围 [−2^31,  2^31 − 1] ，就返回 0。</p>
+<p><strong>假设环境不允许存储 64 位整数（有符号或无符号）。</strong></p>
+<p>示例 1：</p>
+<pre><code>输入：x = 123
+输出：321
+</code></pre>
+<p>示例 2：</p>
+<pre><code>输入：x = -123
+输出：-321
+</code></pre>
+<p>示例 3：</p>
+<pre><code>输入：x = 120
+输出：21
+</code></pre>
+<p>示例 4：</p>
+<pre><code>输入：x = 0
+输出：0
+</code></pre>
+<p>提示：</p>
+<pre><code>-2^31 &lt;= x &lt;= 2^31 - 1
+</code></pre>
+<h3 id="解题思路">解题思路</h3>
+<p>先正负判断，只考虑数值，然后将数取余倒过来，进行迭代，时间复杂度O(n)，空间复杂度O(n)</p>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-python">class Solution:
+    def reverse(self, x: int) -&gt; int:
+        if x &lt;0:
+            x_p = abs(x)
+            s = str(x_p)
+            n = len(s)
+            sum_w=0
+            while n&gt;0:
+                high=x_p%10
+                x_p=x_p//10
+                sum_w=sum_w*10+high
+                n=n-1
+            sum_w=-sum_w
+        
+        else:
+            x_p = x
+            s = str(x_p)
+            n = len(s)
+            sum_w=0
+            while n&gt;0:
+                high=x_p%10
+                x_p=x_p//10
+                sum_w=sum_w*10+high
+                n=n-1
+        
+        if sum_w&lt;(-2)**31 or sum_w&gt;2**31-1:
+            sum_w=0
+
+        return sum_w
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[每日一题：1006 换个格式输出整数]]></title>
+        <id>https://solahome.github.io/post/everydayproblempatb1006/</id>
+        <link href="https://solahome.github.io/post/everydayproblempatb1006/">
+        </link>
+        <updated>2021-09-06T14:09:36.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1842025914&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://pintia.cn/problem-sets/994805260223102976/problems/994805318855278592">https://pintia.cn/problem-sets/994805260223102976/problems/994805318855278592</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<blockquote>
+<p>作者<br>
+CHEN, Yue<br>
+单位<br>
+浙江大学<br>
+代码长度限制<br>
+16 KB<br>
+时间限制<br>
+400 ms<br>
+内存限制<br>
+64 MB</p>
+</blockquote>
+<p>让我们用字母 B 来表示“百”、字母 S 表示“十”，用 12...n 来表示不为零的个位数字 n（&lt;10），换个格式来输出任一个不超过 3 位的正整数。例如 234 应该被输出为 BBSSS1234，因为它有 2 个“百”、3 个“十”、以及个位的 4。</p>
+<p>输入格式：<br>
+每个测试输入包含 1 个测试用例，给出正整数 n（&lt;1000）。</p>
+<p>输出格式：<br>
+每个测试用例的输出占一行，用规定的格式输出 n。</p>
+<p>输入样例1：</p>
+<pre><code>234
+</code></pre>
+<p>输出样例1：</p>
+<pre><code>BBSSS1234
+</code></pre>
+<p>输入样例2：</p>
+<pre><code>23
+</code></pre>
+<p>输出样例2：</p>
+<pre><code>SS123
+</code></pre>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-c++">#include &lt;iostream&gt;
+
+using namespace std;
+
+int main()
+{
+    int n;
+    scanf(&quot;%d&quot;,&amp;n);
+    int bai=0,shi=0,gei=0;
+    bai=n/100;
+    shi=(n-100*bai)/10;
+    gei=n%10;
+    if(bai==0){
+        if(shi==0){
+            for(int i=0;i&lt;gei;i++){
+                printf(&quot;%d&quot;,(i+1));
+            }
+            printf(&quot;\n&quot;);
+        }
+        
+        else{
+            for(int i=0;i&lt;shi;i++){
+                printf(&quot;%c&quot;,'S');
+            }
+            for(int i=0;i&lt;gei;i++){
+                printf(&quot;%d&quot;,(i+1));
+            }
+            printf(&quot;\n&quot;);
+        }
+    }
+    else{
+        for(int i=0;i&lt;bai;i++){
+            printf(&quot;%c&quot;,'B');
+        }
+        for(int i=0;i&lt;shi;i++){
+            printf(&quot;%c&quot;,'S');
+        }
+        for(int i=0;i&lt;gei;i++){
+            printf(&quot;%d&quot;,(i+1));
+        }
+        printf(&quot;\n&quot;);
+    }
+
+    return 0;
+}
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[每日一题：1005 继续(3n+1)猜想]]></title>
+        <id>https://solahome.github.io/post/everydayproblempatb1005/</id>
+        <link href="https://solahome.github.io/post/everydayproblempatb1005/">
+        </link>
+        <updated>2021-08-17T08:55:33.000Z</updated>
+        <content type="html"><![CDATA[<iframe  class="music" frameborder="no" src="//music.163.com/outchain/player?type=2&id=1868811465&auto=0&height=90"></iframe>
+<blockquote>
+<p>题目地址<a href="https://pintia.cn/problem-sets/994805260223102976/problems/994805320306507776">https://pintia.cn/problem-sets/994805260223102976/problems/994805320306507776</a></p>
+</blockquote>
+<h3 id="题目内容">题目内容</h3>
+<blockquote>
+<p>作者<br>
+CHEN, Yue<br>
+单位<br>
+浙江大学<br>
+代码长度限制<br>
+16 KB<br>
+时间限制<br>
+400 ms<br>
+内存限制<br>
+64 MB</p>
+</blockquote>
+<p>卡拉兹(Callatz)猜想已经在1001中给出了描述。在这个题目里，情况稍微有些复杂。</p>
+<p>当我们验证卡拉兹猜想的时候，为了避免重复计算，可以记录下递推过程中遇到的每一个数。例如对 n=3 进行验证的时候，我们需要计算 3、5、8、4、2、1，则当我们对 n=5、8、4、2 进行验证的时候，就可以直接判定卡拉兹猜想的真伪，而不需要重复计算，因为这 4 个数已经在验证3的时候遇到过了，我们称 5、8、4、2 是被 3“覆盖”的数。我们称一个数列中的某个数 n 为“关键数”，如果 n 不能被数列中的其他数字所覆盖。</p>
+<p>现在给定一系列待验证的数字，我们只需要验证其中的几个关键数，就可以不必再重复验证余下的数字。你的任务就是找出这些关键数字，并按从大到小的顺序输出它们。</p>
+<p>输入格式：<br>
+每个测试输入包含 1 个测试用例，第 1 行给出一个正整数 K (&lt;100)，第 2 行给出 K 个互不相同的待验证的正整数 n (1&lt;n≤100)的值，数字间用空格隔开。</p>
+<p>输出格式：<br>
+每个测试用例的输出占一行，按从大到小的顺序输出关键数字。数字间用 1 个空格隔开，但一行中最后一个数字后没有空格。</p>
+<p>输入样例：</p>
+<pre><code>6
+3 5 6 7 8 11
+</code></pre>
+<p>输出样例：</p>
+<pre><code>7 6
+</code></pre>
+<h3 id="我的解答">我的解答</h3>
+<pre><code class="language-c++">#include &lt;iostream&gt;
+
+using namespace std;
+
+int mathhere(int a){
+    int value=0;
+    if(a%2==0){
+        value=a/2;
+    }
+    else{
+        value=(3*a+1)/2;
+    }
+    return value;
+}
+
+int search(int a,int *b,int n){
+    int key=-1;
+    for(int i=0;i&lt;n;i++){
+        if(a==b[i]){
+            key=i;
+        }
+    }
+    return key;
+}
+
+int main()
+{
+    int n;
+    scanf(&quot;%d&quot;,&amp;n);
+    int a[101]={0};
+    for(int i=0;i&lt;n;i++){
+        cin&gt;&gt;a[i];
+    }
+    
+    int b[101]={0};
+    for(int i=0;i&lt;n;i++){
+        b[i]=a[i];
+    }
+    
+    int temp[101]={0};
+    int k=0;
+    int putout=0;
+    for(int i=0;i&lt;n;i++){
+        putout=b[i];
+        while(putout!=1){
+            putout=mathhere(putout);
+            if(search(putout,b,n)!=-1){
+                b[search(putout,b,n)]=1;
+            }
+        }
+    }
+    //存储
+    for(int i=0;i&lt;n;i++){
+        if(b[i]!=1){
+            temp[k]=b[i];
+            k++;
+        }
+    }
+    //排序
+    int tempv=0;
+    for(int i=0;i&lt;k-1;i++){
+        for(int j=0;j&lt;k-1-i;j++){
+            if(temp[j]&lt;temp[j+1]){
+                tempv=temp[j];
+                temp[j]=temp[j+1];
+                temp[j+1]=tempv;
+            }
+        }
+    }
+    
+    for(int i=0;i&lt;k-1;i++){
+        printf(&quot;%d &quot;,temp[i]);
+    }
+    printf(&quot;%d\n&quot;,temp[k-1]);
+
+    return 0;
+}
+</code></pre>
+]]></content>
+    </entry>
+</feed>
