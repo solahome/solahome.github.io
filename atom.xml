@@ -1,0 +1,2129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://solahome.github.io</id>
+    <title>sola的小屋</title>
+    <updated>2025-04-05T07:48:36.134Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://solahome.github.io"/>
+    <link rel="self" href="https://solahome.github.io/atom.xml"/>
+    <subtitle>故事的结尾总写在开头</subtitle>
+    <logo>https://solahome.github.io/images/avatar.png</logo>
+    <icon>https://solahome.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2025, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(06)——Graph类的实现(src/core/graph.h and .cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-06/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-06/">
+        </link>
+        <updated>2025-03-27T07:31:09.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="graph-类代码结构与功能实现分析">Graph 类代码结构与功能实现分析</h1>
+<p><code>Graph</code> 类是 InferLLM 框架中的核心组件，负责构建和执行模型的计算图。下面对 <code>graph.h</code> 和 <code>graph.cpp</code> 的代码结构和功能实现进行详细分析。</p>
+<h2 id="1-核心数据结构">1. 核心数据结构</h2>
+<h3 id="11-llmparams-结构体">1.1 LlmParams 结构体</h3>
+<pre><code class="language-cpp">struct LlmParams {
+    bool is_multi_query = false;
+    int32_t multi_query_group_num = 1;
+    int32_t n_vocab;        // 词汇表大小
+    int32_t n_embd;         // 嵌入维度
+    int32_t n_mult;         // 中间层倍数
+    int32_t n_head;         // 注意力头数
+    int32_t n_layer;        // 层数
+    int32_t n_rot;          // 旋转位置编码维度
+    int32_t ftype;          // 权重类型
+    int32_t n_ctx;          // 上下文长度
+};
+</code></pre>
+<p>这个结构体存储了 LLM 模型的核心参数，包括模型结构信息和计算配置。</p>
+<h3 id="12-userconfig-结构体">1.2 UserConfig 结构体</h3>
+<pre><code class="language-cpp">struct UserConfig {
+    DType compt_type;       // 计算类型
+};
+</code></pre>
+<p>这个结构体存储了用户配置的计算类型。</p>
+<h2 id="2-oprmodulebase-类">2. OprModuleBase 类</h2>
+<p><code>OprModuleBase</code> 是所有操作模块的基类，封装了一组相关的算子：</p>
+<pre><code class="language-cpp">class OprModuleBase {
+public:
+    // 构造函数
+    OprModuleBase(std::shared_ptr&lt;Tensor&gt; input, Device* device, const std::string&amp; name);
+    OprModuleBase(std::vector&lt;std::shared_ptr&lt;Tensor&gt;&gt; inputs, Device* device, const std::string&amp; name);
+    
+    // 核心方法
+    size_t get_workspace_in_byte();
+    void deduce_output_shape();
+    virtual void execute(WorkSpace* workspace, uint32_t nr_past, bool is_prefill = false);
+    
+    // 添加算子
+    template &lt;typename Op, typename... Args&gt;
+    std::vector&lt;std::shared_ptr&lt;Tensor&gt;&gt; add_opr(Args&amp;&amp;... args);
+    
+    // 获取权重
+    std::vector&lt;std::shared_ptr&lt;Tensor&gt;&gt; get_all_weights();
+    
+    // 输入输出管理
+    std::vector&lt;std::shared_ptr&lt;Tensor&gt;&gt; inputs() const;
+    std::shared_ptr&lt;Tensor&gt; input(int id = 0) const;
+    std::shared_ptr&lt;Tensor&gt; output() const;
+    
+    // 重置上下文
+    virtual void reset_ctx() {}
+};
+</code></pre>
+<p><code>OprModuleBase</code> 的主要功能：</p>
+<ol>
+<li>管理一组相关的算子</li>
+<li>提供统一的执行接口</li>
+<li>管理输入输出张量</li>
+<li>计算工作空间需求</li>
+</ol>
+<h3 id="21-execute-方法实现">2.1 execute 方法实现</h3>
+<pre><code class="language-cpp">void OprModuleBase::execute(WorkSpace* workspace, uint32_t nr_past, bool) {
+    for (auto opr : m_oprs) {
+        opr-&gt;pre_execute();
+#ifdef INFER_PROFILE
+        struct timeval start, end;
+        gettimeofday(&amp;start, NULL);
+#endif
+        opr-&gt;execute(workspace, nr_past);
+
+#ifdef INFER_PROFILE
+        gettimeofday(&amp;end, NULL);
+        long seconds = end.tv_sec - start.tv_sec;
+        float micros = (seconds * 1000) + (float)(end.tv_usec - start.tv_usec) / 1000;
+        printf(&quot;Op %s spent time %f ms\n&quot;, opr-&gt;name().c_str(), micros);
+#endif
+        opr-&gt;end_execute();
+    }
+}
+</code></pre>
+<p>这个方法按顺序执行模块中的所有算子，并支持性能分析。</p>
+<h2 id="3-特定模块实现">3. 特定模块实现</h2>
+<p>框架定义了多种特定的模块，用于构建不同类型的模型：</p>
+<h3 id="31-attentionmodule">3.1 AttentionModule</h3>
+<pre><code class="language-cpp">template &lt;typename Attention&gt;
+class AttentionModule : public OprModuleBase {
+    // 构造函数中构建注意力计算图
+    AttentionModule(...) {
+        // 创建注意力算子
+        m_attention_op = std::make_shared&lt;Attention&gt;(...);
+        oprs().push_back(m_attention_op);
+        
+        // 创建投影算子
+        auto proj_out = add_opr&lt;MatMul&gt;(...)[0];
+        set_output(proj_out);
+    }
+    
+    // 重置上下文
+    void reset_ctx() override { m_attention_op-&gt;reset_ctx(); }
+};
+</code></pre>
+<p>这是一个模板类，可以使用不同的注意力实现（如 LlamaAttention、GlmAttention 等）。</p>
+<h3 id="32-ffn-模块">3.2 FFN 模块</h3>
+<p>框架实现了多种 FFN（前馈网络）模块，适用于不同的模型架构：</p>
+<h4 id="llamaffnmodule">LlamaFFNModule</h4>
+<pre><code class="language-cpp">LlamaFFNModule::LlamaFFNModule(...) {
+    size_t nff = ((2 * (4 * embd) / 3 + mult - 1) / mult) * mult;
+    // 创建第一个矩阵乘法
+    auto matmul_out0 = add_opr&lt;MatMul&gt;(...)[0];
+    // 创建第二个矩阵乘法
+    auto matmul_out1 = add_opr&lt;MatMul&gt;(...)[0];
+    // SiLU 激活函数
+    auto silu_out = add_opr&lt;Elemwise&gt;(..., ElemMode::Silu)[0];
+    // 元素乘法
+    auto mul_out = add_opr&lt;Elemwise&gt;(..., ElemMode::Mul)[0];
+    // 最后的矩阵乘法
+    auto matmul_out2 = add_opr&lt;MatMul&gt;(...)[0];
+    set_output(matmul_out2);
+}
+</code></pre>
+<h4 id="glmffnmodule">GlmFFNModule</h4>
+<pre><code class="language-cpp">GlmFFNModule::GlmFFNModule(...) {
+    // 矩阵乘法
+    auto matmul_out1 = add_opr&lt;MatMul&gt;(..., true)[0];
+    // GELU 激活函数
+    auto gelu_out = add_opr&lt;Elemwise&gt;(..., ElemMode::Gelu)[0];
+    // 矩阵乘法
+    auto matmul_out2 = add_opr&lt;MatMul&gt;(..., true)[0];
+    set_output(matmul_out2);
+}
+</code></pre>
+<h4 id="glm2ffnmodule">Glm2FFNModule</h4>
+<pre><code class="language-cpp">Glm2FFNModule::Glm2FFNModule(...) {
+    // 矩阵乘法
+    auto matmul_out1 = add_opr&lt;MatMul&gt;(..., false)[0];
+    // SpliteHalfActiveMul 操作
+    auto gelu_out = add_opr&lt;SpliteHalfActiveMul&gt;(..., ElemMode::Silu)[0];
+    // 矩阵乘法
+    auto matmul_out2 = add_opr&lt;MatMul&gt;(..., false)[0];
+    set_output(matmul_out2);
+}
+</code></pre>
+<h3 id="33-headmodule">3.3 HeadModule</h3>
+<pre><code class="language-cpp">HeadModule::HeadModule(...) {
+    // 层归一化
+    auto norm_out = add_opr&lt;LayerNorm&gt;(...)[0];
+    // 矩阵乘法（输出层）
+    auto matmul_out = add_opr&lt;MatMulLast&gt;(...)[0];
+    set_output(matmul_out);
+}
+
+void HeadModule::execute(WorkSpace* workspace, uint32_t nr_past, bool is_prefill) {
+    // 预填充模式下不执行
+    if (!is_prefill) {
+        for (auto opr : oprs()) {
+            opr-&gt;pre_execute();
+            opr-&gt;execute(workspace, nr_past);
+            opr-&gt;end_execute();
+        }
+    }
+}
+</code></pre>
+<p><code>HeadModule</code> 实现了模型的输出头，将隐藏状态映射到词汇表空间。它有一个特殊的 <code>execute</code> 方法，在预填充模式下不执行。</p>
+<h3 id="34-embdmodule">3.4 EmbdModule</h3>
+<pre><code class="language-cpp">EmbdModule::EmbdModule(...) {
+    // 嵌入层
+    auto embd_out = add_opr&lt;Embedding&gt;(...)[0];
+    set_output(embd_out);
+}
+</code></pre>
+<p><code>EmbdModule</code> 实现了模型的嵌入层，将输入 token 映射到嵌入空间。</p>
+<h3 id="35-oneopmodule">3.5 OneOpModule</h3>
+<pre><code class="language-cpp">template &lt;class Op&gt;
+class OneOpModule : public OprModuleBase {
+    // 添加单个算子
+    template &lt;typename... Args&gt;
+    std::shared_ptr&lt;Tensor&gt; add_opr(Args&amp;&amp;... args) {
+        auto opr = std::make_shared&lt;Op&gt;(
+                device(), name(), inputs(), std::forward&lt;Args&gt;(args)...);
+        oprs().push_back(opr);
+        set_output(opr-&gt;outputs()[0]);
+        return opr-&gt;outputs()[0];
+    }
+};
+</code></pre>
+<p><code>OneOpModule</code> 是一个辅助类，用于创建只包含一个算子的模块。</p>
+<h2 id="4-graph-类">4. Graph 类</h2>
+<p><code>Graph</code> 类是整个计算图的管理者，负责构建模型结构、加载权重和执行推理：</p>
+<pre><code class="language-cpp">class Graph : public std::enable_shared_from_this&lt;Graph&gt; {
+public:
+    // 构造函数
+    Graph(UserConfig model_config, Device* device, const std::string&amp; name);
+    
+    // 静态工厂方法
+    static std::shared_ptr&lt;Graph&gt; make_graph(UserConfig model_config, Device* device, const std::string&amp; name);
+    
+    // 执行方法
+    void execute(std::vector&lt;int32_t&gt; in_token, std::vector&lt;float&gt;&amp; logist, uint32_t nr_past, bool prefill = false);
+    
+    // 添加模块
+    template &lt;typename OpModule, typename... Args&gt;
+    std::shared_ptr&lt;Tensor&gt; add_module(Args&amp;&amp;... args);
+    
+    // 重置上下文
+    void reset_ctx();
+    
+    // 收集权重
+    void collect_weights();
+    
+    // 加载模型
+    virtual void load(std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param, std::shared_ptr&lt;Vocab&gt; vocab);
+    
+    // 构建模型结构（由派生类实现）
+    virtual void construct_llm() = 0;
+};
+</code></pre>
+<h3 id="41-execute-方法实现">4.1 execute 方法实现</h3>
+<pre><code class="language-cpp">void Graph::execute(std::vector&lt;int32_t&gt; in_token, std::vector&lt;float&gt;&amp; logist, uint32_t nr_past, bool prefill) {
+    // 检查输入形状，必要时重新分配工作空间
+    if (m_input-&gt;dims() == 0 || !same_input_shape(in_token)) {
+        m_input-&gt;set_shape({in_token.size()}, DType::Int32);
+        size_t len = get_workspace_in_byte();
+        if(m_workspace-&gt;ptr() == nullptr) {
+            auto data = m_device-&gt;allocate(len);
+            m_workspace-&gt;set_memory(data, len);
+        } else if (m_workspace-&gt;ptr() &amp;&amp; len &gt; m_workspace-&gt;length()) {
+            m_device-&gt;free_device(m_workspace-&gt;ptr());
+            auto data = m_device-&gt;allocate(len);
+            m_workspace-&gt;set_memory(data, len);
+        }
+    }
+    
+    // 准备输入数据
+    m_input-&gt;resume_user_count();
+    m_input-&gt;prepare_data();
+    m_device-&gt;host2device_copy(m_input-&gt;ptr(), in_token.data(), in_token.size() * sizeof(int32_t), true);
+    
+    // 执行所有模块
+    for (size_t i = 0; i &lt; m_modules.size(); i++) {
+        m_modules[i]-&gt;execute(m_workspace.get(), nr_past, prefill);
+    }
+    
+    // 如果不是预填充模式，复制输出数据
+    if (!prefill) {
+        m_device-&gt;device2host_copy(logist.data(), m_output-&gt;ptr(), logist.size() * sizeof(float), true);
+    }
+    
+    // 同步设备并释放输出内存
+    m_device-&gt;sync();
+    m_output-&gt;recall_data();
+}
+</code></pre>
+<p>这个方法是模型推理的核心，它执行以下步骤：</p>
+<ol>
+<li>检查输入形状，必要时重新分配工作空间</li>
+<li>准备输入数据</li>
+<li>按顺序执行所有模块</li>
+<li>复制输出数据（非预填充模式）</li>
+<li>同步设备并释放输出内存</li>
+</ol>
+<h3 id="42-load-方法实现">4.2 load 方法实现</h3>
+<pre><code class="language-cpp">void Graph::load(std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param, std::shared_ptr&lt;Vocab&gt; vocab) {
+    // 验证魔数
+    uint32_t magic;
+    fin-&gt;read_raw((char*)&amp;magic, sizeof(magic));
+    INFER_ASSERT(magic == 0x123456, &quot;model magic is not create!!!!&quot;);
+    
+    // 加载参数
+    load_param(fin, param, vocab);
+    
+    // 构建模型结构
+    construct_llm();
+    collect_weights();
+    set_weights_alias();
+    
+    // 加载权重
+    while (true) {
+        // 读取权重信息
+        int32_t n_dims, length, ftype;
+        if (fin-&gt;eof()) break;
+        
+        fin-&gt;read_raw(reinterpret_cast&lt;char*&gt;(&amp;n_dims), sizeof(n_dims));
+        fin-&gt;read_raw(reinterpret_cast&lt;char*&gt;(&amp;length), sizeof(length));
+        fin-&gt;read_raw(reinterpret_cast&lt;char*&gt;(&amp;ftype), sizeof(ftype));
+        
+        if (fin-&gt;eof()) break;
+        
+        // 读取形状
+        size_t nr_number = 1;
+        int32_t shape[2] = {1, 1};
+        for (int i = 0; i &lt; n_dims; ++i) {
+            fin-&gt;read_raw(reinterpret_cast&lt;char*&gt;(&amp;shape[i]), sizeof(shape[i]));
+            nr_number *= shape[i];
+        }
+        
+        // 读取权重名称
+        std::string name(length, 0);
+        fin-&gt;read_raw(&amp;name[0], length);
+        auto alias_name = get_weight_alias(name);
+        
+        // 如果权重不在映射表中，跳过
+        if (m_weights_map.count(alias_name) == 0) {
+            auto dtype = convert_dtype(ftype);
+            size_t length = nr_number * dtype_in_byte(dtype) / dtype_block_size(dtype);
+            fin-&gt;skip(length);
+            continue;
+        }
+        
+        // 设置权重的文件信息
+        auto weight = m_weights_map[alias_name];
+        weight-&gt;set_file(fin, fin-&gt;tell());
+        weight-&gt;set_shape({shape[0], shape[1]}, convert_dtype(ftype));
+
+        // 跳过权重数据（实际读取在需要时进行）
+        size_t length = weight-&gt;length_in_byte();
+        fin-&gt;skip(length);
+</code></pre>
+<p>这里采用了延迟加载策略，只记录权重在文件中的位置，实际读取在需要时进行，这样可以减少内存使用。</p>
+<h3 id="43-collect_weights-方法">4.3 collect_weights 方法</h3>
+<pre><code class="language-cpp">void Graph::collect_weights() {
+    for (auto module : m_modules) {
+        auto weights = module-&gt;get_all_weights();
+        for (auto weight : weights) {
+            auto name = weight-&gt;name();
+            m_weights_map[name] = weight;
+        }
+    }
+}
+</code></pre>
+<p>这个方法收集所有模块的权重，并将它们存储在权重映射表中，以便后续加载。</p>
+<h3 id="44-reset_ctx-方法">4.4 reset_ctx 方法</h3>
+<pre><code class="language-cpp">void Graph::reset_ctx() {
+    for (auto module : m_modules) {
+        module-&gt;reset_ctx();
+    }
+}
+</code></pre>
+<p>这个方法重置所有模块的上下文，通常在处理新的序列时调用。</p>
+<h2 id="5-模型构建流程">5. 模型构建流程</h2>
+<p>InferLLM 框架中的模型构建流程如下：</p>
+<ol>
+<li>
+<p><strong>创建 Graph 对象</strong>：</p>
+<pre><code class="language-cpp">auto graph = Graph::make_graph(model_config, device, name);
+</code></pre>
+</li>
+<li>
+<p><strong>加载模型参数</strong>：</p>
+<pre><code class="language-cpp">graph-&gt;load(fin, param, vocab);
+</code></pre>
+<p>这会调用 <code>load_param</code> 加载模型参数，然后调用 <code>construct_llm</code> 构建模型结构。</p>
+</li>
+<li>
+<p><strong>构建模型结构</strong>：<br>
+<code>construct_llm</code> 方法由派生类实现，用于构建特定模型的结构。例如，LLaMA 模型的构建过程会包含以下步骤：</p>
+<ul>
+<li>创建输入张量</li>
+<li>创建嵌入模块</li>
+<li>创建多个 Transformer 层，每层包含：
+<ul>
+<li>层归一化</li>
+<li>注意力模块</li>
+<li>残差连接</li>
+<li>层归一化</li>
+<li>FFN 模块</li>
+<li>残差连接</li>
+</ul>
+</li>
+<li>创建输出头模块</li>
+</ul>
+</li>
+<li>
+<p><strong>收集权重</strong>：</p>
+<pre><code class="language-cpp">graph-&gt;collect_weights();
+</code></pre>
+<p>这会收集所有模块的权重，并将它们存储在权重映射表中。</p>
+</li>
+<li>
+<p><strong>设置权重别名</strong>：</p>
+<pre><code class="language-cpp">graph-&gt;set_weights_alias();
+</code></pre>
+<p>这会设置权重的别名，用于处理不同模型格式的权重名称差异。</p>
+</li>
+</ol>
+<h2 id="6-模型执行流程">6. 模型执行流程</h2>
+<p>InferLLM 框架中的模型执行流程如下：</p>
+<ol>
+<li>
+<p><strong>准备输入</strong>：</p>
+<pre><code class="language-cpp">graph-&gt;execute(tokens, logits, nr_past, prefill);
+</code></pre>
+<p>这会将输入 token 复制到设备内存，并准备工作空间。</p>
+</li>
+<li>
+<p><strong>执行模块</strong>：</p>
+<pre><code class="language-cpp">for (size_t i = 0; i &lt; m_modules.size(); i++) {
+    m_modules[i]-&gt;execute(m_workspace.get(), nr_past, prefill);
+}
+</code></pre>
+<p>这会按顺序执行所有模块。</p>
+</li>
+<li>
+<p><strong>获取输出</strong>：</p>
+<pre><code class="language-cpp">m_device-&gt;device2host_copy(logist.data(), m_output-&gt;ptr(), logist.size() * sizeof(float), true);
+</code></pre>
+<p>这会将输出 logits 复制到主机内存。</p>
+</li>
+<li>
+<p><strong>同步和清理</strong>：</p>
+<pre><code class="language-cpp">m_device-&gt;sync();
+m_output-&gt;recall_data();
+</code></pre>
+<p>这会等待所有操作完成，并释放输出内存。</p>
+</li>
+</ol>
+<h2 id="7-优化策略">7. 优化策略</h2>
+<p>Graph 类实现了几种优化策略：</p>
+<ol>
+<li><strong>延迟加载</strong>：权重数据只在需要时才从文件读取，减少内存使用</li>
+<li><strong>工作空间复用</strong>：使用同一块内存作为所有算子的工作空间，减少内存分配</li>
+<li><strong>预填充模式</strong>：支持预填充模式，可以跳过输出头的计算，提高性能</li>
+<li><strong>上下文重置</strong>：支持重置上下文，便于处理新的序列</li>
+</ol>
+<h2 id="8-tensor-类与-graph-类的交互">8. Tensor 类与 Graph 类的交互</h2>
+<p>Tensor 类是 Graph 类的基础，它提供了数据存储和管理功能。Graph 类通过以下方式与 Tensor 类交互：</p>
+<ol>
+<li><strong>创建张量</strong>：Graph 类创建输入、输出和中间张量</li>
+<li><strong>管理权重</strong>：Graph 类管理模型权重，这些权重是特殊的张量</li>
+<li><strong>数据传输</strong>：Graph 类负责在主机和设备之间传输数据</li>
+<li><strong>内存管理</strong>：Graph 类通过 Tensor 类的 <code>prepare_data</code> 和 <code>recall_data</code> 方法管理内存</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p>Graph 类是 InferLLM 框架的核心组件，它通过模块化的设计，实现了灵活、高效的模型构建和执行。它支持多种模型架构（如 LLaMA、ChatGLM 等），并提供了统一的接口进行模型加载和推理。通过延迟加载、工作空间复用等优化策略，它可以在有限的内存资源下高效运行大型语言模型。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(05)——Device类的实现(src/core/device.h and .cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-05/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-05/">
+        </link>
+        <updated>2025-03-25T06:47:28.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="device-类代码结构与功能实现分析">Device 类代码结构与功能实现分析</h1>
+<p><code>Device</code> 类是 InferLLM 框架中的设备抽象层，负责内存管理和数据传输。它提供了统一的接口，使上层代码可以在不同硬件平台（CPU、GPU）上运行而无需修改。</p>
+<h2 id="1-基类-device">1. 基类 Device</h2>
+<h3 id="11-核心接口设计">1.1 核心接口设计</h3>
+<p><code>Device</code> 是一个抽象基类，定义了以下核心接口：</p>
+<pre><code class="language-cpp">class Device {
+public:
+    // 内存分配与释放
+    virtual void* allocate(size_t len) = 0;
+    virtual void* allocate_host(size_t len) = 0;
+    virtual void free_device(void* ptr) = 0;
+    virtual void free_host(void* ptr) = 0;
+    
+    // 数据传输
+    virtual void host2device_copy(void* device, const void* host, size_t size, bool async = false) = 0;
+    virtual void device2host_copy(void* host, const void* device, size_t size, bool async = false) = 0;
+    virtual void device2device_copy(void* dst, const void* src, size_t size, bool async = false) = 0;
+    
+    // 同步操作
+    virtual void sync() = 0;
+    
+    // 内存对齐分配
+    virtual void* aligned_alloc(size_t size);
+    virtual void aligned_free(void* ptr);
+    
+    // 设备特性查询
+    virtual bool unified_memory() { return true; }
+    
+    // 内核访问
+    Kernel* kernel() { return m_kernel.get(); }
+    KernelType type() { return m_kernel-&gt;m_kernel_type; };
+};
+</code></pre>
+<h3 id="12-内存对齐实现">1.2 内存对齐实现</h3>
+<p><code>Device</code> 类提供了跨平台的内存对齐分配实现：</p>
+<pre><code class="language-cpp">void* Device::aligned_alloc(size_t size) {
+#ifdef WIN32
+    return _aligned_malloc(size, ALIGN_SIZE);
+#elif defined(__ANDROID__) || defined(ANDROID)
+    return memalign(ALIGN_SIZE, size);
+#else
+    void* ptr = nullptr;
+    auto err = posix_memalign(&amp;ptr, ALIGN_SIZE, size);
+    INFER_ASSERT(!err, &quot;failed to malloc.&quot;);
+    return ptr;
+#endif
+}
+
+void Device::aligned_free(void* ptr) {
+#ifdef WIN32
+    _aligned_free(ptr);
+#else
+    ::free(ptr);
+#endif
+}
+</code></pre>
+<p>这里使用了条件编译，根据不同平台选择合适的内存对齐函数。对齐大小固定为 32 字节，这有利于 SIMD 指令的优化。</p>
+<h3 id="13-内存池管理">1.3 内存池管理</h3>
+<p><code>Device</code> 类使用两个映射表实现简单的内存池：</p>
+<pre><code class="language-cpp">protected:
+    std::map&lt;void*, size_t&gt; m_alloc_memory;  // 已分配内存的大小记录
+    std::map&lt;size_t, std::vector&lt;void*&gt;&gt; m_free_memory;  // 按大小分类的空闲内存块
+</code></pre>
+<h2 id="2-cpudevice-实现">2. CPUDevice 实现</h2>
+<p><code>CPUDevice</code> 是 <code>Device</code> 的 CPU 实现，它使用线程池进行并行计算。</p>
+<h3 id="21-构造与初始化">2.1 构造与初始化</h3>
+<pre><code class="language-cpp">CPUDevice(KernelType type, uint32_t nr_thread) : Device() {
+    m_thread_pool = make_unique&lt;ThreadPool&gt;(nr_thread);
+    m_kernel = make_unique&lt;Kernel&gt;(type, m_thread_pool.get());
+}
+</code></pre>
+<p>构造函数创建了线程池和对应类型的计算内核。</p>
+<h3 id="22-内存分配与回收">2.2 内存分配与回收</h3>
+<pre><code class="language-cpp">void* CPUDevice::allocate(size_t len) {
+#ifdef ENABLE_ASAN
+    return aligned_alloc(len);
+#else
+    auto it = m_free_memory.lower_bound(len);
+    void* ptr = nullptr;
+    if (it != m_free_memory.end() &amp;&amp; it-&gt;second.size() &gt; 0) {
+        ptr = it-&gt;second.back();
+        it-&gt;second.pop_back();
+        if (it-&gt;second.size() &lt; 1) {
+            m_free_memory.erase(it);
+        }
+    } else {
+        ptr = aligned_alloc(len);
+        m_alloc_memory[ptr] = len;
+    }
+    return ptr;
+#endif
+}
+</code></pre>
+<p><code>allocate</code> 方法实现了内存池复用：</p>
+<ol>
+<li>首先查找大小大于等于请求大小的最小空闲块</li>
+<li>如果找到，则复用该块</li>
+<li>否则，分配新的内存块并记录</li>
+</ol>
+<pre><code class="language-cpp">void CPUDevice::free_device(void* ptr) {
+#ifdef ENABLE_ASAN
+    aligned_free(ptr);
+#else
+    INFER_ASSERT(
+            m_alloc_memory.count(ptr) == 1,
+            &quot;memory is not allocated by the DeviceCPU.&quot;);
+    size_t len = m_alloc_memory[ptr];
+    m_free_memory[len].push_back(ptr);
+#endif
+}
+</code></pre>
+<p><code>free_device</code> 方法不会真正释放内存，而是将其放回内存池中以便复用。</p>
+<h3 id="23-数据传输">2.3 数据传输</h3>
+<p>由于 CPU 是统一内存架构，数据传输操作只是简单的内存拷贝：</p>
+<pre><code class="language-cpp">void host2device_copy(void* device, const void* host, size_t size, bool async = false) override {
+    memcpy(device, host, size);
+}
+
+void device2host_copy(void* host, const void* device, size_t size, bool async = false) override {
+    memcpy(host, device, size);
+}
+
+void device2device_copy(void* dst, const void* src, size_t size, bool async = false) override {
+    memcpy(dst, src, size);
+}
+</code></pre>
+<h3 id="24-析构函数">2.4 析构函数</h3>
+<pre><code class="language-cpp">CPUDevice::~CPUDevice() {
+#ifndef ENABLE_ASAN
+    for (auto it : m_free_memory) {
+        for (auto ptr : it.second) {
+            INFER_ASSERT(
+                    m_alloc_memory.count(ptr) == 1,
+                    &quot;memory is not allocated by the DeviceCPU.&quot;);
+            aligned_free(ptr);
+        }
+    }
+#endif
+}
+</code></pre>
+<p>析构函数负责释放内存池中的所有内存块。</p>
+<h2 id="3-gpudevice-实现">3. GPUDevice 实现</h2>
+<p><code>GPUDevice</code> 是 <code>Device</code> 的 GPU 实现，它使用 CUDA 进行内存管理和计算。这部分代码通过条件编译 <code>#if ENABLE_GPU</code> 控制。</p>
+<h3 id="31-构造与初始化">3.1 构造与初始化</h3>
+<pre><code class="language-cpp">GPUDevice(int device) : Device() {
+    CUDA_CHECK(cudaSetDevice(0));
+    CUDA_CHECK(cudaStreamCreate(&amp;(m_handle.stream)));
+    CUBLAS_CHECK(cublasCreate(&amp;(m_handle.cublas_handle)));
+    m_kernel = make_unique&lt;Kernel&gt;(KernelType::GPU);
+    m_kernel-&gt;set_handle(&amp;m_handle);
+}
+</code></pre>
+<p>构造函数初始化 CUDA 环境，创建 CUDA 流和 cuBLAS 句柄。</p>
+<h3 id="32-内存分配与回收">3.2 内存分配与回收</h3>
+<pre><code class="language-cpp">void* GPUDevice::allocate(size_t len) {
+    auto it = m_free_memory.lower_bound(len);
+    void* ptr = nullptr;
+
+    if (it != m_free_memory.end() &amp;&amp; it-&gt;second.size() &gt; 0) {
+        ptr = it-&gt;second.back();
+        it-&gt;second.pop_back();
+        if (it-&gt;second.size() &lt; 1) {
+            m_free_memory.erase(it);
+        }
+    } else {
+        CUDA_CHECK(cudaMalloc(&amp;ptr, len));
+        m_alloc_memory[ptr] = len;
+    }
+    return ptr;
+}
+</code></pre>
+<p>与 <code>CPUDevice</code> 类似，<code>GPUDevice</code> 也实现了内存池复用，但使用 <code>cudaMalloc</code> 分配 GPU 内存。</p>
+<pre><code class="language-cpp">void* GPUDevice::allocate_host(size_t len) {
+    void* ptr = nullptr;
+    CUDA_CHECK(cudaMallocHost(&amp;ptr, len));
+    return ptr;
+}
+</code></pre>
+<p><code>allocate_host</code> 使用 <code>cudaMallocHost</code> 分配可锁页（pinned）内存，这种内存可以更高效地与 GPU 进行数据传输。</p>
+<h3 id="33-数据传输">3.3 数据传输</h3>
+<pre><code class="language-cpp">void GPUDevice::host2device_copy(void* device, const void* host, size_t size, bool async) {
+    if (async) {
+        CUDA_CHECK(cudaMemcpyAsync(
+                device, host, size, cudaMemcpyHostToDevice, m_handle.stream));
+    } else {
+        CUDA_CHECK(cudaMemcpy(device, host, size, cudaMemcpyHostToDevice));
+    }
+}
+</code></pre>
+<p>数据传输方法使用 CUDA 内存拷贝函数，支持同步和异步两种模式。异步模式使用 CUDA 流进行操作，可以与计算重叠。</p>
+<h3 id="34-同步操作">3.4 同步操作</h3>
+<pre><code class="language-cpp">void sync() override { CUDA_CHECK(cudaStreamSynchronize(m_handle.stream)); }
+</code></pre>
+<p><code>sync</code> 方法等待 CUDA 流中的所有操作完成。</p>
+<h3 id="35-内存特性">3.5 内存特性</h3>
+<pre><code class="language-cpp">bool unified_memory() override { return false; }
+</code></pre>
+<p>GPU 不是统一内存架构，因此 <code>unified_memory</code> 返回 <code>false</code>。</p>
+<h3 id="36-析构函数">3.6 析构函数</h3>
+<pre><code class="language-cpp">GPUDevice::~GPUDevice() {
+    for (auto it : m_free_memory) {
+        for (auto ptr : it.second) {
+            INFER_ASSERT(
+                    m_alloc_memory.count(ptr) == 1,
+                    &quot;memory is not allocated by the DeviceCPU.&quot;);
+            CUDA_CHECK(cudaFree(ptr));
+        }
+    }
+    CUDA_CHECK(cudaStreamDestroy(m_handle.stream));
+    CUBLAS_CHECK(cublasDestroy(m_handle.cublas_handle));
+}
+</code></pre>
+<p>析构函数释放所有 GPU 内存，并销毁 CUDA 流和 cuBLAS 句柄。</p>
+<h2 id="4-内存管理策略">4. 内存管理策略</h2>
+<p>Device 类实现了几种内存管理策略：</p>
+<ol>
+<li><strong>内存池复用</strong>：通过 <code>m_free_memory</code> 和 <code>m_alloc_memory</code> 实现内存块的复用，减少内存分配和释放的开销</li>
+<li><strong>内存对齐</strong>：使用对齐内存分配，提高内存访问效率，特别是对 SIMD 指令</li>
+<li><strong>可锁页内存</strong>：在 GPU 实现中使用可锁页内存，提高主机和设备之间的数据传输效率</li>
+<li><strong>异步操作</strong>：支持异步数据传输，可以与计算重叠，提高整体性能</li>
+</ol>
+<h2 id="5-设备抽象的意义">5. 设备抽象的意义</h2>
+<p>Device 类的抽象设计有以下几个重要意义：</p>
+<ol>
+<li><strong>硬件无关性</strong>：上层代码可以不关心具体硬件细节，通过统一接口操作不同设备</li>
+<li><strong>代码复用</strong>：共同的内存管理逻辑可以在基类中实现，派生类只需关注特定设备的实现</li>
+<li><strong>扩展性</strong>：可以方便地添加新的设备支持，如 TPU、NPU 等</li>
+<li><strong>优化空间</strong>：可以在不改变上层代码的情况下，优化特定设备的内存管理和数据传输</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p>Device 类是 InferLLM 框架中的关键组件，它提供了统一的设备抽象，封装了内存管理和数据传输的细节。通过内存池、内存对齐等优化策略，提高了内存使用效率。同时，它的设计使得框架可以在不同硬件平台上高效运行，为上层提供了一个稳定、高效的基础设施。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(04)——Tensor类的实现(src/core/tensor.h and .cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-04/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-04/">
+        </link>
+        <updated>2025-03-22T06:37:29.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="tensor-类代码结构与功能实现分析">Tensor 类代码结构与功能实现分析</h1>
+<p><code>Tensor</code> 类是 InferLLM 框架中的核心数据结构，用于表示和管理多维数组数据。下面对其代码结构和功能实现进行详细分析。</p>
+<h2 id="1-数据类型定义">1. 数据类型定义</h2>
+<p>首先，框架定义了多种数据类型，以支持不同精度的计算：</p>
+<pre><code class="language-cpp">enum class DType {
+    Float32 = 0,
+    Float16 = 1,
+    Float8 = 2,
+    Int32 = 3,
+    Int16 = 4,
+    Int8 = 5,
+    Uint8 = 6,
+    Int4 = 7,
+    Uint4 = 8,
+    Int2 = 9,
+};
+</code></pre>
+<p>同时定义了两个辅助函数：</p>
+<ul>
+<li><code>dtype_in_byte</code>：获取数据类型的字节大小</li>
+<li><code>dtype_block_size</code>：获取数据类型的块大小（用于量化类型）</li>
+</ul>
+<h2 id="2-tensor-类的内存管理">2. Tensor 类的内存管理</h2>
+<p>Tensor 类支持三种内存来源方式：</p>
+<ol>
+<li>自己分配的内存</li>
+<li>外部共享的内存</li>
+<li>从文件映射的内存（主要用于权重）</li>
+</ol>
+<p>这通过 <code>TensorState</code> 枚举进行管理：</p>
+<pre><code class="language-cpp">enum class TensorState {
+    Own = 0,    // 拥有内存
+    OutSide = 1, // 内存在外部
+};
+</code></pre>
+<h2 id="3-tensor-类的主要成员变量">3. Tensor 类的主要成员变量</h2>
+<pre><code class="language-cpp">private:
+    bool m_shared = false;           // 是否是共享内存
+    int32_t m_usr_count = 0;         // 用户计数（引用计数）
+    int32_t m_cur_count = 0;         // 当前用户计数
+    
+    Device* m_device;                // 设备指针
+    OpBase* m_owner_op;              // 拥有该张量的算子
+    
+    TensorState m_state;             // 张量状态
+    std::shared_ptr&lt;InputFile&gt; m_file; // 文件指针（用于从文件读取数据）
+    size_t m_file_offset = 0;        // 文件偏移
+    
+    uint32_t m_dims = 0;             // 维度数
+    size_t m_length = 0;             // 元素总数
+    DType m_dtype;                   // 数据类型
+    std::vector&lt;size_t&gt; m_shape;     // 形状
+    std::vector&lt;size_t&gt; m_stride;    // 步长
+    void* m_data = nullptr;          // 数据指针
+    std::string m_name;              // 名称
+</code></pre>
+<h2 id="4-主要功能实现">4. 主要功能实现</h2>
+<h3 id="41-构造函数">4.1 构造函数</h3>
+<p>Tensor 类提供了两种构造方式：</p>
+<pre><code class="language-cpp">// 通过设备和名称构造
+Tensor(Device* device, std::string name);
+
+// 通过形状、数据类型和设备构造
+Tensor(std::vector&lt;size_t&gt; shape, DType dtype, Device* device);
+</code></pre>
+<p>初始状态都是 <code>TensorState::OutSide</code>，表示数据不在设备上。</p>
+<h3 id="42-形状和数据类型管理">4.2 形状和数据类型管理</h3>
+<pre><code class="language-cpp">// 设置形状
+void set_shape(std::vector&lt;size_t&gt; shape);
+
+// 计算步长和总长度
+m_stride.resize(m_dims);
+m_stride[m_dims - 1] = 1;
+for (uint32_t i = 1; i &lt; m_dims; i++) {
+    m_stride[m_dims - 1 - i] = m_stride[m_dims - i] * m_shape[m_dims - i];
+}
+m_length = m_shape[0] * m_stride[0];
+</code></pre>
+<p>这里的步长计算采用了行优先（row-major）的存储方式，与 C/C++ 的多维数组存储一致。</p>
+<h3 id="43-内存管理核心方法">4.3 内存管理核心方法</h3>
+<h4 id="prepare_data">prepare_data()</h4>
+<pre><code class="language-cpp">TensorState Tensor::prepare_data() {
+    size_t length = length_in_byte();
+    if (!m_data &amp;&amp; m_state == TensorState::OutSide) {
+        if (m_file) {
+            read_data_from_file();
+        } else {
+            m_data = m_device-&gt;allocate(length);
+        }
+    }
+    m_state = TensorState::Own;
+    return m_state;
+}
+</code></pre>
+<p>该方法确保张量数据在设备上可用：</p>
+<ul>
+<li>如果数据不存在且状态为 <code>OutSide</code>
+<ul>
+<li>如果有关联文件，从文件读取</li>
+<li>否则，从设备分配内存</li>
+</ul>
+</li>
+<li>将状态设置为 <code>Own</code></li>
+</ul>
+<h4 id="recall_data">recall_data()</h4>
+<pre><code class="language-cpp">TensorState Tensor::recall_data() {
+    if (m_shared) {
+        return m_state;
+    }
+    if (!m_file &amp;&amp; m_data != nullptr &amp;&amp; m_state == TensorState::Own) {
+        m_device-&gt;free_device(m_data);
+        m_data = nullptr;
+    }
+    m_state = TensorState::OutSide;
+    return m_state;
+}
+</code></pre>
+<p>该方法释放张量占用的设备内存：</p>
+<ul>
+<li>如果是共享内存，不做任何操作</li>
+<li>如果不是从文件读取的，且数据存在且状态为 <code>Own</code>，释放设备内存</li>
+<li>将状态设置为 <code>OutSide</code></li>
+</ul>
+<h3 id="44-文件数据读取">4.4 文件数据读取</h3>
+<pre><code class="language-cpp">size_t Tensor::read_data_from_file() {
+    size_t length = length_in_byte();
+    if (m_file-&gt;enable_mmap()) {
+        // 使用内存映射
+        if (!m_device-&gt;unified_memory()) {
+            // 非统一内存设备（如GPU）
+            auto temp_ptr = m_file-&gt;get_mmap_data(length, m_file_offset);
+            m_data = m_device-&gt;allocate(length);
+            m_device-&gt;host2device_copy(m_data, temp_ptr, length);
+        } else {
+            // 统一内存设备（如CPU）
+            m_data = m_file-&gt;get_mmap_data(length, m_file_offset);
+        }
+    } else {
+        // 不使用内存映射，直接读取
+        // ...（处理统一内存和非统一内存的情况）
+    }
+    return length;
+}
+</code></pre>
+<p>该方法从文件读取数据到张量：</p>
+<ul>
+<li>支持内存映射和直接读取两种方式</li>
+<li>针对统一内存设备（CPU）和非统一内存设备（GPU）有不同处理</li>
+<li>支持权重预处理</li>
+</ul>
+<h3 id="45-引用计数管理">4.5 引用计数管理</h3>
+<pre><code class="language-cpp">int32_t add_user() {
+    m_usr_count++;
+    return m_usr_count;
+}
+
+int32_t decrease_curr_user_count() {
+    if (!m_shared) {
+        INFER_ASSERT(m_cur_count &gt; 0, &quot;The user count is less than 0.&quot;);
+        m_cur_count--;
+        if (m_cur_count == 0) {
+            recall_data();
+        }
+    }
+    return m_cur_count;
+}
+
+int32_t resume_user_count() {
+    m_cur_count = m_usr_count;
+    return m_cur_count;
+}
+</code></pre>
+<p>这组方法实现了引用计数机制：</p>
+<ul>
+<li><code>add_user()</code>：增加用户计数</li>
+<li><code>decrease_curr_user_count()</code>：减少当前用户计数，当计数为0时释放内存</li>
+<li><code>resume_user_count()</code>：恢复用户计数（用于重用张量）</li>
+</ul>
+<h3 id="46-数据访问">4.6 数据访问</h3>
+<pre><code class="language-cpp">void* ptr() {
+    INFER_ASSERT(is_own(), &quot;Tensor is OutSide the device, can't get the memory.&quot;);
+    return m_data;
+}
+
+template &lt;typename T&gt;
+T* ptr() {
+    INFER_ASSERT(is_own(), &quot;Tensor is OutSide the device, can't get the memory.&quot;);
+    return static_cast&lt;T*&gt;(m_data);
+}
+</code></pre>
+<p>这些方法提供了对张量数据的访问：</p>
+<ul>
+<li>确保数据在设备上可用</li>
+<li>支持类型转换</li>
+</ul>
+<h2 id="5-workspace-类">5. WorkSpace 类</h2>
+<p><code>WorkSpace</code> 是一个简单的内存容器类，用于临时存储计算过程中的数据：</p>
+<pre><code class="language-cpp">class WorkSpace {
+public:
+    void* ptr() { return m_data; };
+    
+    template &lt;typename T&gt;
+    T* ptr() {
+        return static_cast&lt;T*&gt;(m_data);
+    }
+    
+    size_t length() { return m_length; }
+    
+    void set_memory(void* data, size_t length) {
+        m_data = data;
+        m_length = length;
+    }
+    
+private:
+    void* m_data = nullptr;
+    size_t m_length = 0;
+};
+</code></pre>
+<p>它不负责内存的分配和释放，只是提供一个访问接口。</p>
+<h2 id="6-内存优化策略">6. 内存优化策略</h2>
+<p>Tensor 类实现了几种内存优化策略：</p>
+<ol>
+<li><strong>延迟分配</strong>：只有在实际需要时才分配内存</li>
+<li><strong>引用计数</strong>：通过引用计数管理内存生命周期</li>
+<li><strong>内存映射</strong>：支持从文件直接映射内存，减少内存拷贝</li>
+<li><strong>内存共享</strong>：支持共享外部内存，避免不必要的拷贝</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p>Tensor类是 InferLLM 框架的核心数据结构，提供了灵活的内存管理和数据访问机制。它支持多种数据类型、多种内存来源方式，并通过引用计数优化内存使用。同时，它还提供了从文件读取数据和数据预处理的功能，为模型权重的加载和处理提供了支持。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(03)——InferLLM核心模块core(src/core)综合介绍]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-03/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-03/">
+        </link>
+        <updated>2025-03-16T06:31:58.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm核心模块coresrccore结构与功能">InferLLM核心模块core(src/core)结构与功能</h1>
+<p>InferLLM 的 core(src/core) 模块包含了框架的核心组件，负责模型的基础数据结构、内存管理、计算图构建和执行等功能。下面对 core 模块下的主要文件进行分析：</p>
+<h2 id="1-核心数据结构">1. 核心数据结构</h2>
+<h3 id="11-tensor-tensorhcpp">1.1 Tensor (tensor.h/cpp)</h3>
+<p><code>Tensor</code> 是框架的基础数据结构，用于表示多维数组数据：</p>
+<ul>
+<li><strong>内存管理</strong>：支持三种内存来源
+<ul>
+<li>自己分配的内存</li>
+<li>外部共享的内存</li>
+<li>从文件映射的内存（权重）</li>
+</ul>
+</li>
+<li><strong>数据类型</strong>：支持多种数据类型（Float32, Int4, Int8等）</li>
+<li><strong>内存状态</strong>：通过 <code>TensorState</code> 管理（Own, OutSide）</li>
+<li><strong>用户计数</strong>：通过引用计数管理内存生命周期</li>
+<li><strong>数据预处理</strong>：支持权重数据的预处理</li>
+</ul>
+<p>关键方法：</p>
+<pre><code class="language-cpp">TensorState prepare_data();  // 准备数据，如果数据不存在则分配或从文件读取
+TensorState recall_data();   // 回收数据，释放不需要的内存
+void* ptr();                 // 获取数据指针
+</code></pre>
+<h3 id="12-workspace-tensorh">1.2 WorkSpace (tensor.h)</h3>
+<p><code>WorkSpace</code> 是一个简单的内存容器，用于临时存储计算过程中的数据：</p>
+<pre><code class="language-cpp">class WorkSpace {
+public:
+    void* ptr();
+    template &lt;typename T&gt; T* ptr();
+    size_t length();
+    void set_memory(void* data, size_t length);
+private:
+    void* m_data = nullptr;
+    size_t m_length = 0;
+};
+</code></pre>
+<h2 id="2-设备抽象">2. 设备抽象</h2>
+<h3 id="21-device-devicehcpp">2.1 Device (device.h/cpp)</h3>
+<p><code>Device</code> 是对计算设备的抽象，提供内存分配和数据传输功能：</p>
+<ul>
+<li><strong>内存管理</strong>：分配和释放设备内存</li>
+<li><strong>数据传输</strong>：在主机和设备之间传输数据</li>
+<li><strong>内核管理</strong>：持有对应设备的计算内核</li>
+</ul>
+<p>派生类：</p>
+<ul>
+<li><code>CPUDevice</code>：CPU设备实现</li>
+<li><code>GPUDevice</code>：GPU设备实现（条件编译）</li>
+</ul>
+<p>关键方法：</p>
+<pre><code class="language-cpp">virtual void* allocate(size_t len) = 0;
+virtual void free_device(void* ptr) = 0;
+virtual void host2device_copy(void* device, const void* host, size_t size, bool async = false) = 0;
+</code></pre>
+<h2 id="3-计算图构建">3. 计算图构建</h2>
+<h3 id="31-graph-graphhcpp">3.1 Graph (graph.h/cpp)</h3>
+<p><code>Graph</code> 是模型的骨架，定义了计算流程和模型结构：</p>
+<ul>
+<li><strong>模块管理</strong>：管理所有计算模块</li>
+<li><strong>权重管理</strong>：管理模型权重</li>
+<li><strong>执行流程</strong>：控制模型的前向计算</li>
+<li><strong>工作空间</strong>：管理计算过程中的临时内存</li>
+</ul>
+<p>关键方法：</p>
+<pre><code class="language-cpp">void execute(std::vector&lt;int32_t&gt; in_token, std::vector&lt;float&gt;&amp; logist, uint32_t nr_past, bool prefill = false);
+virtual void construct_llm() = 0;  // 构建LLM模型结构，由派生类实现
+</code></pre>
+<h3 id="32-oprmodulebase-graphh">3.2 OprModuleBase (graph.h)</h3>
+<p><code>OprModuleBase</code> 是计算图中的基本单元，封装了一组相关的算子：</p>
+<ul>
+<li><strong>算子管理</strong>：管理一组相关的算子</li>
+<li><strong>输入输出</strong>：管理模块的输入输出张量</li>
+<li><strong>执行控制</strong>：控制模块的执行</li>
+</ul>
+<p>派生类：</p>
+<ul>
+<li><code>AttentionModule</code>：注意力模块</li>
+<li><code>LlamaFFNModule</code>：LLaMA前馈网络模块</li>
+<li><code>GlmFFNModule</code>：GLM前馈网络模块</li>
+<li><code>HeadModule</code>：输出头模块</li>
+<li><code>EmbdModule</code>：嵌入模块</li>
+</ul>
+<h2 id="4-键值存储">4. 键值存储</h2>
+<h3 id="41-kvstorage-kvstoragehcpp">4.1 KvStorage (kvstorage.h/cpp)</h3>
+<p><code>KvStorage</code> 继承自 <code>Tensor</code>，专门用于存储和管理键值对：</p>
+<ul>
+<li><strong>索引管理</strong>：管理存储的键值对索引</li>
+<li><strong>内存管理</strong>：管理键值对的内存</li>
+<li><strong>数据访问</strong>：提供对当前键值对的访问</li>
+</ul>
+<p>关键方法：</p>
+<pre><code class="language-cpp">void* get_current_data();  // 获取当前数据指针
+size_t add_id(uint32_t id);  // 添加索引
+void reset_id();  // 重置索引
+</code></pre>
+<h2 id="5-模型接口">5. 模型接口</h2>
+<h3 id="51-model-modelcpp">5.1 Model (model.cpp)</h3>
+<p><code>Model</code> 提供了对外的模型接口，封装了内部实现：</p>
+<ul>
+<li><strong>解码接口</strong>：提供文本解码功能</li>
+<li><strong>模型管理</strong>：管理模型的生命周期</li>
+</ul>
+<p>关键方法：</p>
+<pre><code class="language-cpp">std::string decode(const std::string&amp; user_input, int&amp; token);
+std::string decode_iter(int&amp; token);
+</code></pre>
+<h2 id="6-线程池">6. 线程池</h2>
+<h3 id="61-threadpool-thread_poolhcpp">6.1 ThreadPool (thread_pool.h/cpp)</h3>
+<p><code>ThreadPool</code> 提供了线程管理和任务调度功能：</p>
+<ul>
+<li><strong>线程管理</strong>：创建和管理工作线程</li>
+<li><strong>任务调度</strong>：分配任务给工作线程</li>
+<li><strong>同步机制</strong>：提供任务同步机制</li>
+</ul>
+<h2 id="7-核心功能流程">7. 核心功能流程</h2>
+<ol>
+<li>
+<p><strong>模型加载</strong>：</p>
+<ul>
+<li>创建 <code>Graph</code> 对象</li>
+<li>构建模型结构 (<code>construct_llm</code>)</li>
+<li>加载模型权重</li>
+</ul>
+</li>
+<li>
+<p><strong>推理执行</strong>：</p>
+<ul>
+<li>准备输入数据</li>
+<li>执行计算图 (<code>Graph::execute</code>)</li>
+<li>模块按顺序执行 (<code>OprModuleBase::execute</code>)</li>
+<li>获取输出结果</li>
+</ul>
+</li>
+<li>
+<p><strong>内存管理</strong>：</p>
+<ul>
+<li>按需分配内存 (<code>Tensor::prepare_data</code>)</li>
+<li>使用完毕释放内存 (<code>Tensor::recall_data</code>)</li>
+<li>通过引用计数管理内存生命周期</li>
+</ul>
+</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p>InferLLM 的 core 模块提供了一个灵活、高效的框架，用于构建和执行 LLM 模型。它通过抽象设备、张量、计算图等概念，实现了对不同硬件平台的支持和高效的内存管理。核心模块的设计清晰，各组件职责明确，便于扩展和维护。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(02)——InferLLM的src模块]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-02/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-02/">
+        </link>
+        <updated>2025-03-14T10:41:06.000Z</updated>
+        <content type="html"><![CDATA[<p>接下来来详细介绍<a href="https://github.com/MegEngine/InferLLM">InferLLM</a>项目 src 模块的代码结构和功能：</p>
+<h3 id="1-核心组件-core">1. 核心组件 (<code>core/</code>)</h3>
+<ol>
+<li><strong>设备和内存管理</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;device.h/cpp&quot; path=&quot;src/core/device.h&quot;</strong>: 设备抽象层，管理计算设备(CPU/GPU)和内存分配</li>
+<li><strong>name=&quot;tensor.h/cpp&quot; path=&quot;src/core/tensor.h&quot;</strong>: 张量数据结构，支持多种数据类型和设备</li>
+</ul>
+<ol>
+<li><strong>计算图和模型</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;graph.h/cpp&quot; path=&quot;src/core/graph.h&quot;</strong>: 计算图的基础定义和管理</li>
+<li><strong>name=&quot;model.cpp&quot; path=&quot;src/core/model.cpp&quot;</strong>: 模型加载和管理</li>
+<li><strong>name=&quot;model_imp.h/cpp&quot; path=&quot;src/core/model_imp.h&quot;</strong>: 模型实现的具体细节</li>
+</ul>
+<ol>
+<li><strong>算子系统</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;op.h/cpp&quot; path=&quot;src/core/op.h&quot;</strong>: 基础算子定义，包括：
+<ul>
+<li>Embedding</li>
+<li>LayerNorm</li>
+<li>MatMul</li>
+<li>Elemwise 等基础算子</li>
+</ul>
+</li>
+</ul>
+<ol>
+<li><strong>其他核心功能</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;kvstorage.h&quot; path=&quot;src/core/kvstorage.h&quot;</strong>: KV缓存管理</li>
+<li><strong>name=&quot;thread_pool.h/cpp&quot; path=&quot;src/core/thread_pool.h&quot;</strong>: 线程池实现</li>
+</ul>
+<h3 id="2-具体模型实现-graph">2. 具体模型实现 (<code>graph/</code>)</h3>
+<ol>
+<li><strong>ChatGLM系列</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;chatGLM.h/cpp&quot; path=&quot;src/graph/chatGLM.h&quot;</strong>: ChatGLM-6B实现</li>
+<li><strong>name=&quot;chatGLM2.cpp&quot; path=&quot;src/graph/chatGLM2.cpp&quot;</strong>: ChatGLM2实现</li>
+<li><strong>name=&quot;chatGLM3.cpp&quot; path=&quot;src/graph/chatGLM3.cpp&quot;</strong>: ChatGLM3实现</li>
+</ul>
+<ol>
+<li><strong>LLaMA系列</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;llama_like.h/cpp&quot; path=&quot;src/graph/llama_like.h&quot;</strong>: LLaMA系列模型的基础实现</li>
+<li><strong>name=&quot;ggml_llama.h/cpp&quot; path=&quot;src/graph/ggml_llama.h&quot;</strong>: GGML格式的LLaMA模型支持</li>
+</ul>
+<h3 id="3-计算内核-kern">3. 计算内核 (<code>kern/</code>)</h3>
+<ol>
+<li><strong>优化实现</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;optimized&quot; path=&quot;src/kern/optimized&quot;</strong>:
+<ul>
+<li>ARM优化实现</li>
+<li>RISC-V向量扩展优化</li>
+<li>x86优化实现</li>
+</ul>
+</li>
+</ul>
+<ol>
+<li><strong>GPU支持</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;gpu&quot; path=&quot;src/kern/gpu&quot;</strong>: GPU计算内核实现</li>
+</ul>
+<ol>
+<li><strong>基础实现</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;naive&quot; path=&quot;src/kern/naive&quot;</strong>: 朴素CPU实现，作为基准和后备方案</li>
+</ul>
+<ol>
+<li><strong>内核定义</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;kernel.h&quot; path=&quot;src/kern/kernel.h&quot;</strong>: 内核接口定义</li>
+<li><strong>name=&quot;kernel_define.h&quot; path=&quot;src/kern/kernel_define.h&quot;</strong>: 内核相关常量和类型定义</li>
+</ul>
+<h3 id="4-工具类-src">4. 工具类 (<code>src/</code>)</h3>
+<ol>
+<li><strong>文件操作</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;file.h/cpp&quot; path=&quot;src/file.h&quot;</strong>: 文件读写和内存映射支持</li>
+</ul>
+<ol>
+<li><strong>通用工具</strong></li>
+</ol>
+<ul>
+<li><strong>name=&quot;utils.h/cpp&quot; path=&quot;src/utils.h&quot;</strong>: 通用工具函数和宏定义</li>
+</ul>
+<h3 id="主要特点">主要特点</h3>
+<ol>
+<li><strong>模块化设计</strong></li>
+</ol>
+<ul>
+<li>清晰的层次结构：核心组件、模型实现、计算内核</li>
+<li>良好的扩展性：易于添加新模型和优化实现</li>
+</ul>
+<ol start="2">
+<li><strong>多平台支持</strong></li>
+</ol>
+<ul>
+<li>CPU/GPU计算支持</li>
+<li>多架构优化：x86、ARM、RISC-V</li>
+</ul>
+<ol start="3">
+<li><strong>性能优化</strong></li>
+</ol>
+<ul>
+<li>针对不同硬件的专门优化</li>
+<li>量化支持：INT4/INT8</li>
+<li>多线程并行计算</li>
+</ul>
+<ol start="4">
+<li><strong>灵活性</strong></li>
+</ol>
+<ul>
+<li>支持多种模型架构</li>
+<li>可配置的计算精度</li>
+<li>可扩展的算子系统</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(01)——项目概括]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-01/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-01/">
+        </link>
+        <updated>2025-03-13T10:38:14.000Z</updated>
+        <content type="html"><![CDATA[<p><a href="https://github.com/MegEngine/InferLLM">InferLLM</a>是一个来自旷视天元<a href="https://github.com/MegEngine">MegEngine</a>的 C++ 大模型推理框架项目，主要参考和借鉴了<strong>llama.cpp</strong>工程。</p>
+<h2 id="为什么不选择llamacpp做为大模型推理框架学习入门">为什么不选择<strong>llama.cpp</strong>做为大模型推理框架学习入门？</h2>
+<ul>
+<li><strong>llama.cpp</strong>核心代码大都在少量文件中，并且使用大量的宏。</li>
+<li><strong>InferLLM</strong>对 Kernel 部分进行解耦；定义 KVstorage 类型，方便缓存管理；对多平台进行了优化。</li>
+</ul>
+<p><strong>InferLLM</strong>是一个 C++ 大语言模型推理框架项目。首先从整体上分析其结构和功能：</p>
+<h1 id="inferllm-代码库结构分析">InferLLM 代码库结构分析</h1>
+<p>InferLLM 是一个轻量级的 LLM (大型语言模型) 推理框架，主要参考和借鉴了 llama.cpp 工程，但进行了更好的结构化设计。下面是对整个代码库结构的分析：</p>
+<h2 id="1-顶层目录结构">1. 顶层目录结构</h2>
+<pre><code>InferLLM/
+├── application/     # 应用程序目录，包含各种模型的应用实现
+├── assets/          # 资源文件
+├── docs/            # 文档
+├── include/         # 公共头文件
+├── src/             # 源代码
+├── test/            # 测试代码
+├── third-party/     # 第三方依赖
+└── tools/           # 工具脚本
+</code></pre>
+<h2 id="2-核心代码结构-src">2. 核心代码结构 (src/)</h2>
+<h3 id="21-核心模块-srccore">2.1 核心模块 (src/core/)</h3>
+<p>核心模块包含了框架的基础组件：</p>
+<ul>
+<li><strong>tensor.h</strong>: 张量定义，是框架的基本数据结构</li>
+<li><strong>graph.h</strong>: 计算图定义，包含了模型的结构和执行逻辑</li>
+<li><strong>op.h</strong>: 算子定义，实现各种计算操作</li>
+<li><strong>kvstorage.h</strong>: KV存储，用于缓存和管理键值对</li>
+<li><strong>thread_pool.h</strong>: 线程池实现，用于并行计算</li>
+</ul>
+<h3 id="22-计算内核-srckern">2.2 计算内核 (src/kern/)</h3>
+<p>计算内核部分包含了不同平台的优化实现：</p>
+<ul>
+<li><strong>naive/</strong>: 朴素实现，作为基准和兜底方案</li>
+<li><strong>optimized/</strong>: 针对不同平台的优化实现
+<ul>
+<li><strong>arm/</strong>: ARM 平台优化</li>
+<li><strong>x86/</strong>: x86 平台优化</li>
+<li><strong>rvv/</strong>: RISC-V 向量扩展优化</li>
+</ul>
+</li>
+<li><strong>gpu/</strong>: GPU 实现，主要是 CUDA 相关代码</li>
+<li><strong>kernel_define.h</strong>: 内核定义和接口</li>
+</ul>
+<h3 id="23-图结构-srcgraph">2.3 图结构 (src/graph/)</h3>
+<p>包含了不同模型的图结构实现：</p>
+<ul>
+<li>各种模型的具体实现，如 LLaMA、ChatGLM 等</li>
+</ul>
+<h2 id="3-应用程序-application">3. 应用程序 (application/)</h2>
+<p>包含了各种模型的应用实现：</p>
+<ul>
+<li><strong>chat.cpp</strong>: 通用聊天应用</li>
+<li><strong>llama/</strong>: LLaMA 模型应用</li>
+<li><strong>chatglm/</strong>: ChatGLM 模型应用</li>
+<li><strong>baichuan/</strong>: Baichuan 模型应用</li>
+<li><strong>quantizer.cpp</strong>: 量化工具</li>
+</ul>
+<h2 id="4-测试代码-test">4. 测试代码 (test/)</h2>
+<p>测试代码分为 CPU 和 GPU 两部分：</p>
+<ul>
+<li><strong>CPU/</strong>: CPU 相关测试</li>
+<li><strong>GPU/</strong>: GPU 相关测试</li>
+<li><strong>checker.h/cpp</strong>: 测试辅助工具</li>
+<li><strong>op_create.cpp</strong>: 算子创建测试</li>
+</ul>
+<h2 id="5-关键数据结构和类">5. 关键数据结构和类</h2>
+<h3 id="51-tensor">5.1 Tensor</h3>
+<p>张量是基本数据结构，用于表示多维数组数据。</p>
+<h3 id="52-graph">5.2 Graph</h3>
+<p>计算图是模型的骨架，定义了计算流程和模型结构：</p>
+<pre><code class="language-cpp">class Graph : public std::enable_shared_from_this&lt;Graph&gt; {
+    // ...
+    virtual void construct_llm() = 0;
+    // ...
+}
+</code></pre>
+<h3 id="53-oprmodulebase">5.3 OprModuleBase</h3>
+<p>算子模块是计算图中的基本单元，实现各种计算操作：</p>
+<pre><code class="language-cpp">class OprModuleBase {
+    // ...
+    virtual void execute(WorkSpace* workspace, uint32_t nr_past, bool is_prefill = false);
+    // ...
+}
+</code></pre>
+<h3 id="54-kvstorage">5.4 KvStorage</h3>
+<p>KV存储用于缓存和管理键值对，特别是在推理过程中：</p>
+<pre><code class="language-cpp">class KvStorage : public Tensor {
+    // ...
+    void* get_current_data();
+    size_t add_id(uint32_t id);
+    void reset_id();
+    // ...
+}
+</code></pre>
+<h3 id="55-workspace">5.5 WorkSpace</h3>
+<p>工作空间用于临时存储计算过程中的数据：</p>
+<pre><code class="language-cpp">class WorkSpace {
+    // ...
+    void* ptr();
+    size_t length();
+    // ...
+}
+</code></pre>
+<h2 id="6-优化策略">6. 优化策略</h2>
+<p>代码库针对不同平台实现了不同的优化策略：</p>
+<ol>
+<li><strong>ARM 优化</strong>: 使用 NEON 指令集进行向量化计算</li>
+<li><strong>x86 优化</strong>: 使用 AVX/AVX2 指令集进行向量化计算</li>
+<li><strong>RISC-V 优化</strong>: 使用 RVV 向量扩展进行向量化计算</li>
+<li><strong>GPU 优化</strong>: 使用 CUDA 进行并行计算</li>
+</ol>
+<h2 id="7-模型支持">7. 模型支持</h2>
+<p>根据代码库，InferLLM 支持多种模型格式：</p>
+<ul>
+<li>LLaMA 系列模型</li>
+<li>ChatGLM 系列模型</li>
+<li>Baichuan 系列模型</li>
+<li>支持 int4 量化模型</li>
+</ul>
+<h2 id="8-主要功能特性">8. 主要功能特性</h2>
+<ol>
+<li>
+<p><strong>多模型支持</strong>：</p>
+<ul>
+<li>ChatGLM 系列（ChatGLM、ChatGLM2、ChatGLM3）</li>
+<li>LLaMA 系列</li>
+<li>Baichuan 系列</li>
+</ul>
+</li>
+<li>
+<p><strong>多平台优化</strong>：</p>
+<ul>
+<li>x86 CPU 优化</li>
+<li>ARM 处理器优化</li>
+<li>RISC-V 向量扩展优化</li>
+<li>GPU 加速支持</li>
+</ul>
+</li>
+<li>
+<p><strong>工具支持</strong>：</p>
+<ul>
+<li>模型量化工具</li>
+<li>模型转换工具</li>
+<li>Android 构建支持</li>
+</ul>
+</li>
+<li>
+<p><strong>核心功能</strong>：</p>
+<ul>
+<li>高效的张量计算</li>
+<li>动态计算图</li>
+<li>模型推理优化</li>
+<li>多线程支持</li>
+<li>KV 缓存管理</li>
+</ul>
+</li>
+</ol>
+<h2 id="9-项目特点">9. 项目特点</h2>
+<ol>
+<li>跨平台支持：支持多种硬件平台和架构</li>
+<li>模块化设计：核心功能、计算图、内核优化分层清晰</li>
+<li>性能优化：针对不同平台提供优化的计算核心</li>
+<li>完整的测试框架：包含单元测试和性能测试</li>
+<li>实用工具集：提供模型转换和量化等实用工具</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p><strong>InferLLM</strong>是一个结构清晰、模块化设计的 LLM 推理框架，通过解耦框架部分和内核部分，使得代码更易于阅读和修改。它支持多种模型格式，并针对不同平台进行了优化，可以在包括移动设备在内的多种平台上高效运行。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[数字设计与计算机架构课程的第三讲笔记]]></title>
+        <id>https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-03/</id>
+        <link href="https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-03/">
+        </link>
+        <updated>2025-01-02T08:59:44.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="数字设计与计算机架构课程笔记">数字设计与计算机架构课程笔记</h1>
+<p><strong><a href="https://safari.ethz.ch/digitaltechnik/spring2023/doku.php?id=start">ETH Zürich 2023春季学期</a>·第三讲：组合逻辑</strong></p>
+<hr>
+<h4 id="一-现代计算机的基本构建模块"><strong>一、现代计算机的基本构建模块</strong></h4>
+<ol>
+<li>
+<p><strong>晶体管</strong></p>
+<ul>
+<li><strong>类型</strong>：n型MOS（nMOS）和p型MOS（pMOS）。</li>
+<li><strong>功能</strong>：作为电压控制开关，通过栅极电压控制导通/截止。</li>
+<li><strong>互补作用</strong>：
+<ul>
+<li><strong>nMOS</strong>：栅极高电平导通，用于“拉低”输出（连接地）。</li>
+<li><strong>pMOS</strong>：栅极低电平导通，用于“拉高”输出（连接电源）。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>逻辑门</strong></p>
+<ul>
+<li><strong>CMOS结构</strong>：
+<ul>
+<li><strong>NOT门</strong>：单个nMOS和pMOS互补连接。</li>
+<li><strong>NAND/AND门</strong>：串联nMOS和并联pMOS（NAND），或相反（AND）。</li>
+</ul>
+</li>
+<li><strong>优势</strong>：低静态功耗、高抗干扰能力。</li>
+</ul>
+</li>
+<li>
+<p><strong>延迟与功耗</strong></p>
+<ul>
+<li><strong>动态功耗</strong>：由信号翻转（充放电）引起，与频率和负载电容成正比。</li>
+<li><strong>静态功耗</strong>：由泄漏电流导致，随晶体管尺寸缩小而增加。</li>
+<li><strong>延迟影响因素</strong>：晶体管尺寸、负载电容、互联线长度。</li>
+</ul>
+</li>
+<li>
+<p><strong>摩尔定律</strong></p>
+<ul>
+<li><strong>核心趋势</strong>：集成电路上可容纳的晶体管数量每18-24个月翻一番。</li>
+<li><strong>技术挑战</strong>：
+<ul>
+<li><strong>面积</strong>：晶体管尺寸缩小受物理极限限制（量子隧穿效应）。</li>
+<li><strong>功耗</strong>：动态功耗因频率提升而增加，静态功耗因泄漏电流增大。</li>
+<li><strong>延迟</strong>：互联线延迟占主导，需通过并行处理、流水线等优化。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h4 id="二-组合逻辑电路设计"><strong>二、组合逻辑电路设计</strong></h4>
+<ol>
+<li>
+<p><strong>逻辑电路基础</strong></p>
+<ul>
+<li><strong>规范</strong>：
+<ul>
+<li><strong>功能规范</strong>：输入输出关系（布尔方程）。</li>
+<li><strong>时序规范</strong>：延迟、建立/保持时间。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>布尔代数与逻辑简化</strong></p>
+<ul>
+<li><strong>核心目标</strong>：
+<ul>
+<li>减少逻辑门数量，降低面积、功耗和延迟。</li>
+<li>优化电路结构，提升性能。</li>
+</ul>
+</li>
+<li><strong>工具</strong>：
+<ul>
+<li><strong>布尔代数规则</strong>：交换律、结合律、分配律、德摩根定理等。</li>
+<li><strong>卡诺图</strong>：图形化简化多变量逻辑表达式。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>标准形式</strong></p>
+<ul>
+<li><strong>积之和（SOP）</strong>：最小项的逻辑或（如：AB + AC）。</li>
+<li><strong>和之积（POS）</strong>：最大项的逻辑与（如：(A+B)(A+C)）。</li>
+<li><strong>唯一性</strong>：通过最小项/最大项索引确保唯一表示。</li>
+</ul>
+</li>
+<li>
+<p><strong>组合逻辑块</strong></p>
+<ul>
+<li><strong>译码器</strong>：将n位输入转换为2ⁿ个输出，用于地址解码。</li>
+<li><strong>多路选择器（MUX）</strong>：通过控制信号选择多个输入之一。</li>
+<li><strong>全加器</strong>：实现两个1位加数及进位输入的加法，输出和与进位。</li>
+<li><strong>PLA（可编程逻辑阵列）</strong>：基于SOP形式的可编程逻辑电路。</li>
+</ul>
+</li>
+</ol>
+<h4 id="三-扩展知识"><strong>三、扩展知识</strong></h4>
+<ol>
+<li>
+<p><strong>逻辑完备性</strong></p>
+<ul>
+<li><strong>定义</strong>：一组逻辑门可实现任意布尔函数。</li>
+<li><strong>完备集</strong>：{AND, OR, NOT}、{NAND}、{NOR}。</li>
+</ul>
+</li>
+<li>
+<p><strong>摩尔定律论文阅读</strong></p>
+<ul>
+<li><strong>关键内容</strong>：历史趋势、物理限制、未来技术方向（如3D封装、新材料）。</li>
+</ul>
+</li>
+</ol>
+<h4 id="四-总结"><strong>四、总结</strong></h4>
+<ul>
+<li><strong>晶体管与逻辑门</strong>：CMOS技术通过互补开关实现高效逻辑。</li>
+<li><strong>布尔代数与简化</strong>：减少电路复杂度，提升性能。</li>
+<li><strong>组合逻辑块</strong>：构建复杂数字系统的基础模块。</li>
+<li><strong>摩尔定律挑战</strong>：需通过材料创新、架构优化突破物理极限。</li>
+</ul>
+<hr>
+<div class="tvcontainer">
+<iframe class="tv"  src="//player.bilibili.com/player.html?isOutside=true&aid=113340395294825&bvid=BV13nyeYYECw&cid=26387480952&p=3&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+</div>]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[数字设计与计算机架构课程的第二讲笔记（3）]]></title>
+        <id>https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-3/</id>
+        <link href="https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-3/">
+        </link>
+        <updated>2024-12-02T08:11:02.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="数字设计与计算机架构课程笔记">数字设计与计算机架构课程笔记</h1>
+<p><strong><a href="https://safari.ethz.ch/digitaltechnik/spring2023/doku.php?id=start">ETH Zürich 2023春季学期</a>·第二讲：权衡、指标和设计心态</strong></p>
+<hr>
+<h2 id="一-不同计算平台的架构设计">一、不同计算平台的架构设计</h2>
+<h3 id="一通用处理器cpu">（一）通用处理器（CPU）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>高性能</strong>：能执行科学计算、商业应用、游戏等各类通用计算任务。</li>
+<li><strong>高能效</strong>：在有限功耗预算下实现高性能。</li>
+<li><strong>通用性</strong>：支持多种操作系统与应用软件。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>复杂指令集</strong>：具备丰富指令集，可处理复杂计算任务。</li>
+<li><strong>多核架构</strong>：通过多核并行执行多任务提升性能。</li>
+<li><strong>多层次缓存</strong>：减少内存访问延迟，提高性能。</li>
+<li><strong>指令级并行</strong>：实现同时执行多个指令，提升性能。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：Intel Core i7处理器、AMD Ryzen处理器</li>
+</ol>
+<h3 id="二图形处理器gpu">（二）图形处理器（GPU）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>高并行度</strong>：执行图形渲染、机器学习等大量并行计算任务。</li>
+<li><strong>高性能</strong>：在有限功耗下提供高性能。</li>
+<li><strong>可编程性</strong>：支持可编程着色器，完成各类图形渲染任务。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>SIMD架构</strong>：采用该架构同时执行多个相同指令，提高并行度。</li>
+<li><strong>大量处理单元</strong>：包含众多处理单元，并行执行大量计算任务。</li>
+<li><strong>高带宽内存</strong>：可快速传输数据。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：NVIDIA GeForce RTX系列、AMD Radeon RX系列</li>
+</ol>
+<h3 id="三张量处理器tpu">（三）张量处理器（TPU）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>高性能</strong>：执行大规模机器学习训练与推理任务。</li>
+<li><strong>高能效</strong>：在有限功耗下实现高性能。</li>
+<li><strong>专用于机器学习</strong>：专为机器学习任务设计，提升性能与能效。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>定制数据路径</strong>：更高效执行机器学习运算。</li>
+<li><strong>大量矩阵乘法单元</strong>：并行执行大量矩阵乘法运算。</li>
+<li><strong>高带宽内存</strong>：快速传输数据。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：Google Tensor Processing Unit (TPU)</li>
+</ol>
+<h3 id="四现场可编程门阵列fpga">（四）现场可编程门阵列（FPGA）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>可定制性</strong>：依据不同应用场景定制硬件电路。</li>
+<li><strong>高性能</strong>：在有限功耗下提供高性能。</li>
+<li><strong>灵活性</strong>：通过重新编程适应不同应用场景。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>可编程逻辑单元</strong>：可配置成各种逻辑电路。</li>
+<li><strong>可编程互连</strong>：将逻辑单元连接成不同电路结构。</li>
+<li><strong>片上存储器</strong>：存储程序和数据。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：Xilinx Virtex系列、Intel Stratix系列</li>
+</ol>
+<h3 id="五近内存计算nmc">（五）近内存计算（NMC）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>减少数据移动</strong>：将计算单元移至靠近内存处，降低数据移动次数。</li>
+<li><strong>提高性能</strong>：减少数据移动以提升系统性能。</li>
+<li><strong>降低能耗</strong>：减少数据移动以降低系统能耗。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>在内存中执行计算</strong>：计算单元位于内存模块，直接在内存中计算。</li>
+<li><strong>定制数据路径</strong>：高效执行内存计算。</li>
+<li><strong>可编程性</strong>：重新编程适应不同应用场景。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：UPMEM Processing - in - DRAM Engine</li>
+</ol>
+<h3 id="六处理内存pim">（六）处理内存（PIM）</h3>
+<ol>
+<li><strong>设计目标</strong>
+<ul>
+<li><strong>在内存中执行计算</strong>：计算单元集成在内存芯片，直接在内存中计算。</li>
+<li><strong>减少数据移动</strong>：减少数据移动提升系统性能。</li>
+<li><strong>降低能耗</strong>：减少数据移动降低系统能耗。</li>
+</ul>
+</li>
+<li><strong>架构设计特点</strong>
+<ul>
+<li><strong>计算单元集成在内存芯片中</strong>：直接在内存中执行计算。</li>
+<li><strong>定制数据路径</strong>：高效执行内存计算。</li>
+<li><strong>可编程性</strong>：重新编程适应不同应用场景。</li>
+</ul>
+</li>
+<li><strong>例子</strong>：Samsung AxDIMM</li>
+</ol>
+<h2 id="二-逻辑门的选择">二、逻辑门的选择</h2>
+<h3 id="一cmos技术优势">（一）CMOS技术优势</h3>
+<ol>
+<li><strong>功耗低</strong>：稳态时电流几乎为零，静态功耗极低。</li>
+<li><strong>集成度高</strong>：可实现高密度集成，将大量晶体管集成在单个芯片。</li>
+<li><strong>可靠性高</strong>：不易受噪声干扰。</li>
+<li><strong>成本效益高</strong>：技术成熟，生产成本低，性价比高。</li>
+</ol>
+<h3 id="二其他逻辑门技术">（二）其他逻辑门技术</h3>
+<ol>
+<li><strong>TTL（晶体管 - 晶体管逻辑）</strong>：曾为主流，现因功耗高、集成度低，逐渐被CMOS取代。</li>
+<li><strong>ECL（发射极耦合逻辑）</strong>：速度快，但功耗极高，用于高速应用，如高性能计算、电信设备。</li>
+<li><strong>BiCMOS（双极 - CMOS）</strong>：结合双极与CMOS晶体管优点，速度和功耗介于TTL和CMOS之间。</li>
+<li><strong>GaAs（砷化镓）</strong>：速度比硅基CMOS快，成本高，用于高性能通信和军事应用。</li>
+</ol>
+<h3 id="三选择逻辑门的因素">（三）选择逻辑门的因素</h3>
+<ol>
+<li><strong>性能需求</strong>：高速运算应用选ECL或GaAs技术电路。</li>
+<li><strong>功耗要求</strong>：电池供电或移动设备选低功耗的CMOS电路。</li>
+<li><strong>成本</strong>：成本敏感应用选成熟的CMOS技术。</li>
+<li><strong>可用性</strong>：选择成熟易获取的技术缩短设计周期。</li>
+</ol>
+<h3 id="四特定应用场景">（四）特定应用场景</h3>
+<ol>
+<li><strong>通用处理器</strong>：常用CMOS技术实现高性能与低功耗。</li>
+<li><strong>GPU</strong>：采用CMOS技术，辅以流水线等特殊电路设计提高图形渲染速度。</li>
+<li><strong>FPGA</strong>：使用可编程CMOS逻辑门实现灵活逻辑功能。</li>
+<li><strong>ASIC</strong>：根据特定应用需求选择合适逻辑门技术。</li>
+</ol>
+<p><strong>总结</strong>：选择逻辑门需综合考虑性能、功耗、成本和可用性，CMOS是主流，但特定场景下其他技术可能更合适。</p>
+<h2 id="三-布尔代数与逻辑电路简化">三、布尔代数与逻辑电路简化</h2>
+<h3 id="一布尔代数规则">（一）布尔代数规则</h3>
+<ol>
+<li><strong>基本规则</strong>：AND、OR、NOT、XOR等运算符定义与运算规则。</li>
+<li><strong>等幂律</strong>：X + X = X，X * X = X</li>
+<li><strong>零律</strong>：X + 0 = X，X * 1 = X</li>
+<li><strong>吸收律</strong>：X + X * Y = X，X * (X + Y) = X</li>
+<li><strong>分配律</strong>：X + (Y * Z) = (X + Y) * (X + Z)，X * (Y + Z) = (X * Y) + (X * Z)</li>
+<li><strong>德摩根定律</strong>：(X + Y) = X * Y，(X * Y) = X + Y</li>
+</ol>
+<h3 id="二逻辑简化方法">（二）逻辑简化方法</h3>
+<ol>
+<li><strong>布尔代数规则</strong>：运用规则转换布尔表达式，消除冗余项或合并项。</li>
+<li><strong>合并项</strong>：合并相同变量项，如A * B和A * C合并为A * (B + C)。</li>
+<li><strong>消除冗余项</strong>：去除不影响电路输出的项，如A * (A + B)简化为A。</li>
+<li><strong>替换运算符</strong>：用等价运算符替换，如德摩根定律将AND换为OR。</li>
+<li><strong>卡诺图</strong>：可视化布尔函数相邻性，发现简化机会。</li>
+<li><strong>Quine - McCluskey算法</strong>：自动找到布尔表达式最小化形式。</li>
+<li><strong>逻辑综合工具</strong>：现代EDA工具自动进行逻辑综合，转换为最优逻辑电路结构。</li>
+</ol>
+<h3 id="三逻辑简化的目标">（三）逻辑简化的目标</h3>
+<ol>
+<li><strong>减少电路面积</strong>：减少晶体管数量，减小电路尺寸。</li>
+<li><strong>降低功耗</strong>：减少开关活动，降低功耗。</li>
+<li><strong>提高速度</strong>：减少电路级数，提高运算速度。</li>
+<li><strong>降低成本</strong>：减少晶体管数量与电路面积，降低生产成本。</li>
+</ol>
+<p><strong>总结</strong>：布尔代数是逻辑电路优化重要工具，除卡诺图外，还可通过多种方法实现逻辑电路简化。</p>
+<h2 id="四-逻辑电路功耗设计">四、逻辑电路功耗设计</h2>
+<h3 id="一降低动态功耗">（一）降低动态功耗</h3>
+<ol>
+<li><strong>降低供电电压</strong>：显著降低动态功耗，但可能影响电路速度与性能。</li>
+<li><strong>降低开关频率</strong>：减少电容充放电次数，降低动态功耗。</li>
+<li><strong>减少翻转率</strong>：如使用时钟门控或低功耗设计技术减少信号翻转次数。</li>
+<li><strong>优化电路结构</strong>：选择CMOS等功耗低的逻辑门技术，采用流水线等优化电路结构。</li>
+</ol>
+<h3 id="二降低静态功耗">（二）降低静态功耗</h3>
+<ol>
+<li><strong>使用低泄漏晶体管</strong>：如SOI晶体管，减少静态功耗。</li>
+<li><strong>降低晶体管尺寸</strong>：尺寸减小，泄漏电流减小，降低静态功耗。</li>
+<li><strong>使用功率门控</strong>：将部分或全部电路区域置于低功耗模式。</li>
+<li><strong>优化电路结构</strong>：选择低功耗逻辑门技术并优化结构。</li>
+</ol>
+<h3 id="三其他功耗降低技术">（三）其他功耗降低技术</h3>
+<ol>
+<li><strong>电源管理</strong>：如动态电压和频率调节（DVFS），根据需求调整供电电压和频率。</li>
+<li><strong>时钟门控</strong>：使部分或全部电路区域进入低功耗模式。</li>
+<li><strong>低功耗设计技术</strong>：多阈值电压、低功耗逻辑门、电路级功耗降低等技术。</li>
+</ol>
+<p><strong>总结</strong>：设计逻辑电路时，可通过降低动态和静态功耗降低整体功耗，方法包括选择合适技术、优化结构、采用功耗降低与电源管理技术等。</p>
+<hr>
+<div class="tvcontainer">
+<iframe class="tv"  src="//player.bilibili.com/player.html?isOutside=true&aid=113340395294825&bvid=BV13nyeYYECw&cid=26387480952&p=2&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+</div>]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[数字设计与计算机架构课程的第二讲笔记（2）]]></title>
+        <id>https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-2/</id>
+        <link href="https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-2/">
+        </link>
+        <updated>2024-11-29T07:25:24.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="数字设计与计算机架构课程笔记">数字设计与计算机架构课程笔记</h1>
+<p><strong><a href="https://safari.ethz.ch/digitaltechnik/spring2023/doku.php?id=start">ETH Zürich 2023春季学期</a>·第二讲：权衡、指标和设计心态</strong></p>
+<hr>
+<h2 id="一-计算机系统基础">一、计算机系统基础</h2>
+<h3 id="11-系统组成">1.1 系统组成</h3>
+<ul>
+<li><strong>计算</strong>：执行算术/逻辑运算（如ALU功能）。</li>
+<li><strong>通信</strong>：数据在组件间传输（如总线架构）。</li>
+<li><strong>存储/内存</strong>：快速访问程序与数据（如缓存层次结构）。</li>
+</ul>
+<h3 id="12-体系结构层次">1.2 体系结构层次</h3>
+<p>从抽象到物理的层级：</p>
+<ol>
+<li><strong>问题</strong> → 2. <strong>算法</strong> → 3. <strong>逻辑</strong> → 4. <strong>设备</strong> → 5. <strong>电子</strong></li>
+</ol>
+<hr>
+<h2 id="二-处理器类型与设计目标">二、处理器类型与设计目标</h2>
+<h3 id="21-通用-vs-专用处理器">2.1 通用 vs 专用处理器</h3>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>优势</th>
+<th>劣势</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>通用CPU</strong></td>
+<td>灵活性高、可编程性强</td>
+<td>能效/性能非最优</td>
+</tr>
+<tr>
+<td><strong>专用ASIC</strong></td>
+<td>高性能、高能效</td>
+<td>灵活性差、开发成本高</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-现代处理器架构">2.2 现代处理器架构</h3>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>功能特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU</strong></td>
+<td>执行通用指令（如程序控制、分支预测）</td>
+</tr>
+<tr>
+<td><strong>GPU</strong></td>
+<td>并行处理图形与大规模数据（如SIMD架构）</td>
+</tr>
+<tr>
+<td><strong>FPGA</strong></td>
+<td>可重构逻辑功能（如硬件原型设计）</td>
+</tr>
+<tr>
+<td><strong>ASIC</strong></td>
+<td>定制化优化特定任务（如AI推理）</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="三-基础构建模块">三、基础构建模块</h2>
+<h3 id="31-晶体管与逻辑门">3.1 晶体管与逻辑门</h3>
+<ul>
+<li><strong>MOS晶体管</strong>：
+<ul>
+<li><strong>n型</strong>：电子导电（低电平导通）。</li>
+<li><strong>p型</strong>：空穴导电（高电平导通）。</li>
+</ul>
+</li>
+<li><strong>CMOS逻辑门</strong>：
+<ul>
+<li><strong>优势</strong>：静态功耗低、噪声容限高。</li>
+<li><strong>实现</strong>：互补nMOS/pMOS网络（如NAND门由并联nMOS与串联pMOS构成）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="32-组合逻辑电路">3.2 组合逻辑电路</h3>
+<ul>
+<li><strong>功能特性</strong>：
+<ul>
+<li>输出仅依赖当前输入（无记忆）。</li>
+<li>标准形式：SOP（积之和）与POS（和之积）。</li>
+</ul>
+</li>
+<li><strong>逻辑简化方法</strong>：
+<ul>
+<li><strong>布尔代数规则</strong>（如吸收律、德摩根定律）。</li>
+<li><strong>Karnaugh图</strong>：通过相邻项合并最小化表达式（如BCD增量函数简化）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="33-组合逻辑构建块">3.3 组合逻辑构建块</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>功能描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>解码器</strong></td>
+<td>二进制输入→独热码输出</td>
+</tr>
+<tr>
+<td><strong>多路选择器</strong></td>
+<td>按选择信号选通输入</td>
+</tr>
+<tr>
+<td><strong>全加器</strong></td>
+<td>实现二进制加法（含进位）</td>
+</tr>
+<tr>
+<td><strong>PLA</strong></td>
+<td>可编程逻辑阵列（SOP/POS配置）</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="四-数据移动与能耗瓶颈">四、数据移动与能耗瓶颈</h2>
+<h3 id="41-能量对比">4.1 能量对比</h3>
+<ul>
+<li><strong>计算能耗</strong>：执行算术和逻辑运算所需的能量。</li>
+<li><strong>数据移动能耗</strong>：将数据从内存移动到处理器，或在不同内存层次之间移动所需的能量。</li>
+</ul>
+<h3 id="42-瓶颈成因">4.2 瓶颈成因</h3>
+<ol>
+<li><strong>内存层次结构</strong>：数据需跨多层传输（寄存器→缓存→主存）。</li>
+<li><strong>访问模式</strong>：缓存未命中导致频繁主存访问。</li>
+<li><strong>物理距离</strong>：存储器与处理器分离增加延迟与能耗。</li>
+</ol>
+<h3 id="43-优化技术">4.3 优化技术</h3>
+<ul>
+<li><strong>存内计算 (PIM)</strong>：在DRAM内集成计算单元（如Samsung AxDIMM）。</li>
+<li><strong>近内存计算</strong>：将处理器嵌入内存芯片（如UPMEM引擎）。</li>
+<li><strong>缓存优化</strong>：提升命中率以减少主存访问。</li>
+</ul>
+<hr>
+<h2 id="五-逻辑设计关键问题">五、逻辑设计关键问题</h2>
+<h3 id="51-逻辑门选择">5.1 逻辑门选择</h3>
+<ul>
+<li><strong>CMOS技术</strong>：主流方案（低功耗、高集成度）。</li>
+<li><strong>特殊场景</strong>：
+<ul>
+<li><strong>ECL</strong>：高速（如高性能计算）。</li>
+<li><strong>GaAs</strong>：高频（如通信设备）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="52-功耗优化">5.2 功耗优化</h3>
+<ul>
+<li><strong>动态功耗</strong>：降低电压、时钟门控。</li>
+<li><strong>静态功耗</strong>：低泄漏晶体管、功率门控。</li>
+</ul>
+<hr>
+<p><strong>总结</strong>：本笔记整合了数字设计的核心构建模块（晶体管、逻辑门、组合逻辑）、现代架构挑战（数据移动瓶颈）及优化策略，强调权衡分析与能效设计原则，为后续微处理器设计提供理论基础。</p>
+<hr>
+<div class="tvcontainer">
+<iframe class="tv"  src="//player.bilibili.com/player.html?isOutside=true&aid=113340395294825&bvid=BV13nyeYYECw&cid=26387480952&p=2&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+</div>]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[数字设计与计算机架构课程的第二讲笔记（1）]]></title>
+        <id>https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-1/</id>
+        <link href="https://solahome.github.io/post/Digital-Design-and-Computer-Architecture-02-1/">
+        </link>
+        <updated>2024-11-26T09:16:37.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="数字设计与计算机架构课程笔记">数字设计与计算机架构课程笔记</h1>
+<p><strong><a href="https://safari.ethz.ch/digitaltechnik/spring2023/doku.php?id=start">ETH Zürich 2023春季学期</a>·第二讲：权衡、指标和设计心态</strong></p>
+<hr>
+<h2 id="一-课程概述">一、课程概述</h2>
+<h3 id="11-课程目标">1.1 课程目标</h3>
+<ul>
+<li><strong>核心目标</strong>
+<ul>
+<li>理解数字设计与计算机架构的基础原理，包括组合逻辑、时序逻辑、处理器微架构等，掌握硬件与软件接口设计，如指令集架构ISA、汇编语言编程。</li>
+<li>评估设计中的权衡，如性能、能效、成本等，并学会系统性调试，鼓励创新设计，探索新型内存技术、数据流架构等。</li>
+</ul>
+</li>
+</ul>
+<h3 id="12-课程内容">1.2 课程内容</h3>
+<ul>
+<li><strong>模块划分</strong>
+<ul>
+<li><strong>基础设计</strong>：组合逻辑、时序逻辑、硬件描述语言（Verilog）。</li>
+<li><strong>处理器架构</strong>：单周期/多周期/流水线微架构、乱序执行、超标量执行。</li>
+<li><strong>存储技术</strong>：缓存层次、虚拟内存、多核缓存一致性。</li>
+<li><strong>新兴范式</strong>：数据流架构、VLIW（超长指令字）、SIMD/GPU并行化。</li>
+<li><strong>其他</strong>：计算机架构的现状、不同平台的设计目标和权衡、设计原则探讨。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="二-核心概念与设计原则">二、核心概念与设计原则</h2>
+<h3 id="21-权衡-tradeoffs">2.1 权衡 (Tradeoffs)</h3>
+<ul>
+<li><strong>定义</strong>：在互相冲突的设计目标间进行优先级决策。</li>
+<li><strong>关键权衡维度</strong>：
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>性能 vs 能效</strong></td>
+<td>高频CPU提升性能但增加功耗，如Intel Alder Lake的混合核心设计。</td>
+</tr>
+<tr>
+<td><strong>灵活性 vs 效率</strong></td>
+<td>CPU通用性强但能效低，ASIC专用性强但灵活性差，如Google TPU。</td>
+</tr>
+<tr>
+<td><strong>成本 vs 可靠性</strong></td>
+<td>冗余设计提高可靠性但增加成本，如航天级处理器。</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+<h3 id="22-指标-metrics">2.2 指标 (Metrics)</h3>
+<ul>
+<li><strong>性能指标</strong>：指令吞吐量（IPC）、时钟频率、延迟。</li>
+<li><strong>能效指标</strong>：每瓦特性能（TOPS/W）、动态功耗。</li>
+<li><strong>其他指标</strong>：面积（晶体管密度）、可扩展性（多核扩展效率）、用户体验（响应时间）。</li>
+</ul>
+<h3 id="23-设计原则-design-principles">2.3 设计原则 (Design Principles)</h3>
+<ul>
+<li><strong>原则 vs 先例</strong>
+<ul>
+<li><strong>基于原则的设计</strong>：从基础物理/数学规律出发，如CMOS电路优化。</li>
+<li><strong>基于先例的设计</strong>：沿用历史方案，如x86指令集兼容性。</li>
+</ul>
+</li>
+<li><strong>跨领域启发</strong>
+<ul>
+<li><strong>Santiago Calatrava（建筑师）</strong>：材料最优利用，类比芯片面积优化。</li>
+<li><strong>Frank Lloyd Wright（建筑师）</strong>：形式追随功能，如RISC指令集简化设计。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="三-基础构建模块">三、基础构建模块</h2>
+<h3 id="31-晶体管与逻辑门">3.1 晶体管与逻辑门</h3>
+<ul>
+<li><strong>晶体管类型</strong>
+<ul>
+<li><strong>nMOS</strong>：低电平导通，用于下拉网络。</li>
+<li><strong>pMOS</strong>：高电平导通，用于上拉网络。</li>
+</ul>
+</li>
+<li><strong>CMOS逻辑门</strong>
+<ul>
+<li><strong>结构</strong>：互补nMOS/pMOS组合，如NAND门由并联nMOS与串联pMOS构成。</li>
+<li><strong>优势</strong>：静态功耗低、噪声容限高。</li>
+</ul>
+</li>
+</ul>
+<h3 id="32-组合逻辑电路">3.2 组合逻辑电路</h3>
+<ul>
+<li><strong>功能规范</strong>
+<ul>
+<li>输入到输出的纯逻辑函数，无记忆功能。</li>
+<li>标准形式：SOP（积之和）与POS（和之积）。</li>
+</ul>
+</li>
+<li><strong>逻辑简化方法</strong>
+<ul>
+<li><strong>布尔代数</strong>：应用结合律、分配律等，如(A + A'B = A + B)。</li>
+<li><strong>Karnaugh图</strong>：通过相邻单元格合并最小项，如4变量K-map覆盖BCD增量函数。</li>
+</ul>
+</li>
+</ul>
+<h3 id="33-组合逻辑构建块">3.3 组合逻辑构建块</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>功能</th>
+<th>应用示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>解码器</strong></td>
+<td>二进制输入到独热码输出</td>
+<td>指令译码，如MIPS ISA。</td>
+</tr>
+<tr>
+<td><strong>多路选择器</strong></td>
+<td>从多路输入中选择一路输出</td>
+<td>数据通路选择，如ALU输入。</td>
+</tr>
+<tr>
+<td><strong>可编程逻辑阵列 (PLA)</strong></td>
+<td>可配置SOP/POS逻辑实现</td>
+<td>定制化ALU功能。</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="四-现代架构挑战与平台">四、现代架构挑战与平台</h2>
+<h3 id="41-计算机架构的现状">4.1 计算机架构的现状</h3>
+<ul>
+<li><strong>面临挑战</strong>：数据密集型工作负载、新的（设备）技术、日益复杂的应用程序和系统。</li>
+<li><strong>数据的重要性</strong>：数据在现代计算中起关键作用，数据移动对性能和能源效率影响显著，数据搬运能耗远高于计算。</li>
+<li><strong>新颖概念</strong>：新的计算范式、新的加速器和系统、新的内存、存储系统、互连和设备。</li>
+</ul>
+<h3 id="42-数据驱动的设计">4.2 数据驱动的设计</h3>
+<ul>
+<li><strong>数据移动瓶颈解决方案</strong>：
+<ul>
+<li><strong>存内计算 (PIM)</strong>：三星Function-in-Memory DRAM直接在内存中处理数据。</li>
+<li><strong>近内存计算</strong>：UPMEM引擎将处理器嵌入DRAM芯片。</li>
+</ul>
+</li>
+</ul>
+<h3 id="43-处理器平台对比">4.3 处理器平台对比</h3>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>优势</th>
+<th>劣势</th>
+<th>应用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU</strong></td>
+<td>通用性强、编程灵活</td>
+<td>能效低</td>
+<td>通用计算，如服务器。</td>
+</tr>
+<tr>
+<td><strong>GPU</strong></td>
+<td>高并行吞吐量</td>
+<td>延迟敏感型任务性能差</td>
+<td>图形渲染、AI训练。</td>
+</tr>
+<tr>
+<td><strong>FPGA</strong></td>
+<td>可重构硬件加速</td>
+<td>开发复杂度高</td>
+<td>原型验证、低延迟处理。</td>
+</tr>
+<tr>
+<td><strong>TPU</strong></td>
+<td>张量计算优化、能效高</td>
+<td>专用性强</td>
+<td>机器学习推理。</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="五-新兴技术与趋势">五、新兴技术与趋势</h2>
+<h3 id="51-新兴内存技术">5.1 新兴内存技术</h3>
+<ul>
+<li><strong>存算一体技术</strong>：
+<ul>
+<li><strong>ReRAM/CBRAM</strong>：非易失性内存，支持存内计算，如IBM的模拟AI加速器。</li>
+</ul>
+</li>
+<li><strong>3D集成技术</strong>：
+<ul>
+<li>晶圆级堆叠。</li>
+</ul>
+</li>
+</ul>
+<h3 id="52-新型计算范式">5.2 新型计算范式</h3>
+<ul>
+<li><strong>数据流架构</strong>：按数据依赖关系动态调度指令，如Google的TPU v4。</li>
+<li><strong>量子计算</strong>：超导量子位与纠错码（当前课程未深入涉及）。</li>
+</ul>
+<hr>
+<p><strong>总结</strong>：本讲系统阐述了数字设计的核心构建模块（晶体管、逻辑门、组合逻辑）、权衡与指标方法论，以及现代架构的挑战（数据移动、异构计算）。通过结合经典设计原则与新兴技术（如PIM），为后续处理器设计与优化奠定基础。</p>
+<hr>
+<div class="tvcontainer">
+<iframe class="tv"  src="//player.bilibili.com/player.html?isOutside=true&aid=113340395294825&bvid=BV13nyeYYECw&cid=26387480952&p=2&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+</div>]]></content>
+    </entry>
+</feed>
