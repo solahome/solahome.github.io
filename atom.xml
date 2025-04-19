@@ -1,0 +1,3893 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://solahome.github.io</id>
+    <title>sola的小屋</title>
+    <updated>2025-04-19T10:10:34.858Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://solahome.github.io"/>
+    <link rel="self" href="https://solahome.github.io/atom.xml"/>
+    <subtitle>故事的结尾总写在开头</subtitle>
+    <logo>https://solahome.github.io/images/avatar.png</logo>
+    <icon>https://solahome.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2025, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(16)——LlamaLike模型有关代码实现(src/graph/llama_like.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-16/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-16/">
+        </link>
+        <updated>2025-04-16T03:15:01.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="llamalike-模型代码结构与功能实现分析">LlamaLike 模型代码结构与功能实现分析</h1>
+<p><code>llama_like.h</code> 和 <code>llama_like.cpp</code> 文件实现了 InferLLM 框架中对类 Llama 架构模型（如 Baichuan 和 Llama2）的支持。这些文件定义了 <code>LlamaLikeGraph</code> 类，该类继承自基础的 <code>Graph</code> 类，并实现了特定于类 Llama 架构模型的加载和计算图构建逻辑。</p>
+<h2 id="1-llama_likeh-文件分析">1. llama_like.h 文件分析</h2>
+<h3 id="11-文件结构">1.1 文件结构</h3>
+<p><code>llama_like.h</code> 文件结构简洁，主要包含以下几个部分：</p>
+<ol>
+<li>
+<p><strong>头文件引入</strong>：</p>
+<pre><code class="language-cpp">#include &quot;core/graph.h&quot;
+</code></pre>
+<p>只引入了基础的图类头文件。</p>
+</li>
+<li>
+<p><strong>命名空间声明</strong>：</p>
+<pre><code class="language-cpp">namespace inferllm {
+</code></pre>
+<p>所有代码都在 inferllm 命名空间中。</p>
+</li>
+<li>
+<p><strong>LlamaLikeGraph 类定义</strong>：</p>
+<pre><code class="language-cpp">class LlamaLikeGraph : public Graph {
+    using Graph::Graph;
+
+public:
+    void set_weights_alias() override;
+    void construct_llm() override;
+    void load_param(
+            std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+            std::shared_ptr&lt;Vocab&gt; vocab) override;
+};
+</code></pre>
+<p>定义了 <code>LlamaLikeGraph</code> 类，继承自 <code>Graph</code> 类，并重写了三个关键方法：</p>
+<ul>
+<li><code>set_weights_alias</code>：设置权重别名映射</li>
+<li><code>construct_llm</code>：构建模型计算图</li>
+<li><code>load_param</code>：加载模型参数</li>
+</ul>
+</li>
+</ol>
+<h2 id="2-llama_likecpp-文件分析">2. llama_like.cpp 文件分析</h2>
+<h3 id="21-头文件引入">2.1 头文件引入</h3>
+<pre><code class="language-cpp">#include &quot;llama_like.h&quot;
+#include &quot;chatGLM.h&quot;
+</code></pre>
+<p>引入了 <code>llama_like.h</code> 和 <code>chatGLM.h</code> 头文件，后者可能是为了使用其中定义的一些数据结构（如 <code>Header</code>）。</p>
+<h3 id="22-权重别名设置">2.2 权重别名设置</h3>
+<pre><code class="language-cpp">void LlamaLikeGraph::set_weights_alias() {
+    m_weights_name_aliases.clear();
+    // clang-format off
+    m_weights_name_aliases = {
+            {&quot;model.embed_tokens.weight&quot;, &quot;tok_embeddings.weight&quot;},
+            {&quot;model.layers.x.input_layernorm.weight&quot;, &quot;layers.x.attention.norm.weight&quot;},
+            {&quot;model.layers.x.self_attn.q_proj.weight&quot;, &quot;layers.x.attention.wq.weight&quot;},
+            {&quot;model.layers.x.self_attn.k_proj.weight&quot;, &quot;layers.x.attention.wk.weight&quot;},
+            {&quot;model.layers.x.self_attn.v_proj.weight&quot;, &quot;layers.x.attention.wv.weight&quot;},
+            {&quot;model.layers.x.self_attn.o_proj.weight&quot;, &quot;layers.x.attention.wo.weight&quot;},
+            {&quot;model.layers.x.post_attention_layernorm.weight&quot;, &quot;layers.x.ffn.norm.weight&quot;},
+            {&quot;model.layers.x.mlp.up_proj.weight&quot;, &quot;layers.x.ffn.w3.weight&quot;},
+            {&quot;model.layers.x.mlp.down_proj.weight&quot;, &quot;layers.x.ffn.w2.weight&quot;},
+            {&quot;model.layers.x.mlp.gate_proj.weight&quot;, &quot;layers.x.ffn.w1.weight&quot;},
+            {&quot;model.norm.weight&quot;, &quot;head.norm.weight&quot;},
+            {&quot;lm_head.weight&quot;, &quot;head.output.weight&quot;},
+    };
+    // clang-format on
+}
+</code></pre>
+<p>这个方法建立了原始权重名称和内部使用的权重名称之间的映射关系。与 GGML Llama 和 ChatGLM 不同，LlamaLike 模型使用分离的 Q、K、V 权重，而不是融合的 QKV 权重。这反映了 Llama2 和 Baichuan 等模型的架构特点。</p>
+<h3 id="23-参数加载">2.3 参数加载</h3>
+<pre><code class="language-cpp">void LlamaLikeGraph::load_param(
+        std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+        std::shared_ptr&lt;Vocab&gt; vocab) {
+    Header header;
+    // load model header
+    fin-&gt;read_raw((char*)&amp;header.param_offset, sizeof(header.param_offset));
+    fin-&gt;read_raw((char*)&amp;header.param_length, sizeof(header.param_length));
+    fin-&gt;read_raw((char*)&amp;header.vocab_offset, sizeof(header.vocab_offset));
+    fin-&gt;read_raw((char*)&amp;header.vocab_length, sizeof(header.vocab_length));
+    fin-&gt;read_raw((char*)&amp;header.tensor_offset, sizeof(header.tensor_offset));
+
+    fin-&gt;seek(header.param_offset);
+    // load param
+    fin-&gt;read_raw((char*)&amp;param.n_embd, sizeof(param.n_embd));
+    fin-&gt;read_raw((char*)&amp;param.n_head, sizeof(param.n_head));
+    fin-&gt;read_raw((char*)&amp;param.n_layer, sizeof(param.n_layer));
+    fin-&gt;read_raw((char*)&amp;param.n_mult, sizeof(param.n_mult));
+    fin-&gt;read_raw((char*)&amp;param.n_vocab, sizeof(param.n_vocab));
+    m_param = param;
+
+    // load vocab
+    fin-&gt;seek(header.vocab_offset);
+    vocab-&gt;load_vocab(fin, param.n_vocab);
+
+    INFER_LOG(&quot;total vocab length = %d\n&quot;, param.n_vocab);
+    fin-&gt;seek(header.tensor_offset);
+}
+</code></pre>
+<p>这个方法从模型文件中加载参数和词汇表，包括：</p>
+<ol>
+<li>
+<p><strong>读取模型头部信息</strong>：</p>
+<ul>
+<li>读取参数、词汇表和张量的偏移量和长度</li>
+</ul>
+</li>
+<li>
+<p><strong>加载模型参数</strong>：</p>
+<ul>
+<li>读取嵌入维度、头数、层数、前馈网络倍数和词汇表大小</li>
+</ul>
+</li>
+<li>
+<p><strong>加载词汇表</strong>：</p>
+<ul>
+<li>根据词汇表偏移量读取词汇表</li>
+</ul>
+</li>
+<li>
+<p><strong>输出日志</strong>：</p>
+<ul>
+<li>输出词汇表大小的日志信息</li>
+</ul>
+</li>
+<li>
+<p><strong>设置文件指针</strong>：</p>
+<ul>
+<li>将文件指针移动到张量数据的起始位置</li>
+</ul>
+</li>
+</ol>
+<h3 id="24-计算图构建">2.4 计算图构建</h3>
+<pre><code class="language-cpp">void LlamaLikeGraph::construct_llm() {
+    uint32_t embd = m_param.n_embd;
+    uint32_t ffn_size = m_param.n_mult;
+    uint32_t head = m_param.n_head;
+    uint32_t ctx = m_param.n_ctx;
+    uint32_t n_vocab = m_param.n_vocab;
+    uint32_t rot = embd / head;
+
+    m_input = std::make_shared&lt;Tensor&gt;(device(), name() + &quot;:input&quot;);
+    std::shared_ptr&lt;Tensor&gt; input = m_input;
+    //! embd
+    input = add_module&lt;EmbdModule&gt;(
+            this, input, embd, n_vocab, model_config(), device(), &quot;&quot;);
+
+    int nr_layer = m_param.n_layer;
+    for (int i = 0; i &lt; nr_layer; i++) {
+        std::string name = &quot;layers.&quot; + std::to_string(i);
+        //! layer norm
+        std::shared_ptr&lt;Tensor&gt; attention_input = input;
+        auto norm_out_attention = add_one_opr_module&lt;LayerNorm&gt;(
+                                          this, OpIOs{attention_input}, device(),
+                                          name + &quot;.attention.norm&quot;)
+                                          -&gt;add_opr(
+                                                  embd, /*mul*/ true, /*bias*/ false,
+                                                  /*rms*/ true, /*eps*/ 1e-6);
+        //! attentin
+        auto attention_output = add_module&lt;AttentionModule&lt;LlamaAttention&gt;&gt;(
+                this, norm_out_attention, embd, head, rot, ctx, model_config(),
+                device(), name + &quot;.attention&quot;, i, false, false, RotMode::ModelRotHalf);
+        //! add
+        auto add_output = add_one_opr_module&lt;Elemwise&gt;(
+                                  this, OpIOs{attention_input, attention_output},
+                                  device(), name + &quot;.attention_add&quot;)
+                                  -&gt;add_opr(ElemMode::Add);
+
+        std::shared_ptr&lt;Tensor&gt; feed_forward_input = add_output;
+        //! layer normal
+        auto ffn_norm_out =
+                add_one_opr_module&lt;LayerNorm&gt;(
+                        this, OpIOs{feed_forward_input}, device(), name + &quot;.ffn.norm&quot;)
+                        -&gt;add_opr(
+                                embd, /*mul*/ true, /*bias*/ false,
+                                /*rms*/ true, /*eps*/ 1e-6);
+        //! feed forward
+        auto ffn_output = add_module&lt;LlamaFFNModule&gt;(
+                this, ffn_norm_out, embd, ffn_size, model_config(), device(), name);
+        //! add
+        input = add_one_opr_module&lt;Elemwise&gt;(
+                        this, OpIOs{feed_forward_input, ffn_output}, device(),
+                        name + &quot;.ffn_add&quot;)
+                        -&gt;add_opr(ElemMode::Add);
+    }
+    //! the last layer
+    m_output = add_module&lt;HeadModule&gt;(
+            this, input, embd, n_vocab, model_config(), device(), &quot;head&quot;);
+}
+</code></pre>
+<p>这个方法构建了 LlamaLike 模型的计算图，包括：</p>
+<ol>
+<li>
+<p><strong>初始化参数</strong>：</p>
+<ul>
+<li>从模型参数中获取嵌入维度、前馈网络大小、头数等参数</li>
+<li>计算旋转位置编码的维度 <code>rot = embd / head</code></li>
+</ul>
+</li>
+<li>
+<p><strong>创建输入张量和嵌入层</strong>：</p>
+<ul>
+<li>创建输入张量</li>
+<li>添加嵌入层，将 token ID 转换为嵌入向量</li>
+</ul>
+</li>
+<li>
+<p><strong>循环添加 Transformer 层</strong>：<br>
+每个 Transformer 层包括：</p>
+<ul>
+<li>注意力层前的 RMSNorm（<code>rms = true</code>，<code>bias = false</code>，<code>eps = 1e-6</code>）</li>
+<li>注意力层 (LlamaAttention)，使用 ModelRotHalf 旋转模式</li>
+<li>残差连接</li>
+<li>前馈网络前的 RMSNorm</li>
+<li>前馈网络 (LlamaFFNModule)</li>
+<li>残差连接</li>
+</ul>
+</li>
+<li>
+<p><strong>添加输出层</strong>：</p>
+<ul>
+<li>添加 HeadModule，将隐藏状态转换为词汇表概率分布</li>
+</ul>
+</li>
+</ol>
+<h2 id="3-llamalike-模型的特点">3. LlamaLike 模型的特点</h2>
+<p>通过分析 <code>llama_like.h</code> 和 <code>llama_like.cpp</code> 文件，可以看出 LlamaLike 模型的以下特点：</p>
+<h3 id="31-模型架构">3.1 模型架构</h3>
+<ol>
+<li>
+<p><strong>Pre-LayerNorm 架构</strong>：</p>
+<ul>
+<li>在注意力层和前馈网络前进行层归一化</li>
+<li>使用 RMSNorm（<code>rms = true</code>，没有偏置项 <code>bias = false</code>）</li>
+<li>使用较小的 epsilon 值 (<code>eps = 1e-6</code>)</li>
+</ul>
+</li>
+<li>
+<p><strong>分离的 Q、K、V 权重</strong>：</p>
+<ul>
+<li>使用分离的 Q、K、V 权重，而不是融合的 QKV 权重</li>
+<li>权重别名映射反映了这一点：<pre><code class="language-cpp">{&quot;model.layers.x.self_attn.q_proj.weight&quot;, &quot;layers.x.attention.wq.weight&quot;},
+{&quot;model.layers.x.self_attn.k_proj.weight&quot;, &quot;layers.x.attention.wk.weight&quot;},
+{&quot;model.layers.x.self_attn.v_proj.weight&quot;, &quot;layers.x.attention.wv.weight&quot;},
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>旋转位置编码</strong>：</p>
+<ul>
+<li>使用旋转位置编码 (RoPE)，通过 <code>rot = embd / head</code> 计算旋转维度</li>
+<li>使用 ModelRotHalf 旋转模式：<code>RotMode::ModelRotHalf</code></li>
+</ul>
+</li>
+<li>
+<p><strong>SwiGLU 激活函数</strong>：</p>
+<ul>
+<li>在前馈网络中使用 SwiGLU 激活函数，通过 <code>LlamaFFNModule</code> 实现</li>
+<li>使用三个权重矩阵：w1、w2 和 w3</li>
+</ul>
+</li>
+<li>
+<p><strong>无偏置项</strong>：</p>
+<ul>
+<li>层归一化不使用偏置项 (<code>bias = false</code>)</li>
+<li>注意力层不使用偏置项 (<code>false</code> 参数)</li>
+</ul>
+</li>
+</ol>
+<h3 id="32-与-ggml-llama-的比较">3.2 与 GGML Llama 的比较</h3>
+<p>LlamaLike 模型与 GGML Llama 模型有以下区别：</p>
+<ol>
+<li>
+<p><strong>权重结构</strong>：</p>
+<ul>
+<li>LlamaLike 使用分离的 Q、K、V 权重</li>
+<li>GGML Llama 可能使用融合的 QKV 权重</li>
+</ul>
+</li>
+<li>
+<p><strong>权重命名</strong>：</p>
+<ul>
+<li>LlamaLike 使用 <code>model.embed_tokens.weight</code> 等命名</li>
+<li>GGML Llama 使用不同的命名约定</li>
+</ul>
+</li>
+<li>
+<p><strong>旋转模式</strong>：</p>
+<ul>
+<li>LlamaLike 明确指定了 ModelRotHalf 旋转模式</li>
+<li>GGML Llama 可能使用不同的旋转模式</li>
+</ul>
+</li>
+<li>
+<p><strong>模型格式</strong>：</p>
+<ul>
+<li>LlamaLike 使用自定义格式</li>
+<li>GGML Llama 使用 GGML 格式</li>
+</ul>
+</li>
+</ol>
+<h3 id="33-与-chatglm-系列的比较">3.3 与 ChatGLM 系列的比较</h3>
+<p>LlamaLike 模型与 ChatGLM 系列模型有以下区别：</p>
+<ol>
+<li>
+<p><strong>层归一化</strong>：</p>
+<ul>
+<li>LlamaLike 使用 RMSNorm（<code>rms = true</code>，<code>bias = false</code>）</li>
+<li>ChatGLM 使用传统的层归一化（<code>rms = false</code>，<code>bias = true</code>）</li>
+</ul>
+</li>
+<li>
+<p><strong>注意力机制</strong>：</p>
+<ul>
+<li>LlamaLike 使用 <code>LlamaAttention</code></li>
+<li>ChatGLM 使用 <code>GlmAttention</code> 或 <code>Glm2MultiQueryAttention</code></li>
+</ul>
+</li>
+<li>
+<p><strong>前馈网络</strong>：</p>
+<ul>
+<li>LlamaLike 使用 <code>LlamaFFNModule</code></li>
+<li>ChatGLM 使用 <code>GlmFFNModule</code></li>
+</ul>
+</li>
+<li>
+<p><strong>残差连接</strong>：</p>
+<ul>
+<li>LlamaLike 使用普通的残差连接</li>
+<li>ChatGLM 使用带缩放因子的残差连接</li>
+</ul>
+</li>
+<li>
+<p><strong>特殊 token 处理</strong>：</p>
+<ul>
+<li>LlamaLike 模型没有实现 <code>post_tokenize</code> 方法，可能不需要特殊的 token 处理</li>
+<li>ChatGLM 系列模型实现了 <code>post_tokenize</code> 方法，在输入序列的开头和结尾添加特殊 token</li>
+</ul>
+</li>
+<li>
+<p><strong>词汇表大小</strong>：</p>
+<ul>
+<li>LlamaLike 模型的词汇表大小由模型文件决定</li>
+<li>ChatGLM 系列模型使用固定的词汇表大小（ChatGLM 为 130528，ChatGLM2/3 为 65024）</li>
+</ul>
+</li>
+</ol>
+<h2 id="4-模型加载流程">4. 模型加载流程</h2>
+<p>LlamaLike 模型的加载流程包括以下步骤：</p>
+<ol>
+<li>
+<p><strong>读取模型头部信息</strong>：</p>
+<pre><code class="language-cpp">fin-&gt;read_raw((char*)&amp;header.param_offset, sizeof(header.param_offset));
+fin-&gt;read_raw((char*)&amp;header.param_length, sizeof(header.param_length));
+fin-&gt;read_raw((char*)&amp;header.vocab_offset, sizeof(header.vocab_offset));
+fin-&gt;read_raw((char*)&amp;header.vocab_length, sizeof(header.vocab_length));
+fin-&gt;read_raw((char*)&amp;header.tensor_offset, sizeof(header.tensor_offset));
+</code></pre>
+</li>
+<li>
+<p><strong>加载模型参数</strong>：</p>
+<pre><code class="language-cpp">fin-&gt;seek(header.param_offset);
+fin-&gt;read_raw((char*)&amp;param.n_embd, sizeof(param.n_embd));
+fin-&gt;read_raw((char*)&amp;param.n_head, sizeof(param.n_head));
+fin-&gt;read_raw((char*)&amp;param.n_layer, sizeof(param.n_layer));
+fin-&gt;read_raw((char*)&amp;param.n_mult, sizeof(param.n_mult));
+fin-&gt;read_raw((char*)&amp;param.n_vocab, sizeof(param.n_vocab));
+</code></pre>
+</li>
+<li>
+<p><strong>加载词汇表</strong>：</p>
+<pre><code class="language-cpp">fin-&gt;seek(header.vocab_offset);
+vocab-&gt;load_vocab(fin, param.n_vocab);
+</code></pre>
+</li>
+<li>
+<p><strong>构建计算图</strong>：<br>
+在 <code>Graph::load</code> 方法中调用 <code>construct_llm</code> 构建计算图</p>
+</li>
+<li>
+<p><strong>收集权重</strong>：<br>
+在 <code>Graph::load</code> 方法中调用 <code>collect_weights</code> 收集权重</p>
+</li>
+<li>
+<p><strong>设置权重别名</strong>：<br>
+在 <code>Graph::load</code> 方法中调用 <code>set_weights_alias</code> 设置权重别名</p>
+</li>
+<li>
+<p><strong>加载权重</strong>：<br>
+在 <code>Graph::load</code> 方法中循环读取权重数据，并将其与计算图中的权重关联</p>
+</li>
+</ol>
+<h2 id="5-计算图执行流程">5. 计算图执行流程</h2>
+<p>LlamaLike 模型的计算图执行流程与其他模型类似，包括以下步骤：</p>
+<ol>
+<li>
+<p><strong>准备输入</strong>：</p>
+<ul>
+<li>将输入文本转换为 token ID</li>
+<li>如果需要，进行特殊 token 处理</li>
+</ul>
+</li>
+<li>
+<p><strong>执行计算图</strong>：</p>
+<ul>
+<li>从输入到输出执行计算图</li>
+<li>每个 Transformer 层按顺序执行</li>
+</ul>
+</li>
+<li>
+<p><strong>采样</strong>：</p>
+<ul>
+<li>根据输出概率分布采样下一个 token</li>
+</ul>
+</li>
+<li>
+<p><strong>生成文本</strong>：</p>
+<ul>
+<li>将采样得到的 token ID 转换为文本</li>
+<li>重复执行计算图和采样，直到生成结束</li>
+</ul>
+</li>
+</ol>
+<h2 id="6-优化策略">6. 优化策略</h2>
+<p>LlamaLike 模型实现了一些优化策略：</p>
+<ol>
+<li>
+<p><strong>RMSNorm</strong>：</p>
+<ul>
+<li>使用 RMSNorm 代替传统的层归一化，减少计算量</li>
+<li>不使用偏置项，减少参数量</li>
+</ul>
+</li>
+<li>
+<p><strong>旋转位置编码</strong>：</p>
+<ul>
+<li>使用旋转位置编码 (RoPE)，避免了位置嵌入的额外参数</li>
+<li>使用 ModelRotHalf 旋转模式，可能是为了优化性能</li>
+</ul>
+</li>
+<li>
+<p><strong>SwiGLU 激活函数</strong>：</p>
+<ul>
+<li>在前馈网络中使用 SwiGLU 激活函数，提高模型性能</li>
+</ul>
+</li>
+<li>
+<p><strong>分离的 Q、K、V 权重</strong>：</p>
+<ul>
+<li>使用分离的 Q、K、V 权重，可能有助于并行计算</li>
+</ul>
+</li>
+</ol>
+<h2 id="7-扩展性分析">7. 扩展性分析</h2>
+<p>LlamaLike 模型的设计具有良好的扩展性：</p>
+<ol>
+<li>
+<p><strong>支持多种模型</strong>：</p>
+<ul>
+<li>通过相同的接口支持 Baichuan 和 Llama2 等多种模型</li>
+<li>只需修改权重别名映射，就可以支持新的模型变体</li>
+</ul>
+</li>
+<li>
+<p><strong>模块化设计</strong>：</p>
+<ul>
+<li>使用模块化设计构建计算图，便于扩展和维护</li>
+<li>可以方便地替换或修改特定模块</li>
+</ul>
+</li>
+<li>
+<p><strong>参数化配置</strong>：</p>
+<ul>
+<li>模型参数（如嵌入维度、头数、层数等）由模型文件决定</li>
+<li>不需要硬编码特定模型的参数</li>
+</ul>
+</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p><code>llama_like.h</code> 和 <code>llama_like.cpp</code> 文件实现了 InferLLM 框架中对类 Llama 架构模型（如 Baichuan 和 Llama2）的支持。它们定义了 <code>LlamaLikeGraph</code> 类，该类继承自基础的 <code>Graph</code> 类，并实现了特定于类 Llama 架构模型的加载和计算图构建逻辑。</p>
+<p>通过分析这些文件，我们可以了解类 Llama 架构模型的结构特点和实现细节，以及 InferLLM 框架如何支持不同架构的模型。这种设计使得 InferLLM 可以灵活地支持多种模型架构，而不需要修改框架的核心代码。</p>
+<p>LlamaLike 模型的实现展示了现代大型语言模型的一些关键技术，如 RMSNorm、旋转位置编码和 SwiGLU 激活函数等。这些技术的应用使得模型在保持高性能的同时，减少了参数量和计算量，提高了推理效率。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(15)——Llama系列模型有关代码实现(src/graph/ggml_llama.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-15/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-15/">
+        </link>
+        <updated>2025-04-15T03:13:03.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="ggml-llama-模型代码结构与功能实现分析">GGML Llama 模型代码结构与功能实现分析</h1>
+<p><code>ggml_llama.h</code> 和 <code>ggml_llama.cpp</code> 文件实现了 InferLLM 框架中对 GGML 格式的 Llama 模型的支持。这些文件定义了 <code>GgmlLlamaGraph</code> 类，该类继承自基础的 <code>Graph</code> 类，并实现了特定于 GGML Llama 模型的加载和计算图构建逻辑。</p>
+<h2 id="1-ggml_llamah-文件分析">1. ggml_llama.h 文件分析</h2>
+<h3 id="11-文件结构">1.1 文件结构</h3>
+<p><code>ggml_llama.h</code> 文件包含以下几个部分：</p>
+<ol>
+<li>
+<p><strong>头文件引入</strong>：</p>
+<pre><code class="language-cpp">#include &lt;unordered_map&gt;
+#include &quot;core/graph.h&quot;
+#include &quot;core/kvstorage.h&quot;
+#include &quot;core/op.h&quot;
+#include &quot;core/tensor.h&quot;
+</code></pre>
+<p>引入了必要的头文件，包括图、KV存储、算子和张量等核心组件。</p>
+</li>
+<li>
+<p><strong>命名空间声明</strong>：</p>
+<pre><code class="language-cpp">namespace inferllm {
+</code></pre>
+<p>所有代码都在 inferllm 命名空间中。</p>
+</li>
+<li>
+<p><strong>模型类型枚举</strong>：</p>
+<pre><code class="language-cpp">enum class LlamaModelType {
+    LLAMA_FILE_VERSION_GGML = 0,
+    LLAMA_FILE_VERSION_GGMF_V1,  // added version field and scores in vocab
+    LLAMA_FILE_VERSION_GGJT_V1
+};
+</code></pre>
+<p>定义了三种 GGML 格式的 Llama 模型类型：</p>
+<ul>
+<li><code>LLAMA_FILE_VERSION_GGML</code>：原始 GGML 格式</li>
+<li><code>LLAMA_FILE_VERSION_GGMF_V1</code>：添加了版本字段和词汇表分数的格式</li>
+<li><code>LLAMA_FILE_VERSION_GGJT_V1</code>：另一种扩展格式</li>
+</ul>
+</li>
+<li>
+<p><strong>GgmlLlamaGraph 类定义</strong>：</p>
+<pre><code class="language-cpp">class GgmlLlamaGraph : public Graph {
+    using Graph::Graph;
+
+public:
+    void set_weights_alias() override;
+    void construct_llm() override;
+
+    void load(
+            std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+            std::shared_ptr&lt;Vocab&gt; vocab) override;
+};
+</code></pre>
+<p>定义了 <code>GgmlLlamaGraph</code> 类，继承自 <code>Graph</code> 类，并重写了三个关键方法：</p>
+<ul>
+<li><code>set_weights_alias</code>：设置权重别名映射</li>
+<li><code>construct_llm</code>：构建模型计算图</li>
+<li><code>load</code>：加载模型参数和权重</li>
+</ul>
+</li>
+</ol>
+<h2 id="2-ggml_llamacpp-文件分析">2. ggml_llama.cpp 文件分析</h2>
+<h3 id="21-权重别名设置">2.1 权重别名设置</h3>
+<pre><code class="language-cpp">void GgmlLlamaGraph::set_weights_alias() {
+    m_weights_name_aliases.clear();
+    m_weights_name_aliases = {
+            {&quot;norm.weight&quot;, &quot;head.norm.weight&quot;},
+            {&quot;output.weight&quot;, &quot;head.output.weight&quot;},
+            {&quot;layers.x.feed_forward.w3.weight&quot;, &quot;layers.x.ffn.w3.weight&quot;},
+            {&quot;layers.x.feed_forward.w2.weight&quot;, &quot;layers.x.ffn.w2.weight&quot;},
+            {&quot;layers.x.feed_forward.w1.weight&quot;, &quot;layers.x.ffn.w1.weight&quot;},
+            {&quot;layers.x.ffn_norm.weight&quot;, &quot;layers.x.ffn.norm.weight&quot;},
+            {&quot;layers.x.attention_norm.weight&quot;, &quot;layers.x.attention.norm.weight&quot;},
+    };
+}
+</code></pre>
+<p>这个方法建立了原始权重名称和内部使用的权重名称之间的映射关系，使得模型可以正确加载预训练权重。</p>
+<h3 id="22-模型加载">2.2 模型加载</h3>
+<pre><code class="language-cpp">void GgmlLlamaGraph::load(
+        std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+        std::shared_ptr&lt;Vocab&gt; vocab) {
+    // 验证魔数
+    uint32_t magic;
+    uint32_t version = 0;
+    fin-&gt;read_raw((char*)&amp;magic, sizeof(magic));
+    if (magic != 'ggml') {
+        fin-&gt;read_raw((char*)&amp;version, sizeof(version));
+    }
+    LlamaModelType model_type;
+    if (magic == 'ggml' &amp;&amp; version == 0) {
+        model_type = LlamaModelType::LLAMA_FILE_VERSION_GGML;
+    } else if (magic == 'ggmf' &amp;&amp; version == 1) {
+        model_type = LlamaModelType::LLAMA_FILE_VERSION_GGMF_V1;
+    } else if (magic == 'ggjt' &amp;&amp; version == 1) {
+        model_type = LlamaModelType::LLAMA_FILE_VERSION_GGJT_V1;
+    } else {
+        INFER_ASSERT(0, &quot;unsupported model type.&quot;);
+    }
+    
+    // 加载参数
+    fin-&gt;read_raw((char*)&amp;param.n_vocab, sizeof(param.n_vocab));
+    // ... 读取其他参数
+    
+    // 加载词汇表
+    if (model_type == LlamaModelType::LLAMA_FILE_VERSION_GGJT_V1) {
+        vocab-&gt;load_vocab_with_score(fin, param.n_vocab);
+    } else {
+        vocab-&gt;load_vocab(fin, param.n_vocab);
+    }
+    
+    m_param = param;
+    
+    // 构建计算图
+    construct_llm();
+    collect_weights();
+    
+    // 设置权重别名并加载权重
+    set_weights_alias();
+    // ... 读取权重
+}
+</code></pre>
+<p>这个方法从模型文件中加载参数和权重，包括：</p>
+<ol>
+<li>
+<p><strong>验证模型格式</strong>：</p>
+<ul>
+<li>读取魔数和版本号</li>
+<li>根据魔数和版本号确定模型类型</li>
+</ul>
+</li>
+<li>
+<p><strong>加载模型参数</strong>：</p>
+<ul>
+<li>读取词汇表大小、嵌入维度、头数、层数等参数</li>
+<li>输出参数信息</li>
+</ul>
+</li>
+<li>
+<p><strong>加载词汇表</strong>：</p>
+<ul>
+<li>根据模型类型选择不同的词汇表加载方法</li>
+</ul>
+</li>
+<li>
+<p><strong>构建计算图</strong>：</p>
+<ul>
+<li>调用 <code>construct_llm</code> 构建计算图</li>
+<li>调用 <code>collect_weights</code> 收集权重</li>
+</ul>
+</li>
+<li>
+<p><strong>加载权重</strong>：</p>
+<ul>
+<li>设置权重别名</li>
+<li>循环读取权重数据</li>
+<li>将权重数据与计算图中的权重关联</li>
+</ul>
+</li>
+</ol>
+<h3 id="23-计算图构建">2.3 计算图构建</h3>
+<pre><code class="language-cpp">void GgmlLlamaGraph::construct_llm() {
+    uint32_t embd = m_param.n_embd;
+    uint32_t mult = m_param.n_mult;
+    uint32_t head = m_param.n_head;
+    uint32_t rot = m_param.n_rot;
+    uint32_t ctx = m_param.n_ctx;
+    uint32_t n_vocab = m_param.n_vocab;
+
+    size_t nff = ((2 * (4 * embd) / 3 + mult - 1) / mult) * mult;
+    m_input = std::make_shared&lt;Tensor&gt;(device(), name() + &quot;:input&quot;);
+    std::shared_ptr&lt;Tensor&gt; input = m_input;
+    //! embd
+    input = add_module&lt;EmbdModule&gt;(
+            this, input, embd, n_vocab, model_config(), device(), &quot;&quot;);
+
+    int nr_layer = m_param.n_layer;
+    for (int i = 0; i &lt; nr_layer; i++) {
+        std::string name = &quot;layers.&quot; + std::to_string(i);
+        //! layer norm
+        std::shared_ptr&lt;Tensor&gt; attention_input = input;
+
+        auto norm_out_attention = add_one_opr_module&lt;LayerNorm&gt;(
+                                          this, OpIOs{attention_input}, device(),
+                                          name + &quot;.attention.norm&quot;)
+                                          -&gt;add_opr(embd);
+        //! attentin
+        auto attention_output = add_module&lt;AttentionModule&lt;LlamaAttention&gt;&gt;(
+                this, norm_out_attention, embd, head, rot, ctx, model_config(),
+                device(), name + &quot;.attention&quot;, i);
+        //! add
+        auto add_output = add_one_opr_module&lt;Elemwise&gt;(
+                                  this, OpIOs{attention_input, attention_output},
+                                  device(), name + &quot;.attention_add&quot;)
+                                  -&gt;add_opr(ElemMode::Add);
+
+        std::shared_ptr&lt;Tensor&gt; feed_forward_input = add_output;
+        //! layer normal
+        auto ffn_norm_out =
+                add_one_opr_module&lt;LayerNorm&gt;(
+                        this, OpIOs{feed_forward_input}, device(), name + &quot;.ffn.norm&quot;)
+                        -&gt;add_opr(embd);
+        //! feed forward
+        auto ffn_output = add_module&lt;LlamaFFNModule&gt;(
+                this, ffn_norm_out, embd, nff, model_config(), device(), name);
+        //! add
+        input = add_one_opr_module&lt;Elemwise&gt;(
+                        this, OpIOs{feed_forward_input, ffn_output}, device(),
+                        name + &quot;.ffn_add&quot;)
+                        -&gt;add_opr(ElemMode::Add);
+    }
+    //! the last layer
+    m_output = add_module&lt;HeadModule&gt;(
+            this, input, embd, n_vocab, model_config(), device(), &quot;head&quot;);
+}
+</code></pre>
+<p>这个方法构建了 Llama 模型的计算图，包括：</p>
+<ol>
+<li>
+<p><strong>初始化参数</strong>：</p>
+<ul>
+<li>从模型参数中获取嵌入维度、头数、层数等参数</li>
+<li>计算前馈网络的隐藏层大小</li>
+</ul>
+</li>
+<li>
+<p><strong>创建输入张量和嵌入层</strong>：</p>
+<ul>
+<li>创建输入张量</li>
+<li>添加嵌入层，将 token ID 转换为嵌入向量</li>
+</ul>
+</li>
+<li>
+<p><strong>循环添加 Transformer 层</strong>：<br>
+每个 Transformer 层包括：</p>
+<ul>
+<li>注意力层前的层归一化</li>
+<li>注意力层 (LlamaAttention)</li>
+<li>残差连接</li>
+<li>前馈网络前的层归一化</li>
+<li>前馈网络 (LlamaFFNModule)</li>
+<li>残差连接</li>
+</ul>
+</li>
+<li>
+<p><strong>添加输出层</strong>：</p>
+<ul>
+<li>添加 HeadModule，将隐藏状态转换为词汇表概率分布</li>
+</ul>
+</li>
+</ol>
+<h2 id="3-ggml-llama-模型的特点">3. GGML Llama 模型的特点</h2>
+<p>通过分析 <code>ggml_llama.h</code> 和 <code>ggml_llama.cpp</code> 文件，可以看出 GGML Llama 模型的以下特点：</p>
+<h3 id="31-模型架构">3.1 模型架构</h3>
+<ol>
+<li>
+<p><strong>Pre-LayerNorm 架构</strong>：</p>
+<ul>
+<li>在注意力层和前馈网络前进行层归一化</li>
+<li>使用 RMSNorm（没有偏置项）</li>
+</ul>
+</li>
+<li>
+<p><strong>旋转位置编码</strong>：</p>
+<ul>
+<li>使用旋转位置编码 (RoPE)，通过 <code>rot</code> 参数指定旋转维度</li>
+</ul>
+</li>
+<li>
+<p><strong>SwiGLU 激活函数</strong>：</p>
+<ul>
+<li>在前馈网络中使用 SwiGLU 激活函数，通过 <code>LlamaFFNModule</code> 实现</li>
+</ul>
+</li>
+<li>
+<p><strong>残差连接</strong>：</p>
+<ul>
+<li>在注意力层和前馈网络后使用残差连接</li>
+</ul>
+</li>
+</ol>
+<h3 id="32-模型格式">3.2 模型格式</h3>
+<p>GGML Llama 模型支持三种格式：</p>
+<ol>
+<li><strong>LLAMA_FILE_VERSION_GGML</strong>：原始 GGML 格式</li>
+<li><strong>LLAMA_FILE_VERSION_GGMF_V1</strong>：添加了版本字段和词汇表分数的格式</li>
+<li><strong>LLAMA_FILE_VERSION_GGJT_V1</strong>：另一种扩展格式，支持带分数的词汇表</li>
+</ol>
+<h3 id="33-权重加载">3.3 权重加载</h3>
+<p>模型权重的加载过程包括：</p>
+<ol>
+<li>读取权重的维度、名称和数据类型</li>
+<li>通过权重别名映射找到对应的内部权重</li>
+<li>将权重数据与内部权重关联</li>
+<li>对于 GGJT_V1 格式，需要进行 32 字节对齐</li>
+</ol>
+<h2 id="4-与其他模型的比较">4. 与其他模型的比较</h2>
+<p>与 ChatGLM 系列模型相比，GGML Llama 模型有以下区别：</p>
+<ol>
+<li>
+<p><strong>模型格式</strong>：</p>
+<ul>
+<li>GGML Llama 使用 GGML 格式，而 ChatGLM 使用自定义格式</li>
+</ul>
+</li>
+<li>
+<p><strong>注意力机制</strong>：</p>
+<ul>
+<li>GGML Llama 使用 <code>LlamaAttention</code>，而 ChatGLM 使用 <code>GlmAttention</code></li>
+</ul>
+</li>
+<li>
+<p><strong>前馈网络</strong>：</p>
+<ul>
+<li>GGML Llama 使用 <code>LlamaFFNModule</code>，而 ChatGLM 使用 <code>GlmFFNModule</code></li>
+</ul>
+</li>
+<li>
+<p><strong>层归一化</strong>：</p>
+<ul>
+<li>GGML Llama 使用 RMSNorm（没有偏置项），而 ChatGLM 使用传统的层归一化（有偏置项）</li>
+</ul>
+</li>
+<li>
+<p><strong>残差连接</strong>：</p>
+<ul>
+<li>GGML Llama 使用普通的残差连接，而 ChatGLM 使用带缩放因子的残差连接</li>
+</ul>
+</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p><code>ggml_llama.h</code> 和 <code>ggml_llama.cpp</code> 文件实现了 InferLLM 框架中对 GGML 格式的 Llama 模型的支持。它们定义了 <code>GgmlLlamaGraph</code> 类，该类继承自基础的 <code>Graph</code> 类，并实现了特定于 GGML Llama 模型的加载和计算图构建逻辑。</p>
+<p>通过分析这些文件，我们可以了解 GGML Llama 模型的结构特点和实现细节，以及 InferLLM 框架如何支持不同格式的模型。这种设计使得 InferLLM 可以灵活地支持多种模型格式，而不需要修改框架的核心代码。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(14)——ChatGLM系列模型有关代码实现(src/graph/...)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-14/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-14/">
+        </link>
+        <updated>2025-04-14T03:10:46.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="chatglm-系列模型代码结构与功能实现分析">ChatGLM 系列模型代码结构与功能实现分析</h1>
+<p>InferLLM 框架中的 ChatGLM 系列模型实现包括 ChatGLM、ChatGLM2 和 ChatGLM3 三个版本，它们都继承自基础的 <code>Graph</code> 类，并实现了特定的模型结构和加载逻辑。下面对这些文件的代码结构和功能实现进行详细分析。</p>
+<h2 id="1-chatglmh-文件分析">1. chatGLM.h 文件分析</h2>
+<p><code>chatGLM.h</code> 文件定义了 ChatGLM 系列模型的基础结构和接口：</p>
+<h3 id="11-基础数据结构">1.1 基础数据结构</h3>
+<pre><code class="language-cpp">struct Header {
+    int param_offset;
+    int param_length;
+    int vocab_offset;
+    int vocab_length;
+    int tensor_offset;
+};
+</code></pre>
+<p>这个结构体用于存储模型文件的头信息，包括参数、词汇表和张量的偏移量和长度。</p>
+<pre><code class="language-cpp">struct Param {
+    int hidden_size;
+    int n_heads;
+    int n_layers;
+    int embd_dim;
+    int fc_hidden;
+    int vacab_size;
+    int multi_query = 0;
+    int multi_query_group_num = 1;
+};
+</code></pre>
+<p>这个结构体用于存储模型的参数信息，包括隐藏层大小、注意力头数、层数等。</p>
+<h3 id="12-chatglm-系列类定义">1.2 ChatGLM 系列类定义</h3>
+<pre><code class="language-cpp">class ChatGLMGraph : public Graph {
+    using Graph::Graph;
+
+public:
+    void set_weights_alias() override;
+    void construct_llm() override;
+    void load_param(
+            std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+            std::shared_ptr&lt;Vocab&gt; vocab) override;
+    void post_tokenize(std::vector&lt;Vocab::Id&gt;&amp; input) override;
+};
+</code></pre>
+<p><code>ChatGLMGraph</code> 类继承自 <code>Graph</code> 类，并重写了四个关键方法：</p>
+<ul>
+<li><code>set_weights_alias</code>：设置权重别名映射</li>
+<li><code>construct_llm</code>：构建模型计算图</li>
+<li><code>load_param</code>：加载模型参数</li>
+<li><code>post_tokenize</code>：对输入 token 进行后处理</li>
+</ul>
+<p><code>ChatGLMGraph2</code> 和 <code>ChatGLMGraph3</code> 类的定义与 <code>ChatGLMGraph</code> 类似，也重写了相同的四个方法。</p>
+<h2 id="2-chatglmcpp-文件分析">2. chatGLM.cpp 文件分析</h2>
+<p><code>chatGLM.cpp</code> 文件实现了 ChatGLM 模型的具体功能：</p>
+<h3 id="21-权重别名设置">2.1 权重别名设置</h3>
+<pre><code class="language-cpp">void ChatGLMGraph::set_weights_alias() {
+    m_weights_name_aliases.clear();
+    // clang-format off
+    m_weights_name_aliases = {
+            {&quot;transformer.word_embeddings.weight&quot;, &quot;tok_embeddings.weight&quot;},
+            {&quot;transformer.layers.x.input_layernorm.weight&quot;, &quot;layers.x.attention_norm.weight&quot;},
+            // ... 其他权重别名
+    };
+    // clang-format on
+}
+</code></pre>
+<p>这个方法建立了原始权重名称和内部使用的权重名称之间的映射关系，使得模型可以正确加载预训练权重。</p>
+<h3 id="22-参数加载">2.2 参数加载</h3>
+<pre><code class="language-cpp">void ChatGLMGraph::load_param(
+        std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+        std::shared_ptr&lt;Vocab&gt; vocab) {
+    Header header;
+    // 加载模型头部信息
+    fin-&gt;read_raw((char*)&amp;header.param_offset, sizeof(header.param_offset));
+    // ... 读取其他头部信息
+    
+    // 加载参数
+    fin-&gt;seek(header.param_offset);
+    fin-&gt;read_raw((char*)&amp;param.n_embd, sizeof(param.n_embd));
+    // ... 读取其他参数
+    
+    // 加载词汇表
+    fin-&gt;seek(header.vocab_offset);
+    vocab-&gt;load_vocab(fin, param.n_vocab);
+    
+    // 设置词汇表大小
+    m_param.n_vocab = 130528;
+    param.n_vocab = 130528;
+    fin-&gt;seek(header.tensor_offset);
+}
+</code></pre>
+<p>这个方法从模型文件中加载参数和词汇表，包括：</p>
+<ol>
+<li>读取模型头部信息</li>
+<li>根据偏移量读取模型参数</li>
+<li>加载词汇表</li>
+<li>设置固定的词汇表大小（130528）</li>
+<li>将文件指针移动到张量数据的起始位置</li>
+</ol>
+<h3 id="23-计算图构建">2.3 计算图构建</h3>
+<pre><code class="language-cpp">void ChatGLMGraph::construct_llm() {
+    m_input = std::make_shared&lt;Tensor&gt;(device(), name() + &quot;:input&quot;);
+    std::shared_ptr&lt;Tensor&gt; input = m_input;
+    //! embd
+    input = add_module&lt;EmbdModule&gt;(
+            this, input, m_param.n_embd, m_param.n_vocab, model_config(), device(), &quot;&quot;);
+
+    int nr_layer = m_param.n_layer;
+    float scale = sqrt(2 * nr_layer);
+    for (int i = 0; i &lt; nr_layer; i++) {
+        // ... 构建 Transformer 层
+    }
+    //! the last layer
+    m_output = add_module&lt;HeadModule&gt;(
+            this, input, m_param.n_embd, m_param.n_vocab, model_config(), device(),
+            &quot;head&quot;, true);
+}
+</code></pre>
+<p>这个方法构建了 ChatGLM 模型的计算图，包括：</p>
+<ol>
+<li>创建输入张量</li>
+<li>添加嵌入层</li>
+<li>循环添加多个 Transformer 层，每层包括：
+<ul>
+<li>注意力层前的层归一化</li>
+<li>注意力层 (GlmAttention)</li>
+<li>残差连接（带缩放因子）</li>
+<li>前馈网络前的层归一化</li>
+<li>前馈网络 (GlmFFNModule)</li>
+<li>残差连接（带缩放因子）</li>
+</ul>
+</li>
+<li>添加输出层 (HeadModule)</li>
+</ol>
+<h3 id="24-token-后处理">2.4 Token 后处理</h3>
+<pre><code class="language-cpp">void ChatGLMGraph::post_tokenize(std::vector&lt;Vocab::Id&gt;&amp; input) {
+    //! the begin token
+    input.insert(input.begin(), 5);
+    //! the end token
+    input.push_back(130001);
+    input.push_back(130004);
+}
+</code></pre>
+<p>这个方法在 token 序列的开头和结尾添加特殊 token：</p>
+<ol>
+<li>在开头添加 token ID 5（开始标记）</li>
+<li>在结尾添加 token ID 130001 和 130004（结束标记）</li>
+</ol>
+<h2 id="3-chatglm2cpp-文件分析">3. chatGLM2.cpp 文件分析</h2>
+<p><code>chatGLM2.cpp</code> 文件实现了 ChatGLM2 模型的具体功能：</p>
+<h3 id="31-权重别名设置">3.1 权重别名设置</h3>
+<pre><code class="language-cpp">void ChatGLMGraph2::set_weights_alias() {
+    m_weights_name_aliases.clear();
+    // clang-format off
+    m_weights_name_aliases = {
+            {&quot;transformer.embedding.word_embeddings.weight&quot;, &quot;tok_embeddings.weight&quot;},
+            {&quot;transformer.encoder.layers.x.input_layernorm.weight&quot;, &quot;layers.x.attention_norm.weight&quot;},
+            // ... 其他权重别名
+    };
+    // clang-format on
+}
+</code></pre>
+<p>ChatGLM2 的权重别名与 ChatGLM 不同，反映了模型架构的变化。</p>
+<h3 id="32-参数加载">3.2 参数加载</h3>
+<pre><code class="language-cpp">void ChatGLMGraph2::load_param(
+        std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+        std::shared_ptr&lt;Vocab&gt; vocab) {
+    // ... 与 ChatGLM 类似的头部和参数加载
+    
+    // 加载多查询注意力相关参数
+    int32_t multi_query;
+    fin-&gt;read_raw((char*)&amp;multi_query, sizeof(multi_query));
+    param.is_multi_query = multi_query &gt; 0;
+    fin-&gt;read_raw(
+            (char*)&amp;param.multi_query_group_num, sizeof(param.multi_query_group_num));
+    
+    // ... 加载词汇表
+    
+    // 设置词汇表大小
+    m_param.n_vocab = 65024;
+    param.n_vocab = 65024;
+}
+</code></pre>
+<p>ChatGLM2 的参数加载与 ChatGLM 类似，但增加了多查询注意力相关参数的加载，并使用不同的词汇表大小（65024）。</p>
+<h3 id="33-计算图构建">3.3 计算图构建</h3>
+<pre><code class="language-cpp">void ChatGLMGraph2::construct_llm() {
+    // ... 创建输入张量和嵌入层
+    
+    int nr_layer = m_param.n_layer;
+    for (int i = 0; i &lt; nr_layer; i++) {
+        // ... 构建 Transformer 层，使用 Glm2MultiQueryAttention
+    }
+    
+    // ... 添加输出层
+}
+</code></pre>
+<p>ChatGLM2 的计算图构建与 ChatGLM 类似，但有以下区别：</p>
+<ol>
+<li>使用 <code>Glm2MultiQueryAttention</code> 代替 <code>GlmAttention</code></li>
+<li>使用 RMSNorm 代替传统的层归一化（<code>rms</code> 参数为 true）</li>
+<li>不使用偏置项（<code>bias</code> 参数为 false）</li>
+<li>残差连接不使用缩放因子</li>
+</ol>
+<h3 id="34-token-后处理">3.4 Token 后处理</h3>
+<pre><code class="language-cpp">void ChatGLMGraph2::post_tokenize(std::vector&lt;Vocab::Id&gt;&amp; input) {
+    std::vector&lt;Vocab::Id&gt; res;
+    res.push_back(64790);
+    res.push_back(64792);
+    // add a space in the head
+    input.insert(input.begin(), res.begin(), res.end());
+}
+</code></pre>
+<p>ChatGLM2 的 token 后处理与 ChatGLM 不同，在开头添加了两个特殊 token（64790 和 64792）。</p>
+<h2 id="4-chatglm3cpp-文件分析">4. chatGLM3.cpp 文件分析</h2>
+<p><code>chatGLM3.cpp</code> 文件实现了 ChatGLM3 模型的具体功能，其实现与 ChatGLM2 非常相似：</p>
+<h3 id="41-权重别名设置">4.1 权重别名设置</h3>
+<p>ChatGLM3 的权重别名与 ChatGLM2 相同，表明它们的模型架构相似。</p>
+<h3 id="42-参数加载">4.2 参数加载</h3>
+<p>ChatGLM3 的参数加载与 ChatGLM2 相同，包括多查询注意力相关参数的加载和相同的词汇表大小（65024）。</p>
+<h3 id="43-计算图构建">4.3 计算图构建</h3>
+<p>ChatGLM3 的计算图构建与 ChatGLM2 相同，使用相同的注意力机制和层归一化方式。</p>
+<h3 id="44-token-后处理">4.4 Token 后处理</h3>
+<p>ChatGLM3 的 token 后处理与 ChatGLM2 相同，在开头添加相同的特殊 token。</p>
+<h2 id="5-chatglm-系列模型的演进">5. ChatGLM 系列模型的演进</h2>
+<p>通过分析这三个版本的代码，可以看出 ChatGLM 系列模型的演进：</p>
+<h3 id="51-chatglm-到-chatglm2-的变化">5.1 ChatGLM 到 ChatGLM2 的变化</h3>
+<ol>
+<li>
+<p><strong>架构变化</strong>：</p>
+<ul>
+<li>词嵌入层路径从 <code>transformer.word_embeddings</code> 变为 <code>transformer.embedding.word_embeddings</code></li>
+<li>Transformer 层路径从 <code>transformer.layers</code> 变为 <code>transformer.encoder.layers</code></li>
+</ul>
+</li>
+<li>
+<p><strong>注意力机制</strong>：</p>
+<ul>
+<li>从普通注意力 (<code>GlmAttention</code>) 变为多查询注意力 (<code>Glm2MultiQueryAttention</code>)</li>
+</ul>
+</li>
+<li>
+<p><strong>归一化方式</strong>：</p>
+<ul>
+<li>从传统的层归一化变为 RMSNorm</li>
+</ul>
+</li>
+<li>
+<p><strong>残差连接</strong>：</p>
+<ul>
+<li>去掉了残差连接中的缩放因子</li>
+</ul>
+</li>
+<li>
+<p><strong>词汇表大小</strong>：</p>
+<ul>
+<li>从 130528 减少到 65024</li>
+</ul>
+</li>
+<li>
+<p><strong>特殊 token</strong>：</p>
+<ul>
+<li>使用不同的特殊 token</li>
+</ul>
+</li>
+</ol>
+<h3 id="52-chatglm2-到-chatglm3-的变化">5.2 ChatGLM2 到 ChatGLM3 的变化</h3>
+<p>ChatGLM3 与 ChatGLM2 的代码几乎相同，表明它们的基础架构非常相似。可能的区别在于预训练权重和训练方法，而不是模型架构本身。</p>
+<h2 id="6-总结">6. 总结</h2>
+<p>ChatGLM 系列模型在 InferLLM 框架中的实现展示了大型语言模型的基本架构和演进过程。通过分析这些代码，我们可以看到：</p>
+<ol>
+<li>
+<p><strong>模块化设计</strong>：</p>
+<ul>
+<li>使用模块化设计构建计算图，便于扩展和维护</li>
+</ul>
+</li>
+<li>
+<p><strong>权重映射</strong>：</p>
+<ul>
+<li>使用权重别名机制，适应不同的权重命名约定</li>
+</ul>
+</li>
+<li>
+<p><strong>架构演进</strong>：</p>
+<ul>
+<li>从 ChatGLM 到 ChatGLM2/3，模型架构有明显改进</li>
+<li>引入多查询注意力机制，提高效率</li>
+<li>使用 RMSNorm 代替传统层归一化，提高稳定性</li>
+</ul>
+</li>
+<li>
+<p><strong>特殊 token 处理</strong>：</p>
+<ul>
+<li>不同版本使用不同的特殊 token，反映了模型训练的变化</li>
+</ul>
+</li>
+</ol>
+<p>这些实现为我们理解大型语言模型的架构和推理过程提供了宝贵的参考。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(13)——计算图的工厂方法实现(src/graph/graph_imp.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-13/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-13/">
+        </link>
+        <updated>2025-04-12T03:09:32.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="graph_impcpp-代码结构与功能实现分析">graph_imp.cpp 代码结构与功能实现分析</h1>
+<p><code>graph_imp.cpp</code> 是 InferLLM 框架中的一个核心文件，主要实现了计算图的工厂方法，用于根据模型名称创建相应的计算图实例。这个文件虽然简短，但在整个框架中扮演着重要的角色。</p>
+<h2 id="1-文件结构">1. 文件结构</h2>
+<p><code>graph_imp.cpp</code> 文件包含以下几个部分：</p>
+<ol>
+<li>
+<p><strong>头文件引入</strong>：</p>
+<pre><code class="language-cpp">#include &quot;chatGLM.h&quot;
+#include &quot;ggml_llama.h&quot;
+#include &quot;llama_like.h&quot;
+</code></pre>
+<p>引入了三个头文件，分别对应不同的模型实现：</p>
+<ul>
+<li><code>chatGLM.h</code>：包含 ChatGLM 系列模型的定义</li>
+<li><code>ggml_llama.h</code>：包含 GGML 格式的 Llama 模型定义</li>
+<li><code>llama_like.h</code>：包含类 Llama 架构的模型定义（如 Baichuan 和 Llama2）</li>
+</ul>
+</li>
+<li>
+<p><strong>命名空间声明</strong>：</p>
+<pre><code class="language-cpp">using namespace inferllm;
+</code></pre>
+<p>使用 inferllm 命名空间，这是整个框架的主命名空间。</p>
+</li>
+<li>
+<p><strong>工厂方法实现</strong>：</p>
+<pre><code class="language-cpp">std::shared_ptr&lt;Graph&gt; Graph::make_graph(
+        UserConfig model_config, Device* device, const std::string&amp; name) {
+    // 根据模型名称创建相应的计算图实例
+}
+</code></pre>
+<p>实现了 <code>Graph</code> 类的静态方法 <code>make_graph</code>，用于创建计算图实例。</p>
+</li>
+</ol>
+<h2 id="2-功能实现">2. 功能实现</h2>
+<h3 id="21-工厂方法-make_graph">2.1 工厂方法 make_graph</h3>
+<p><code>make_graph</code> 方法是一个典型的工厂方法，根据传入的模型名称 <code>name</code> 创建相应的计算图实例：</p>
+<pre><code class="language-cpp">std::shared_ptr&lt;Graph&gt; Graph::make_graph(
+        UserConfig model_config, Device* device, const std::string&amp; name) {
+    if (name == &quot;llama&quot;) {
+        return std::make_shared&lt;GgmlLlamaGraph&gt;(model_config, device, name);
+    } else if (name == &quot;chatglm&quot;) {
+        return std::make_shared&lt;ChatGLMGraph&gt;(model_config, device, name);
+    } else if (name == &quot;chatglm2&quot;) {
+        return std::make_shared&lt;ChatGLMGraph2&gt;(model_config, device, name);
+    } else if (name == &quot;chatglm3&quot;) {
+        return std::make_shared&lt;ChatGLMGraph3&gt;(model_config, device, name);
+    } else if (name == &quot;baichuan&quot; || name == &quot;llama2&quot;) {
+        return std::make_shared&lt;LlamaLikeGraph&gt;(model_config, device, name);
+    } else {
+        INFER_ASSERT(0, &quot;unsupported model.&quot;);
+    }
+}
+</code></pre>
+<p>该方法接收三个参数：</p>
+<ul>
+<li><code>model_config</code>：用户配置，包含模型的各种配置参数</li>
+<li><code>device</code>：设备指针，指向执行计算的设备（如 CPU 或 GPU）</li>
+<li><code>name</code>：模型名称，用于确定创建哪种类型的计算图</li>
+</ul>
+<p>根据模型名称，该方法创建以下几种计算图：</p>
+<ol>
+<li><code>&quot;llama&quot;</code>：创建 <code>GgmlLlamaGraph</code> 实例，用于处理 GGML 格式的 Llama 模型</li>
+<li><code>&quot;chatglm&quot;</code>：创建 <code>ChatGLMGraph</code> 实例，用于处理 ChatGLM 模型</li>
+<li><code>&quot;chatglm2&quot;</code>：创建 <code>ChatGLMGraph2</code> 实例，用于处理 ChatGLM2 模型</li>
+<li><code>&quot;chatglm3&quot;</code>：创建 <code>ChatGLMGraph3</code> 实例，用于处理 ChatGLM3 模型</li>
+<li><code>&quot;baichuan&quot;</code> 或 <code>&quot;llama2&quot;</code>：创建 <code>LlamaLikeGraph</code> 实例，用于处理类 Llama 架构的模型</li>
+</ol>
+<p>如果传入的模型名称不在上述列表中，则通过 <code>INFER_ASSERT</code> 宏触发断言，提示不支持该模型。</p>
+<h2 id="3-设计模式分析">3. 设计模式分析</h2>
+<h3 id="31-工厂模式">3.1 工厂模式</h3>
+<p><code>graph_imp.cpp</code> 文件实现了典型的工厂模式，具体来说是简单工厂模式（Simple Factory Pattern）：</p>
+<ol>
+<li><strong>工厂方法</strong>：<code>Graph::make_graph</code> 是一个静态工厂方法，负责创建具体的产品（计算图实例）</li>
+<li><strong>抽象产品</strong>：<code>Graph</code> 是抽象产品，定义了计算图的接口</li>
+<li><strong>具体产品</strong>：<code>GgmlLlamaGraph</code>、<code>ChatGLMGraph</code>、<code>ChatGLMGraph2</code>、<code>ChatGLMGraph3</code> 和 <code>LlamaLikeGraph</code> 是具体产品，实现了计算图的接口</li>
+</ol>
+<p>这种设计有以下优点：</p>
+<ul>
+<li><strong>封装创建逻辑</strong>：客户端不需要知道如何创建具体的计算图，只需要提供模型名称</li>
+<li><strong>扩展性</strong>：可以方便地添加新的模型支持，只需在工厂方法中添加新的条件分支</li>
+<li><strong>统一接口</strong>：所有计算图都实现了相同的接口，客户端可以统一处理</li>
+</ul>
+<h3 id="32-策略模式">3.2 策略模式</h3>
+<p>虽然不是直接在 <code>graph_imp.cpp</code> 中实现，但整个计算图系统也体现了策略模式（Strategy Pattern）：</p>
+<ol>
+<li><strong>上下文</strong>：使用计算图的客户端代码</li>
+<li><strong>策略接口</strong>：<code>Graph</code> 类定义的接口</li>
+<li><strong>具体策略</strong>：不同的计算图实现（如 <code>ChatGLMGraph</code>、<code>GgmlLlamaGraph</code> 等）</li>
+</ol>
+<p>这种设计使得客户端可以在运行时选择不同的计算图实现，而不需要修改客户端代码。</p>
+<h2 id="4-与其他组件的交互">4. 与其他组件的交互</h2>
+<p><code>graph_imp.cpp</code> 文件通过工厂方法与框架的其他组件进行交互：</p>
+<ol>
+<li>
+<p><strong>与模型实现的交互</strong>：</p>
+<ul>
+<li>引入不同模型的头文件（<code>chatGLM.h</code>、<code>ggml_llama.h</code>、<code>llama_like.h</code>）</li>
+<li>创建不同模型的计算图实例</li>
+</ul>
+</li>
+<li>
+<p><strong>与设备的交互</strong>：</p>
+<ul>
+<li>接收 <code>Device*</code> 参数，将设备传递给计算图实例</li>
+<li>计算图实例使用设备进行计算</li>
+</ul>
+</li>
+<li>
+<p><strong>与用户配置的交互</strong>：</p>
+<ul>
+<li>接收 <code>UserConfig</code> 参数，将用户配置传递给计算图实例</li>
+<li>计算图实例根据用户配置调整行为</li>
+</ul>
+</li>
+</ol>
+<h2 id="5-扩展性分析">5. 扩展性分析</h2>
+<p><code>graph_imp.cpp</code> 文件的设计具有良好的扩展性：</p>
+<ol>
+<li>
+<p><strong>添加新模型</strong>：<br>
+要添加新的模型支持，只需：</p>
+<ul>
+<li>创建新的计算图类，继承自 <code>Graph</code></li>
+<li>在 <code>make_graph</code> 方法中添加新的条件分支</li>
+</ul>
+</li>
+<li>
+<p><strong>修改现有模型</strong>：<br>
+修改现有模型的实现不需要修改 <code>graph_imp.cpp</code> 文件，只需修改相应的计算图类。</p>
+</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p><code>graph_imp.cpp</code> 文件虽然简短，但在 InferLLM 框架中扮演着重要的角色，实现了计算图的工厂方法，使得框架可以支持多种不同的模型。它采用了工厂模式和策略模式的设计，具有良好的封装性和扩展性，为框架提供了灵活的模型支持机制。</p>
+<p>通过这个文件，我们可以看到 InferLLM 框架的模块化设计思想，以及如何通过设计模式实现灵活的组件组合。这种设计使得框架可以方便地支持新的模型，而不需要大幅修改现有代码。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(12)——graph模块的功能和具体实现(src/graph)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-12/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-12/">
+        </link>
+        <updated>2025-04-10T03:01:57.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm-图结构代码分析">InferLLM 图结构代码分析</h1>
+<p>InferLLM 的 <code>graph</code> 目录包含了不同模型架构的计算图实现，主要负责构建和管理大型语言模型的计算流程。下面对其代码结构和功能进行详细分析。</p>
+<h2 id="1-整体架构">1. 整体架构</h2>
+<p><code>graph</code> 目录主要包含以下几个模型的实现：</p>
+<ol>
+<li><strong>ChatGLM 系列</strong>：ChatGLM、ChatGLM2、ChatGLM3</li>
+<li><strong>Llama 系列</strong>：GgmlLlama、LlamaLike (包括 Baichuan 和 Llama2)</li>
+</ol>
+<p>所有这些模型都继承自基础的 <code>Graph</code> 类，并实现了特定的模型结构和加载逻辑。</p>
+<h2 id="2-基础组件">2. 基础组件</h2>
+<h3 id="21-graph-工厂方法">2.1 Graph 工厂方法</h3>
+<pre><code class="language-cpp">std::shared_ptr&lt;Graph&gt; Graph::make_graph(
+        UserConfig model_config, Device* device, const std::string&amp; name) {
+    if (name == &quot;llama&quot;) {
+        return std::make_shared&lt;GgmlLlamaGraph&gt;(model_config, device, name);
+    } else if (name == &quot;chatglm&quot;) {
+        return std::make_shared&lt;ChatGLMGraph&gt;(model_config, device, name);
+    } else if (name == &quot;chatglm2&quot;) {
+        return std::make_shared&lt;ChatGLMGraph2&gt;(model_config, device, name);
+    } else if (name == &quot;chatglm3&quot;) {
+        return std::make_shared&lt;ChatGLMGraph3&gt;(model_config, device, name);
+    } else if (name == &quot;baichuan&quot; || name == &quot;llama2&quot;) {
+        return std::make_shared&lt;LlamaLikeGraph&gt;(model_config, device, name);
+    } else {
+        INFER_ASSERT(0, &quot;unsupported model.&quot;);
+    }
+}
+</code></pre>
+<p>这个工厂方法根据模型名称创建相应的图实现。</p>
+<h3 id="22-模型参数结构">2.2 模型参数结构</h3>
+<pre><code class="language-cpp">struct Header {
+    int param_offset;
+    int param_length;
+    int vocab_offset;
+    int vocab_length;
+    int tensor_offset;
+};
+
+struct Param {
+    int hidden_size;
+    int n_heads;
+    int n_layers;
+    int embd_dim;
+    int fc_hidden;
+    int vacab_size;
+    int multi_query = 0;
+    int multi_query_group_num = 1;
+};
+</code></pre>
+<p>这些结构体用于存储模型文件的头信息和模型参数。</p>
+<h2 id="3-模型实现分析">3. 模型实现分析</h2>
+<h3 id="31-chatglm-系列">3.1 ChatGLM 系列</h3>
+<h4 id="311-chatglmgraph">3.1.1 ChatGLMGraph</h4>
+<p>ChatGLM 是最早的 ChatGLM 系列模型实现。</p>
+<p><strong>权重别名设置</strong>：</p>
+<pre><code class="language-cpp">void ChatGLMGraph::set_weights_alias() {
+    m_weights_name_aliases.clear();
+    // clang-format off
+    m_weights_name_aliases = {
+            {&quot;transformer.word_embeddings.weight&quot;, &quot;tok_embeddings.weight&quot;},
+            {&quot;transformer.layers.x.input_layernorm.weight&quot;, &quot;layers.x.attention_norm.weight&quot;},
+            // ... 其他权重别名
+    };
+    // clang-format on
+}
+</code></pre>
+<p>这个方法建立了原始权重名称和内部使用的权重名称之间的映射关系。</p>
+<p><strong>参数加载</strong>：</p>
+<pre><code class="language-cpp">void ChatGLMGraph::load_param(
+        std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+        std::shared_ptr&lt;Vocab&gt; vocab) {
+    Header header;
+    // 加载模型头部信息
+    fin-&gt;read_raw((char*)&amp;header.param_offset, sizeof(header.param_offset));
+    // ... 读取其他头部信息
+    
+    // 加载参数
+    fin-&gt;seek(header.param_offset);
+    fin-&gt;read_raw((char*)&amp;param.n_embd, sizeof(param.n_embd));
+    // ... 读取其他参数
+    
+    // 加载词汇表
+    fin-&gt;seek(header.vocab_offset);
+    vocab-&gt;load_vocab(fin, param.n_vocab);
+    
+    // 设置词汇表大小
+    m_param.n_vocab = 130528;
+    param.n_vocab = 130528;
+    fin-&gt;seek(header.tensor_offset);
+}
+</code></pre>
+<p>这个方法从模型文件中加载参数和词汇表。</p>
+<p><strong>构建计算图</strong>：</p>
+<pre><code class="language-cpp">void ChatGLMGraph::construct_llm() {
+    m_input = std::make_shared&lt;Tensor&gt;(device(), name() + &quot;:input&quot;);
+    std::shared_ptr&lt;Tensor&gt; input = m_input;
+    //! embd
+    input = add_module&lt;EmbdModule&gt;(
+            this, input, m_param.n_embd, m_param.n_vocab, model_config(), device(), &quot;&quot;);
+
+    int nr_layer = m_param.n_layer;
+    float scale = sqrt(2 * nr_layer);
+    for (int i = 0; i &lt; nr_layer; i++) {
+        std::string name = &quot;layers.&quot; + std::to_string(i);
+        //! layer norm
+        std::shared_ptr&lt;Tensor&gt; attention_input = input;
+        auto norm_out_attention =
+                add_one_opr_module&lt;LayerNorm&gt;(
+                        this, OpIOs{attention_input}, device(),
+                        name + &quot;.attention_norm&quot;)
+                        -&gt;add_opr(
+                                m_param.n_embd, /*mul*/ true, /*bias*/ true,
+                                /*rms*/ false);
+        //! attentin
+        auto attention_output = add_module&lt;AttentionModule&lt;GlmAttention&gt;&gt;(
+                this, norm_out_attention, m_param.n_embd, m_param.n_head, m_param.n_rot,
+                m_param.n_ctx, model_config(), device(), name + &quot;.attention&quot;, i,
+                true /*fused_weights*/, true /*bias*/);
+        //! add  norm_out_attention * scale + attention_output
+        auto add_output = add_one_opr_module&lt;Elemwise&gt;(
+                                  this, OpIOs{norm_out_attention, attention_output},
+                                  device(), name + &quot;.attention.Elemwise&quot;)
+                                  -&gt;add_opr(ElemMode::Add, scale);
+
+        std::shared_ptr&lt;Tensor&gt; feed_forward_input = add_output;
+        //! layer normal
+        auto ffn_norm_out =
+                add_one_opr_module&lt;LayerNorm&gt;(
+                        this, OpIOs{feed_forward_input}, device(), name + &quot;.ffn_norm&quot;)
+                        -&gt;add_opr(
+                                m_param.n_embd, /*mul*/ true, /*bias*/ true,
+                                /*rms*/ false);
+        //! feed forward
+        auto ffn_output = add_module&lt;GlmFFNModule&gt;(
+                this, ffn_norm_out, m_param.n_embd, m_param.n_mult, model_config(),
+                device(), name);
+        //! add ffn_norm_out * scale + ffn_output
+        input = add_one_opr_module&lt;Elemwise&gt;(
+                        this, OpIOs{ffn_norm_out, ffn_output}, device(),
+                        name + &quot;.ffn.Elemwise&quot;)
+                        -&gt;add_opr(ElemMode::Add, scale);
+    }
+    //! the last layer
+    m_output = add_module&lt;HeadModule&gt;(
+            this, input, m_param.n_embd, m_param.n_vocab, model_config(), device(),
+            &quot;head&quot;, true);
+}
+</code></pre>
+<p>这个方法构建了 ChatGLM 模型的计算图，包括：</p>
+<ol>
+<li>创建输入张量</li>
+<li>添加嵌入层</li>
+<li>循环添加多个 Transformer 层，每层包括：
+<ul>
+<li>注意力层前的层归一化</li>
+<li>注意力层 (GlmAttention)</li>
+<li>残差连接</li>
+<li>前馈网络前的层归一化</li>
+<li>前馈网络 (GlmFFNModule)</li>
+<li>残差连接</li>
+</ul>
+</li>
+<li>添加输出层 (HeadModule)</li>
+</ol>
+<p><strong>后处理 token</strong>：</p>
+<pre><code class="language-cpp">void ChatGLMGraph::post_tokenize(std::vector&lt;Vocab::Id&gt;&amp; input) {
+    //! the begin token
+    input.insert(input.begin(), 5);
+    //! the end token
+    input.push_back(130001);
+    input.push_back(130004);
+}
+</code></pre>
+<p>这个方法在 token 序列的开头和结尾添加特殊 token。</p>
+<h4 id="312-chatglmgraph2-和-chatglmgraph3">3.1.2 ChatGLMGraph2 和 ChatGLMGraph3</h4>
+<p>ChatGLM2 和 ChatGLM3 的实现与 ChatGLM 类似，但有一些区别：</p>
+<ol>
+<li><strong>权重别名不同</strong>：反映了模型架构的变化</li>
+<li><strong>参数加载增加了多查询注意力相关参数</strong>：<pre><code class="language-cpp">int32_t multi_query;
+fin-&gt;read_raw((char*)&amp;multi_query, sizeof(multi_query));
+param.is_multi_query = multi_query &gt; 0;
+fin-&gt;read_raw((char*)&amp;param.multi_query_group_num, sizeof(param.multi_query_group_num));
+</code></pre>
+</li>
+<li><strong>构建计算图使用不同的注意力机制</strong>：
+<ul>
+<li>ChatGLM2 使用 <code>Glm2MultiQueryAttention</code></li>
+<li>ChatGLM3 可能使用其他变体</li>
+</ul>
+</li>
+</ol>
+<h3 id="32-llama-系列">3.2 Llama 系列</h3>
+<h4 id="321-ggmlllamagraph">3.2.1 GgmlLlamaGraph</h4>
+<p>GgmlLlamaGraph 实现了 GGML 格式的 Llama 模型。</p>
+<p><strong>加载方法</strong>：</p>
+<pre><code class="language-cpp">void GgmlLlamaGraph::load(
+        std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+        std::shared_ptr&lt;Vocab&gt; vocab) {
+    // 验证魔数
+    uint32_t magic;
+    uint32_t version = 0;
+    fin-&gt;read_raw((char*)&amp;magic, sizeof(magic));
+    if (magic != 'ggml') {
+        fin-&gt;read_raw((char*)&amp;version, sizeof(version));
+    }
+    LlamaModelType model_type;
+    if (magic == 'ggml' &amp;&amp; version == 0) {
+        model_type = LlamaModelType::LLAMA_FILE_VERSION_GGML;
+    } else if (magic == 'ggmf' &amp;&amp; version == 1) {
+        model_type = LlamaModelType::LLAMA_FILE_VERSION_GGMF_V1;
+    } else if (magic == 'ggjt' &amp;&amp; version == 1) {
+        model_type = LlamaModelType::LLAMA_FILE_VERSION_GGJT_V1;
+    } else {
+        INFER_ASSERT(0, &quot;unsupported model type.&quot;);
+    }
+    
+    // 加载参数
+    fin-&gt;read_raw((char*)&amp;param.n_vocab, sizeof(param.n_vocab));
+    // ... 读取其他参数
+    
+    // 加载词汇表
+    if (model_type == LlamaModelType::LLAMA_FILE_VERSION_GGJT_V1) {
+        vocab-&gt;load_vocab_with_score(fin, param.n_vocab);
+    } else {
+        vocab-&gt;load_vocab(fin, param.n_vocab);
+    }
+    
+    m_param = param;
+    
+    // 构建计算图
+    construct_llm();
+    collect_weights();
+    
+    // 设置权重别名并加载权重
+    set_weights_alias();
+    // ... 读取权重
+}
+</code></pre>
+<p>这个方法处理了 GGML 格式的模型加载，包括识别不同的 GGML 版本。</p>
+<p><strong>构建计算图</strong>：</p>
+<pre><code class="language-cpp">void GgmlLlamaGraph::construct_llm() {
+    uint32_t embd = m_param.n_embd;
+    uint32_t mult = m_param.n_mult;
+    uint32_t head = m_param.n_head;
+    uint32_t rot = m_param.n_rot;
+    uint32_t ctx = m_param.n_ctx;
+    uint32_t n_vocab = m_param.n_vocab;
+
+    size_t nff = ((2 * (4 * embd) / 3 + mult - 1) / mult) * mult;
+    m_input = std::make_shared&lt;Tensor&gt;(device(), name() + &quot;:input&quot;);
+    std::shared_ptr&lt;Tensor&gt; input = m_input;
+    //! embd
+    input = add_module&lt;EmbdModule&gt;(
+            this, input, embd, n_vocab, model_config(), device(), &quot;&quot;);
+
+    int nr_layer = m_param.n_layer;
+    for (int i = 0; i &lt; nr_layer; i++) {
+        std::string name = &quot;layers.&quot; + std::to_string(i);
+        //! layer norm
+        std::shared_ptr&lt;Tensor&gt; attention_input = input;
+
+        auto norm_out_attention = add_one_opr_module&lt;LayerNorm&gt;(
+                                          this, OpIOs{attention_input}, device(),
+                                          name + &quot;.attention.norm&quot;)
+                                          -&gt;add_opr(embd);
+        //! attentin
+        auto attention_output = add_module&lt;AttentionModule&lt;LlamaAttention&gt;&gt;(
+                this, norm_out_attention, embd, head, rot, ctx, model_config(),
+                device(), name + &quot;.attention&quot;, i);
+        //! add
+        auto add_output = add_one_opr_module&lt;Elemwise&gt;(
+                                  this, OpIOs{attention_input, attention_output},
+                                  device(), name + &quot;.attention_add&quot;)
+                                  -&gt;add_opr(ElemMode::Add);
+
+        std::shared_ptr&lt;Tensor&gt; feed_forward_input = add_output;
+        //! layer normal
+        auto ffn_norm_out =
+                add_one_opr_module&lt;LayerNorm&gt;(
+                        this, OpIOs{feed_forward_input}, device(), name + &quot;.ffn.norm&quot;)
+                        -&gt;add_opr(embd);
+        //! feed forward
+        auto ffn_output = add_module&lt;LlamaFFNModule&gt;(
+                this, ffn_norm_out, embd, nff, model_config(), device(), name);
+        //! add
+        input = add_one_opr_module&lt;Elemwise&gt;(
+                        this, OpIOs{feed_forward_input, ffn_output}, device(),
+                        name + &quot;.ffn_add&quot;)
+                        -&gt;add_opr(ElemMode::Add);
+    }
+    //! the last layer
+    m_output = add_module&lt;HeadModule&gt;(
+            this, input, embd, n_vocab, model_config(), device(), &quot;head&quot;);
+}
+</code></pre>
+<p>这个方法构建了 Llama 模型的计算图，结构与 ChatGLM 类似，但使用了 <code>LlamaAttention</code> 和 <code>LlamaFFNModule</code>。</p>
+<h4 id="322-llamalikegraph">3.2.2 LlamaLikeGraph</h4>
+<p>LlamaLikeGraph 实现了类 Llama 架构的模型，如 Baichuan 和 Llama2。其实现与 GgmlLlamaGraph 类似，但加载方式和权重别名有所不同。</p>
+<p><strong>权重别名设置</strong>：</p>
+<pre><code class="language-cpp">void LlamaLikeGraph::set_weights_alias() {
+    m_weights_name_aliases.clear();
+    m_weights_name_aliases = {
+            {&quot;model.embed_tokens.weight&quot;, &quot;tok_embeddings.weight&quot;},
+            {&quot;model.layers.x.input_layernorm.weight&quot;, &quot;layers.x.attention.norm.weight&quot;},
+            {&quot;model.layers.x.self_attn.q_proj.weight&quot;, &quot;layers.x.attention.wq.weight&quot;},
+            {&quot;model.layers.x.self_attn.k_proj.weight&quot;, &quot;layers.x.attention.wk.weight&quot;},
+            {&quot;model.layers.x.self_attn.v_proj.weight&quot;, &quot;layers.x.attention.wv.weight&quot;},
+            // ... 其他权重别名
+    };
+}
+</code></pre>
+<p>LlamaLikeGraph 使用分离的 Q、K、V 权重，而不是融合的 QKV 权重。</p>
+<p><strong>参数加载</strong>：</p>
+<pre><code class="language-cpp">void LlamaLikeGraph::load_param(
+        std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+        std::shared_ptr&lt;Vocab&gt; vocab) {
+    // 加载参数
+    fin-&gt;read_raw((char*)&amp;param.n_embd, sizeof(param.n_embd));
+    fin-&gt;read_raw((char*)&amp;param.n_mult, sizeof(param.n_mult));
+    fin-&gt;read_raw((char*)&amp;param.n_head, sizeof(param.n_head));
+    fin-&gt;read_raw((char*)&amp;param.n_layer, sizeof(param.n_layer));
+    fin-&gt;read_raw((char*)&amp;param.n_rot, sizeof(param.n_rot));
+    fin-&gt;read_raw((char*)&amp;param.n_vocab, sizeof(param.n_vocab));
+    
+    // 加载词汇表
+    vocab-&gt;load_vocab(fin, param.n_vocab);
+    
+    m_param = param;
+}
+</code></pre>
+<p>LlamaLikeGraph 的参数加载相对简单，直接读取各个参数值。</p>
+<h2 id="4-模块组织结构">4. 模块组织结构</h2>
+<p>InferLLM 的图结构采用模块化设计，主要包括以下几种模块：</p>
+<h3 id="41-基础模块">4.1 基础模块</h3>
+<ol>
+<li><strong>EmbdModule</strong>：实现词嵌入功能，将 token ID 转换为嵌入向量</li>
+<li><strong>LayerNorm</strong>：实现层归一化，用于稳定网络训练</li>
+<li><strong>Elemwise</strong>：实现元素级操作，如加法、乘法等</li>
+<li><strong>HeadModule</strong>：实现输出层，将隐藏状态转换为词汇表概率分布</li>
+</ol>
+<h3 id="42-注意力模块">4.2 注意力模块</h3>
+<ol>
+<li><strong>AttentionModule</strong>：注意力机制的通用模块，可以使用不同的注意力实现</li>
+<li><strong>GlmAttention</strong>：ChatGLM 系列的注意力实现</li>
+<li><strong>Glm2MultiQueryAttention</strong>：ChatGLM2 的多查询注意力实现</li>
+<li><strong>LlamaAttention</strong>：Llama 系列的注意力实现</li>
+</ol>
+<h3 id="43-前馈网络模块">4.3 前馈网络模块</h3>
+<ol>
+<li><strong>GlmFFNModule</strong>：ChatGLM 系列的前馈网络实现</li>
+<li><strong>LlamaFFNModule</strong>：Llama 系列的前馈网络实现</li>
+</ol>
+<h2 id="5-计算图构建流程">5. 计算图构建流程</h2>
+<p>所有模型的计算图构建流程大致相同：</p>
+<ol>
+<li>
+<p><strong>创建输入张量</strong>：</p>
+<pre><code class="language-cpp">m_input = std::make_shared&lt;Tensor&gt;(device(), name() + &quot;:input&quot;);
+</code></pre>
+</li>
+<li>
+<p><strong>添加嵌入层</strong>：</p>
+<pre><code class="language-cpp">input = add_module&lt;EmbdModule&gt;(
+        this, input, m_param.n_embd, m_param.n_vocab, model_config(), device(), &quot;&quot;);
+</code></pre>
+</li>
+<li>
+<p><strong>循环添加 Transformer 层</strong>：</p>
+<pre><code class="language-cpp">for (int i = 0; i &lt; nr_layer; i++) {
+    // 添加注意力层
+    // 添加前馈网络层
+}
+</code></pre>
+</li>
+<li>
+<p><strong>添加输出层</strong>：</p>
+<pre><code class="language-cpp">m_output = add_module&lt;HeadModule&gt;(
+        this, input, m_param.n_embd, m_param.n_vocab, model_config(), device(),
+        &quot;head&quot;, true);
+</code></pre>
+</li>
+</ol>
+<h2 id="6-模型加载流程">6. 模型加载流程</h2>
+<p>模型加载流程通常包括以下步骤：</p>
+<ol>
+<li><strong>读取模型头部信息</strong>：获取参数、词汇表和张量的偏移量</li>
+<li><strong>加载模型参数</strong>：读取嵌入维度、头数、层数等参数</li>
+<li><strong>加载词汇表</strong>：读取词汇表信息</li>
+<li><strong>构建计算图</strong>：根据模型参数构建计算图</li>
+<li><strong>收集权重</strong>：收集计算图中的所有权重</li>
+<li><strong>设置权重别名</strong>：建立原始权重名称和内部使用的权重名称之间的映射关系</li>
+<li><strong>加载权重</strong>：从模型文件中读取权重数据</li>
+</ol>
+<h2 id="7-模型推理流程">7. 模型推理流程</h2>
+<p>模型推理流程通常包括以下步骤：</p>
+<ol>
+<li><strong>准备输入</strong>：将输入文本转换为 token ID</li>
+<li><strong>前处理</strong>：添加特殊 token，如开始 token</li>
+<li><strong>执行计算图</strong>：从输入到输出执行计算图</li>
+<li><strong>采样</strong>：根据输出概率分布采样下一个 token</li>
+<li><strong>后处理</strong>：将 token ID 转换为文本</li>
+</ol>
+<h2 id="8-不同模型的特点">8. 不同模型的特点</h2>
+<h3 id="81-chatglm-系列">8.1 ChatGLM 系列</h3>
+<ol>
+<li><strong>Pre-LayerNorm 架构</strong>：先进行层归一化，再进行注意力计算</li>
+<li><strong>融合的 QKV 权重</strong>：使用一个权重矩阵计算 Q、K、V</li>
+<li><strong>残差连接带缩放</strong>：残差连接时使用缩放因子 <code>scale = sqrt(2 * nr_layer)</code></li>
+<li><strong>带偏置的层归一化</strong>：层归一化使用偏置项</li>
+</ol>
+<h3 id="82-llama-系列">8.2 Llama 系列</h3>
+<ol>
+<li><strong>RMSNorm</strong>：使用 RMSNorm 代替传统的层归一化</li>
+<li><strong>旋转位置编码</strong>：使用旋转位置编码 (RoPE) 代替位置嵌入</li>
+<li><strong>SwiGLU 激活函数</strong>：在前馈网络中使用 SwiGLU 激活函数</li>
+<li><strong>无偏置项</strong>：大多数层不使用偏置项</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p>InferLLM 的图结构代码实现了多种大型语言模型的计算图构建和执行。它采用模块化设计，支持不同的模型架构，如 ChatGLM 系列和 Llama 系列。通过分析这些代码，我们可以了解不同模型的结构特点和实现细节，以及 InferLLM 框架的设计思想和工作原理。</p>
+<p>这种设计使得 InferLLM 可以灵活地支持新的模型架构，只需继承 <code>Graph</code> 类并实现相应的方法，就可以添加新的模型支持。同时，模块化的设计也使得代码更易于维护和扩展。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(11)——Op类的实现(src/core/op.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-11/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-11/">
+        </link>
+        <updated>2025-04-07T12:31:53.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="op-类代码结构与功能实现分析">Op 类代码结构与功能实现分析</h1>
+<p><code>op.h</code> 和 <code>op.cpp</code> 文件定义了 InferLLM 框架中的各种算子（Operator）类，这些算子是构建神经网络计算图的基本单元。下面对这些文件的代码结构和功能实现进行详细分析。</p>
+<h2 id="1-基础定义">1. 基础定义</h2>
+<pre><code class="language-cpp">using OpIOs = std::vector&lt;std::shared_ptr&lt;Tensor&gt;&gt;;
+constexpr static size_t PACK_SIZE = 8;
+</code></pre>
+<ul>
+<li><code>OpIOs</code> 是一个类型别名，表示算子的输入、输出或权重，它是一个 <code>Tensor</code> 指针的向量。</li>
+<li><code>PACK_SIZE</code> 是一个常量，用于 Int4 量化权重的打包大小，设置为 8。</li>
+</ul>
+<h2 id="2-opbase-类">2. OpBase 类</h2>
+<p><code>OpBase</code> 是所有算子的基类，定义了算子的基本接口和通用功能：</p>
+<pre><code class="language-cpp">class OpBase {
+public:
+    OpBase(Device* device, const std::string&amp; name, OpIOs inputs)
+            : m_device(device), m_inputs(inputs), m_name(name) {
+        for (auto input : m_inputs) {
+            input-&gt;add_user();
+        }
+    }
+
+    virtual void pre_execute();
+    virtual void execute(WorkSpace* workspace, uint32_t nr_past) {}
+    virtual void end_execute();
+    virtual void deduce_output_shape();
+    virtual size_t get_workspace_in_byte() { return 0; }
+    virtual void load_weights(std::ifstream&amp;){};
+    virtual uint32_t nr_weights() { return 1; };
+    virtual void init(OpIOs, OpIOs, WorkSpace*){};
+    
+    // 其他方法...
+};
+</code></pre>
+<h3 id="21-opbase-的主要方法">2.1 OpBase 的主要方法</h3>
+<ul>
+<li><strong>构造函数</strong>：初始化设备、输入和名称，并增加输入张量的用户计数。</li>
+<li><strong>pre_execute</strong>：执行前准备，包括准备权重和输出张量的数据。</li>
+<li><strong>execute</strong>：执行算子的计算，这是一个虚函数，由子类实现。</li>
+<li><strong>end_execute</strong>：执行后清理，减少输入张量的当前用户计数。</li>
+<li><strong>deduce_output_shape</strong>：推导输出张量的形状，默认与第一个输入相同。</li>
+<li><strong>get_workspace_in_byte</strong>：获取执行时需要的工作空间大小。</li>
+<li><strong>load_weights</strong>：从文件加载权重。</li>
+<li><strong>init</strong>：初始化算子，设置输入、输出和工作空间。</li>
+</ul>
+<h3 id="22-opbase-的辅助方法">2.2 OpBase 的辅助方法</h3>
+<ul>
+<li><strong>device</strong>：获取设备指针。</li>
+<li><strong>get_kernel</strong>：获取内核指针。</li>
+<li><strong>set_weights</strong>：设置权重张量。</li>
+<li><strong>add_outputs</strong>：添加输出张量。</li>
+<li><strong>set_name</strong>：设置算子名称。</li>
+<li><strong>weights/inputs/outputs/name</strong>：获取权重、输入、输出和名称。</li>
+<li><strong>need_preprocess_weight</strong>：判断是否需要预处理权重。</li>
+<li><strong>preprocess_weight</strong>：预处理权重，使其更适合计算内核。</li>
+</ul>
+<h2 id="3-具体算子类">3. 具体算子类</h2>
+<h3 id="31-layernorm-类">3.1 LayerNorm 类</h3>
+<pre><code class="language-cpp">class LayerNorm : public OpBase {
+public:
+    LayerNorm(
+            Device* device, const std::string&amp; name, OpIOs inputs, size_t embd,
+            bool mul = true, bool bias = false, bool rms = true, float eps = 1e-5);
+    void execute(WorkSpace* workspace, uint32_t nr_past) override;
+
+private:
+    bool m_mul;
+    bool m_bias;
+    bool m_rms;
+    float m_norm_eps = 1e-5;
+};
+</code></pre>
+<p><code>LayerNorm</code> 实现了层归一化操作，支持 RMS 归一化和普通归一化，可选是否使用乘法和偏置。</p>
+<h4 id="311-layernormexecute-实现">3.1.1 LayerNorm::execute 实现</h4>
+<pre><code class="language-cpp">void LayerNorm::execute(WorkSpace* workspace, uint32_t nr_past) {
+    std::shared_ptr&lt;Tensor&gt; weight = nullptr, bias = nullptr;
+    int weight_idx = 0;
+    if (m_mul) {
+        weight = weights()[weight_idx++];
+        DType weight_type = weight-&gt;dtype();
+        INFER_ASSERT(
+                weight_type == DType::Float32, &quot;layer norm weights must be float32.&quot;);
+    }
+    if (m_bias) {
+        bias = weights()[weight_idx++];
+    }
+    auto input = inputs()[0];
+    auto output = outputs()[0];
+    uint32_t seq_len = input-&gt;shape()[0];
+    uint32_t embd = input-&gt;shape()[1];
+    auto kernel = get_kernel();
+    if (input-&gt;dtype() == DType::Float32) {
+        const float* src = input-&gt;ptr&lt;float&gt;();
+        float* dst = output-&gt;ptr&lt;float&gt;();
+        float *weight_ptr = nullptr, *bias_ptr = nullptr;
+
+        if (m_mul) {
+            weight_ptr = weight-&gt;ptr&lt;float&gt;();
+        }
+        if (m_bias) {
+            bias_ptr = bias-&gt;ptr&lt;float&gt;();
+        }
+        if (m_rms) {
+            kernel-&gt;operator()&lt;KernelID::RmsNormFloat&gt;(
+                    src, dst, seq_len, embd, m_norm_eps);
+        } else {
+            kernel-&gt;operator()&lt;KernelID::NormFloat&gt;(
+                    src, dst, seq_len, embd, m_norm_eps);
+        }
+        if (weight_ptr) {
+            kernel-&gt;operator()&lt;KernelID::ElemwiseBroadcastDim0Src1Float&gt;(
+                    dst, weight_ptr, dst, seq_len, embd, ElemMode::Mul);
+        }
+        if (bias_ptr) {
+            kernel-&gt;operator()&lt;KernelID::ElemwiseBroadcastDim0Src1Float&gt;(
+                    dst, bias_ptr, dst, seq_len, embd, ElemMode::Add);
+        }
+    }
+}
+</code></pre>
+<p>这个方法执行层归一化操作：</p>
+<ol>
+<li>获取权重和偏置（如果有）</li>
+<li>获取输入和输出张量</li>
+<li>根据 <code>m_rms</code> 标志选择 RMS 归一化或普通归一化</li>
+<li>如果有权重，执行元素级乘法</li>
+<li>如果有偏置，执行元素级加法</li>
+</ol>
+<h3 id="32-matmul-类">3.2 MatMul 类</h3>
+<pre><code class="language-cpp">class MatMul : public OpBase {
+public:
+    MatMul(Device* device, const std::string&amp; name, OpIOs inputs,
+           std::vector&lt;size_t&gt; shape, bool bias = false);
+    virtual void deduce_output_shape() override;
+    virtual bool need_preprocess_weight(Tensor* weight) override;
+    virtual std::vector&lt;size_t&gt; preprocess_weight(
+            Tensor* tensor, void* src, void* dst) override;
+    virtual void execute(WorkSpace* workspace, uint32_t nr_past) override;
+    size_t get_workspace_in_byte() override;
+
+    bool m_bias = false;
+    bool m_weight_packed = false;
+};
+</code></pre>
+<p><code>MatMul</code> 实现了矩阵乘法操作，支持不同数据类型（Float32、Int8、Int4）的权重，以及可选的偏置。</p>
+<h4 id="321-matmulexecute-实现">3.2.1 MatMul::execute 实现</h4>
+<pre><code class="language-cpp">void MatMul::execute(WorkSpace* workspace, uint32_t) {
+    auto N = weights()[0]-&gt;shape()[0];
+    auto K = inputs()[0]-&gt;shape()[1];
+    auto M = inputs()[0]-&gt;shape()[0];
+    auto src_dtype = inputs()[0]-&gt;dtype();
+    auto weight_dtype = weights()[0]-&gt;dtype();
+    void* p_workspace = workspace-&gt;ptr();
+    uint32_t p_workspace_size = workspace-&gt;length();
+    auto kernel = get_kernel();
+    if (src_dtype == DType::Float32) {
+        float* dst = outputs()[0]-&gt;ptr&lt;float&gt;();
+        const float* bias = nullptr;
+        if (m_bias) {
+            bias = weights()[1]-&gt;ptr&lt;float&gt;();
+        }
+        const float* src = inputs()[0]-&gt;ptr&lt;float&gt;();
+        switch (weight_dtype) {
+            case DType::Int4:
+                if (!m_weight_packed) {
+                    kernel-&gt;operator()&lt;KernelID::MatmulInt4Float&gt;(
+                            dst, weights()[0]-&gt;ptr(), bias, src, M, N, K, p_workspace,
+                            p_workspace_size);
+                } else {
+                    kernel-&gt;operator()&lt;KernelID::MatmulInt4FloatPacked&gt;(
+                            dst, weights()[0]-&gt;ptr(), bias, src, M, N * PACK_SIZE, K,
+                            p_workspace, p_workspace_size);
+                }
+                break;
+            case DType::Int8:
+                kernel-&gt;operator()&lt;KernelID::MatmulInt8Float&gt;(
+                        dst, weights()[0]-&gt;ptr(), bias, src, M, N, K, p_workspace,
+                        p_workspace_size);
+                break;
+            case DType::Float32:
+                kernel-&gt;operator()&lt;KernelID::MatmulFloatFloat&gt;(
+                        dst, weights()[0]-&gt;ptr&lt;float&gt;(), bias, src, M, N, K,
+                        p_workspace, p_workspace_size);
+                break;
+            default:
+                INFER_ASSERT(0, &quot;not support&quot;);
+        }
+    }
+}
+</code></pre>
+<p>这个方法执行矩阵乘法操作：</p>
+<ol>
+<li>获取矩阵的维度（M、N、K）</li>
+<li>获取输入和权重的数据类型</li>
+<li>根据权重的数据类型选择不同的矩阵乘法内核</li>
+<li>如果权重是 Int4 类型且已打包，使用优化的打包版本</li>
+</ol>
+<h3 id="33-matmullast-类">3.3 MatMulLast 类</h3>
+<pre><code class="language-cpp">class MatMulLast : public MatMul {
+public:
+    using MatMul::MatMul;
+    void deduce_output_shape() override;
+    void execute(WorkSpace* workspace, uint32_t nr_past) override;
+    virtual bool need_preprocess_weight(Tensor*) override { return false; }
+    size_t get_workspace_in_byte() override;
+};
+</code></pre>
+<p><code>MatMulLast</code> 是 <code>MatMul</code> 的子类，专门用于计算序列中最后一个 token 的矩阵乘法，这在生成阶段很常见。</p>
+<h4 id="331-matmullastexecute-实现">3.3.1 MatMulLast::execute 实现</h4>
+<pre><code class="language-cpp">void MatMulLast::execute(WorkSpace* workspace, uint32_t) {
+    auto N = weights()[0]-&gt;shape()[0];
+    auto K = weights()[0]-&gt;shape()[1];
+    //! only compute the last token
+    auto M = 1;
+    auto row = inputs()[0]-&gt;shape()[0];
+    auto src_dtype = inputs()[0]-&gt;dtype();
+    auto weight_dtype = weights()[0]-&gt;dtype();
+    void* p_workspace = workspace-&gt;ptr();
+    uint32_t p_workspace_size = workspace-&gt;length();
+    auto kernel = get_kernel();
+    if (src_dtype == DType::Float32) {
+        float* dst = outputs()[0]-&gt;ptr&lt;float&gt;();
+        const float* bias = nullptr;
+        if (m_bias) {
+            bias = weights()[1]-&gt;ptr&lt;float&gt;();
+        }
+        const float* src = inputs()[0]-&gt;ptr&lt;float&gt;() + (row - 1) * K;
+        // 根据权重类型选择不同的矩阵乘法内核
+        // ...
+    }
+}
+</code></pre>
+<p>与 <code>MatMul::execute</code> 类似，但只计算最后一个 token（<code>src</code> 指向最后一行）。</p>
+<h3 id="34-softmax-类">3.4 SoftMax 类</h3>
+<pre><code class="language-cpp">class SoftMax : public OpBase {
+public:
+    SoftMax(Device* device, const std::string&amp; name, OpIOs inputs);
+    void execute(WorkSpace* workspace, uint32_t nr_past) override;
+};
+</code></pre>
+<p><code>SoftMax</code> 实现了 softmax 操作，通常用于注意力机制中。</p>
+<h4 id="341-softmaxexecute-实现">3.4.1 SoftMax::execute 实现</h4>
+<pre><code class="language-cpp">void SoftMax::execute(WorkSpace*, uint32_t) {
+    auto input = inputs()[0];
+    auto output = outputs()[0];
+    uint32_t seq_len = input-&gt;shape()[0];
+    uint32_t embd = input-&gt;shape()[1];
+    auto kernel = get_kernel();
+    if (output-&gt;dtype() == DType::Float32) {
+        float* src = input-&gt;ptr&lt;float&gt;();
+        float* dst = output-&gt;ptr&lt;float&gt;();
+        kernel-&gt;operator()&lt;KernelID::SoftmaxFloat&gt;(src, dst, seq_len, embd);
+    } else {
+        //! fp16
+    }
+}
+</code></pre>
+<p>这个方法执行 softmax 操作，对每一行（通常是注意力分数）应用 softmax 函数。</p>
+<h3 id="35-reshape-类">3.5 Reshape 类</h3>
+<pre><code class="language-cpp">class Reshape : public OpBase {
+public:
+    Reshape(Device* device, const std::string&amp; name, OpIOs inputs,
+            std::vector&lt;int&gt; shape);
+    void deduce_output_shape() override;
+
+private:
+    std::vector&lt;int&gt; m_target_shape;
+};
+</code></pre>
+<p><code>Reshape</code> 改变张量的形状，保持元素总数不变。</p>
+<h4 id="351-reshapededuce_output_shape-实现">3.5.1 Reshape::deduce_output_shape 实现</h4>
+<pre><code class="language-cpp">void Reshape::deduce_output_shape() override {
+    size_t len = inputs()[0]-&gt;length();
+    std::vector&lt;size_t&gt; out_shape;
+    out_shape.resize(m_target_shape.size());
+    int count = 0;
+    for (size_t i = 0; i &lt; m_target_shape.size(); i++) {
+        if (m_target_shape[i] != -1) {
+            out_shape[i] = m_target_shape[i];
+            INFER_ASSERT(len % m_target_shape[i] == 0, &quot;Reshape error.\n&quot;);
+            len = len / m_target_shape[i];
+        } else {
+            count++;
+        }
+    }
+    INFER_ASSERT(count == 1, &quot;multi -1 in Reshape param.\n&quot;);
+    for (size_t i = 0; i &lt; m_target_shape.size(); i++) {
+        if (m_target_shape[i] == -1) {
+            out_shape[i] = len;
+        }
+    }
+    outputs()[0]-&gt;set_shape(out_shape, inputs()[0]-&gt;dtype());
+}
+</code></pre>
+<p>这个方法推导输出张量的形状：</p>
+<ol>
+<li>计算输入张量的元素总数</li>
+<li>根据目标形状计算每个维度的大小</li>
+<li>如果某个维度是 -1，则自动计算该维度的大小</li>
+</ol>
+<h3 id="36-elemwise-类">3.6 Elemwise 类</h3>
+<pre><code class="language-cpp">class Elemwise : public OpBase {
+public:
+    Elemwise(
+            Device* device, const std::string&amp; name, OpIOs inputs, ElemMode mode,
+            float scale = -INFINITY);
+    void execute(WorkSpace* workspace, uint32_t nr_past) override;
+
+private:
+    float m_scale;
+    ElemMode m_mode;
+};
+</code></pre>
+<p><code>Elemwise</code> 实现了元素级操作，如加法、乘法、GELU 激活等。</p>
+<pre><code class="language-cpp">void Elemwise::execute(WorkSpace*, uint32_t) {
+    auto input = inputs()[0];
+    auto output = outputs()[0];
+    uint32_t seq_len = input-&gt;shape()[0];
+    uint32_t embd = input-&gt;shape()[1];
+    auto kernel = get_kernel();
+    if (input-&gt;dtype() == DType::Float32) {
+        float* src = input-&gt;ptr&lt;float&gt;();
+        float* dst = output-&gt;ptr&lt;float&gt;();
+        if (inputs().size() == 1) {
+            if (m_mode == ElemMode::Gelu) {
+                kernel-&gt;operator()&lt;KernelID::GeluFloat&gt;(src, dst, seq_len * embd);
+            } else if (m_mode == ElemMode::Silu) {
+                kernel-&gt;operator()&lt;KernelID::SiluFloat&gt;(src, dst, seq_len * embd);
+            } else if (m_mode == ElemMode::Scale) {
+                kernel-&gt;operator()&lt;KernelID::ScaleFloat&gt;(
+                        src, dst, seq_len * embd, m_scale);
+            }
+        } else if (inputs().size() == 2) {
+            float* src1 = inputs()[1]-&gt;ptr&lt;float&gt;();
+            if (m_mode == ElemMode::Add) {
+                kernel-&gt;operator()&lt;KernelID::ElemwiseFloat&gt;(
+                        src, src1, dst, seq_len * embd, ElemMode::Add);
+            } else if (m_mode == ElemMode::Mul) {
+                kernel-&gt;operator()&lt;KernelID::ElemwiseFloat&gt;(
+                        src, src1, dst, seq_len * embd, ElemMode::Mul);
+            }
+        }
+    }
+}
+</code></pre>
+<p>这个方法执行元素级操作：</p>
+<ol>
+<li>获取输入和输出张量</li>
+<li>根据操作模式（<code>m_mode</code>）选择不同的元素级操作内核</li>
+<li>如果只有一个输入，执行单输入操作（如 GELU、Silu、Scale）</li>
+<li>如果有两个输入，执行双输入操作（如 Add、Mul）</li>
+</ol>
+<h3 id="37-splitehalfactivemul-类">3.7 SpliteHalfActiveMul 类</h3>
+<p><code>SpliteHalfActiveMul</code> 实现了将输入张量分成两半，对一半应用激活函数，然后与另一半相乘的操作。这在一些模型架构中很常见，如 SwiGLU。</p>
+<pre><code class="language-cpp">void SpliteHalfActiveMul::execute(WorkSpace*, uint32_t) {
+    auto input = inputs()[0];
+    auto output = outputs()[0];
+    uint32_t seq_len = input-&gt;shape()[0];
+    uint32_t embd = input-&gt;shape()[1];
+    uint32_t half_embd = embd / 2;
+    auto kernel = get_kernel();
+    if (input-&gt;dtype() == DType::Float32) {
+        float* src = input-&gt;ptr&lt;float&gt;();
+        float* dst = output-&gt;ptr&lt;float&gt;();
+        if (m_mode == ElemMode::Silu) {
+            kernel-&gt;operator()&lt;KernelID::SplitSiluMulFloat&gt;(
+                    src, dst, seq_len, half_embd);
+        } else if (m_mode == ElemMode::Gelu) {
+            kernel-&gt;operator()&lt;KernelID::SplitGeluMulFloat&gt;(
+                    src, dst, seq_len, half_embd);
+        }
+    }
+}
+</code></pre>
+<p>这个方法执行分半激活乘法操作：</p>
+<ol>
+<li>获取输入和输出张量</li>
+<li>计算每半部分的嵌入维度</li>
+<li>根据激活模式选择不同的内核（SiluMul 或 GeluMul）</li>
+</ol>
+<h3 id="38-diagmask-类">3.8 DiagMask 类</h3>
+<p><code>DiagMask</code> 实现了对角线掩码操作，通常用于自回归模型中的注意力机制，防止模型看到未来的 token。</p>
+<pre><code class="language-cpp">void DiagMask::execute(WorkSpace*, uint32_t nr_past) {
+    auto input = inputs()[0];
+    auto output = outputs()[0];
+    uint32_t seq_len = input-&gt;shape()[0];
+    uint32_t embd = input-&gt;shape()[1];
+    auto kernel = get_kernel();
+    if (input-&gt;dtype() == DType::Float32) {
+        float* src = input-&gt;ptr&lt;float&gt;();
+        float* dst = output-&gt;ptr&lt;float&gt;();
+        kernel-&gt;operator()&lt;KernelID::DiagMaskFloat&gt;(
+                src, dst, seq_len, embd, nr_past);
+    }
+}
+</code></pre>
+<p>这个方法执行对角线掩码操作：</p>
+<ol>
+<li>获取输入和输出张量</li>
+<li>调用对角线掩码内核，将未来 token 的注意力分数设为负无穷大</li>
+</ol>
+<h3 id="39-attentionbase-类">3.9 AttentionBase 类</h3>
+<p><code>AttentionBase</code> 是注意力机制的基类，提供了注意力机制的通用功能，如 KV 缓存管理。</p>
+<pre><code class="language-cpp">size_t AttentionBase::get_workspace_in_byte() {
+    auto input = inputs()[0];
+    uint32_t seq_len = input-&gt;shape()[0];
+    uint32_t embd = input-&gt;shape()[1];
+    uint32_t head_dim = embd / m_head;
+    size_t workspace_size = 0;
+    // Q, K, V 矩阵的大小
+    workspace_size += seq_len * embd * sizeof(float);  // Q
+    workspace_size += seq_len * embd * sizeof(float);  // K
+    workspace_size += seq_len * embd * sizeof(float);  // V
+    // QK 矩阵的大小
+    workspace_size += seq_len * seq_len * m_head * sizeof(float);  // QK
+    return workspace_size;
+}
+
+std::vector&lt;size_t&gt; AttentionBase::preprocess_weight(
+        Tensor* tensor, void* src, void* dst) {
+    auto kernel = get_kernel();
+    size_t M = tensor-&gt;shape()[0];
+    size_t K = tensor-&gt;shape()[1];
+    kernel-&gt;operator()&lt;KernelID::MatmulInt4Reorder&gt;(src, dst, M, K);
+    m_packed_weight = true;
+    return std::vector&lt;size_t&gt;{M / PACK_SIZE, K};
+}
+</code></pre>
+<p><code>AttentionBase</code> 类提供了：</p>
+<ol>
+<li>工作空间大小计算，用于分配足够的内存进行注意力计算</li>
+<li>权重预处理，优化 Int4 量化权重的内存布局</li>
+</ol>
+<h3 id="310-llamaattention-类">3.10 LlamaAttention 类</h3>
+<p><code>LlamaAttention</code> 实现了 Llama 模型的注意力机制，包括旋转位置编码（RoPE）。</p>
+<pre><code class="language-cpp">void LlamaAttention::execute(WorkSpace* workspace, uint32_t nr_past) {
+    auto input = inputs()[0];
+    auto output = outputs()[0];
+    uint32_t seq_len = input-&gt;shape()[0];
+    uint32_t embd = input-&gt;shape()[1];
+    uint32_t head_dim = embd / m_head;
+    auto kernel = get_kernel();
+    
+    // 获取工作空间指针
+    float* p_q = (float*)workspace-&gt;ptr();
+    float* p_k = p_q + seq_len * embd;
+    float* p_v = p_k + seq_len * embd;
+    float* p_qk = p_v + seq_len * embd;
+    
+    // 计算 Q, K, V
+    if (input-&gt;dtype() == DType::Float32) {
+        float* src = input-&gt;ptr&lt;float&gt;();
+        float* dst = output-&gt;ptr&lt;float&gt;();
+        
+        // 根据是否使用融合权重选择不同的计算路径
+        if (m_fused_weights) {
+            // 使用融合权重计算 Q, K, V
+            // ...
+        } else {
+            // 使用分离权重计算 Q, K, V
+            // ...
+        }
+        
+        // 应用旋转位置编码
+        kernel-&gt;operator()&lt;KernelID::ApplyRotaryPosEmb&gt;(
+                p_q, p_k, seq_len, embd, m_head, m_rot, nr_past, m_rotary_mode);
+        
+        // 将 K, V 存储到缓存中
+        kernel-&gt;operator()&lt;KernelID::CopyKVCache&gt;(
+                p_k, p_v, m_kstorage-&gt;ptr&lt;float&gt;(), m_vstorage-&gt;ptr&lt;float&gt;(), seq_len,
+                embd, m_kstorage-&gt;get_id());
+        
+        // 计算注意力分数 QK
+        kernel-&gt;operator()&lt;KernelID::BatchMatMul&gt;(
+                p_q, m_kstorage-&gt;ptr&lt;float&gt;(), p_qk, seq_len,
+                m_kstorage-&gt;get_id() + seq_len, embd, m_head);
+        
+        // 应用掩码和 softmax
+        kernel-&gt;operator()&lt;KernelID::DiagMaskSoftmaxKernel&gt;(
+                p_qk, p_qk, seq_len, m_kstorage-&gt;get_id() + seq_len, m_head, nr_past);
+        
+        // 计算注意力输出
+        kernel-&gt;operator()&lt;KernelID::BatchMatMulTransB&gt;(
+                p_qk, m_vstorage-&gt;ptr&lt;float&gt;(), dst, seq_len,
+                m_vstorage-&gt;get_id() + seq_len, head_dim, m_head);
+    }
+}
+</code></pre>
+<p>这个方法执行 Llama 注意力机制：</p>
+<ol>
+<li>获取工作空间指针，为 Q, K, V, QK 分配内存</li>
+<li>计算 Q, K, V 矩阵</li>
+<li>应用旋转位置编码（RoPE）</li>
+<li>将 K, V 存储到缓存中</li>
+<li>计算注意力分数 QK</li>
+<li>应用掩码和 softmax</li>
+<li>计算注意力输出</li>
+</ol>
+<h3 id="311-glmattention-类">3.11 GlmAttention 类</h3>
+<p><code>GlmAttention</code> 实现了 GLM 模型的注意力机制，与 Llama 注意力机制类似，但有一些特定于 GLM 的处理。</p>
+<h3 id="312-glm2multiqueryattention-类">3.12 Glm2MultiQueryAttention 类</h3>
+<p><code>Glm2MultiQueryAttention</code> 实现了 GLM-2 模型的多查询注意力机制，这是一种优化的注意力变体，减少了 KV 缓存的大小。</p>
+<h3 id="313-embedding-类">3.13 Embedding 类</h3>
+<p><code>Embedding</code> 实现了嵌入层，将 token ID 转换为嵌入向量。</p>
+<pre><code class="language-cpp">void Embedding::execute(WorkSpace*, uint32_t) {
+    auto input = inputs()[0];
+    auto output = outputs()[0];
+    auto weight = weights()[0];
+    uint32_t seq_len = input-&gt;shape()[0];
+    auto kernel = get_kernel();
+    if (output-&gt;dtype() == DType::Float32) {
+        int32_t* ids = input-&gt;ptr&lt;int32_t&gt;();
+        float* dst = output-&gt;ptr&lt;float&gt;();
+        if (weight-&gt;dtype() == DType::Float32) {
+            float* weight_ptr = weight-&gt;ptr&lt;float&gt;();
+            kernel-&gt;operator()&lt;KernelID::EmbeddingFloat&gt;(
+                    ids, weight_ptr, dst, seq_len, m_embd);
+        } else if (weight-&gt;dtype() == DType::Float16) {
+            half* weight_ptr = weight-&gt;ptr&lt;half&gt;();
+            kernel-&gt;operator()&lt;KernelID::EmbeddingFp16&gt;(
+                    ids, weight_ptr, dst, seq_len, m_embd);
+        }
+    }
+}
+</code></pre>
+<p>这个方法执行嵌入操作：</p>
+<ol>
+<li>获取输入 token ID、输出嵌入向量和嵌入权重</li>
+<li>根据权重的数据类型选择不同的嵌入内核</li>
+<li>将 token ID 转换为嵌入向量</li>
+</ol>
+<h2 id="4-算子执行流程">4. 算子执行流程</h2>
+<p>算子的典型执行流程如下：</p>
+<ol>
+<li>
+<p><strong>创建算子</strong>：</p>
+<pre><code class="language-cpp">auto layernorm = std::make_shared&lt;LayerNorm&gt;(device, &quot;layernorm&quot;, inputs, embd);
+</code></pre>
+</li>
+<li>
+<p><strong>推导输出形状</strong>：</p>
+<pre><code class="language-cpp">layernorm-&gt;deduce_output_shape();
+</code></pre>
+</li>
+<li>
+<p><strong>执行前准备</strong>：</p>
+<pre><code class="language-cpp">layernorm-&gt;pre_execute();
+</code></pre>
+</li>
+<li>
+<p><strong>执行计算</strong>：</p>
+<pre><code class="language-cpp">layernorm-&gt;execute(workspace, nr_past);
+</code></pre>
+</li>
+<li>
+<p><strong>执行后清理</strong>：</p>
+<pre><code class="language-cpp">layernorm-&gt;end_execute();
+</code></pre>
+</li>
+</ol>
+<h2 id="5-内存管理">5. 内存管理</h2>
+<p>算子的内存管理主要通过以下机制实现：</p>
+<ol>
+<li>
+<p><strong>引用计数</strong>：</p>
+<ul>
+<li><code>add_user()</code>：增加张量的用户计数</li>
+<li><code>decrease_curr_user_count()</code>：减少张量的当前用户计数</li>
+<li><code>resume_user_count()</code>：恢复张量的用户计数</li>
+</ul>
+</li>
+<li>
+<p><strong>数据准备和回收</strong>：</p>
+<ul>
+<li><code>prepare_data()</code>：准备张量的数据，可能涉及内存分配或从文件加载</li>
+<li><code>recall_data()</code>：回收张量的数据，可能涉及内存释放</li>
+</ul>
+</li>
+<li>
+<p><strong>工作空间</strong>：</p>
+<ul>
+<li><code>get_workspace_in_byte()</code>：获取执行时需要的工作空间大小</li>
+<li><code>workspace-&gt;ptr()</code>：获取工作空间的指针</li>
+</ul>
+</li>
+</ol>
+<h2 id="6-优化策略">6. 优化策略</h2>
+<p>算子实现了多种优化策略：</p>
+<ol>
+<li>
+<p><strong>权重预处理</strong>：</p>
+<ul>
+<li><code>need_preprocess_weight()</code>：判断是否需要预处理权重</li>
+<li><code>preprocess_weight()</code>：预处理权重，优化内存布局</li>
+</ul>
+</li>
+<li>
+<p><strong>KV 缓存</strong>：</p>
+<ul>
+<li><code>m_kstorage</code> 和 <code>m_vstorage</code>：存储注意力机制的 K 和 V 矩阵</li>
+<li><code>prepare_data_with_length()</code>：准备指定长度的缓存数据</li>
+<li><code>add_id()</code>：更新缓存的 ID</li>
+</ul>
+</li>
+<li>
+<p><strong>数据类型优化</strong>：</p>
+<ul>
+<li>支持多种数据类型（Float32、Float16、Int8、Int4）</li>
+<li>为不同数据类型提供专门的计算内核</li>
+</ul>
+</li>
+<li>
+<p><strong>内存复用</strong>：</p>
+<ul>
+<li>通过工作空间复用内存</li>
+<li>通过张量共享减少内存分配</li>
+</ul>
+</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p><code>op.h</code> 和 <code>op.cpp</code> 文件定义了 InferLLM 框架中的各种算子类，这些算子是构建神经网络计算图的基本单元。它们提供了丰富的功能，包括层归一化、矩阵乘法、softmax、元素级操作和注意力机制等。这些算子的实现考虑了性能优化，如内存复用、数据类型优化和权重预处理等。</p>
+<h2 id="7-算子的设计模式">7. 算子的设计模式</h2>
+<p>InferLLM 框架中的算子设计采用了以下设计模式：</p>
+<ol>
+<li>
+<p><strong>工厂模式</strong>：<br>
+通过 <code>Graph::make_graph</code> 创建计算图，然后在计算图中创建各种算子。</p>
+</li>
+<li>
+<p><strong>策略模式</strong>：<br>
+通过虚函数和多态实现不同算子的不同行为，如 <code>execute</code>、<code>deduce_output_shape</code> 等。</p>
+</li>
+<li>
+<p><strong>组合模式</strong>：<br>
+算子可以组合成更复杂的计算图，形成层次结构。</p>
+</li>
+<li>
+<p><strong>观察者模式</strong>：<br>
+通过引用计数机制，张量可以观察到它的用户（算子）何时不再需要它，从而释放资源。</p>
+</li>
+</ol>
+<h2 id="8-算子的扩展性">8. 算子的扩展性</h2>
+<p>InferLLM 框架的算子设计具有良好的扩展性：</p>
+<ol>
+<li>
+<p><strong>新算子添加</strong>：<br>
+只需继承 <code>OpBase</code> 类并实现相应的虚函数，即可添加新的算子。</p>
+</li>
+<li>
+<p><strong>新模型支持</strong>：<br>
+通过组合现有算子或添加新算子，可以支持新的模型架构，如 Llama、GLM 等。</p>
+</li>
+<li>
+<p><strong>新硬件支持</strong>：<br>
+通过在 <code>Kernel</code> 类中添加新的硬件后端实现，可以支持新的硬件平台。</p>
+</li>
+</ol>
+<h2 id="9-算子的性能优化">9. 算子的性能优化</h2>
+<p>InferLLM 框架的算子实现了多种性能优化技术：</p>
+<ol>
+<li>
+<p><strong>内存优化</strong>：</p>
+<ul>
+<li>工作空间复用</li>
+<li>张量共享</li>
+<li>KV 缓存</li>
+</ul>
+</li>
+<li>
+<p><strong>计算优化</strong>：</p>
+<ul>
+<li>权重预处理</li>
+<li>融合算子（如 <code>SpliteHalfActiveMul</code>）</li>
+<li>特化实现（如 <code>MatMulLast</code>）</li>
+</ul>
+</li>
+<li>
+<p><strong>数据类型优化</strong>：</p>
+<ul>
+<li>支持多种数据类型（Float32、Float16、Int8、Int4）</li>
+<li>为不同数据类型提供专门的计算内核</li>
+</ul>
+</li>
+</ol>
+<h2 id="10-算子的调试支持">10. 算子的调试支持</h2>
+<p>InferLLM 框架的算子提供了一些调试支持：</p>
+<ol>
+<li>
+<p><strong>命名机制</strong>：<br>
+每个算子和张量都有一个名称，便于调试和跟踪。</p>
+</li>
+<li>
+<p><strong>断言检查</strong>：<br>
+使用 <code>INFER_ASSERT</code> 宏进行断言检查，确保算子的正确性。</p>
+</li>
+<li>
+<p><strong>形状推导</strong>：<br>
+通过 <code>deduce_output_shape</code> 方法推导输出张量的形状，便于检查形状是否正确。</p>
+</li>
+</ol>
+<h2 id="11-与其他组件的交互">11. 与其他组件的交互</h2>
+<p>算子与框架的其他组件有密切的交互：</p>
+<ol>
+<li>
+<p><strong>与 Device 的交互</strong>：<br>
+算子通过 <code>m_device</code> 获取设备信息和内核实现。</p>
+</li>
+<li>
+<p><strong>与 Kernel 的交互</strong>：<br>
+算子通过 <code>get_kernel()</code> 获取内核实现，调用相应的计算函数。</p>
+</li>
+<li>
+<p><strong>与 Tensor 的交互</strong>：<br>
+算子管理输入、输出和权重张量，控制它们的生命周期。</p>
+</li>
+<li>
+<p><strong>与 KvStorage 的交互</strong>：<br>
+注意力算子使用 <code>KvStorage</code> 存储 K 和 V 矩阵，实现缓存机制。</p>
+</li>
+</ol>
+<h2 id="12-算子的使用示例">12. 算子的使用示例</h2>
+<p>以下是一个使用算子构建简单计算图的示例：</p>
+<pre><code class="language-cpp">// 创建设备和计算图
+auto device = std::make_unique&lt;CPUDevice&gt;(KernelType::X86, 4);
+auto graph = Graph::make_graph(user_config, device.get(), &quot;llama&quot;);
+
+// 创建输入张量
+auto input = std::make_shared&lt;Tensor&gt;(device.get(), &quot;input&quot;);
+input-&gt;set_shape({1, 4096}, DType::Float32);
+
+// 创建算子
+auto layernorm = std::make_shared&lt;LayerNorm&gt;(device.get(), &quot;layernorm&quot;, {input}, 4096);
+auto matmul = std::make_shared&lt;MatMul&gt;(device.get(), &quot;matmul&quot;, {layernorm-&gt;outputs()[0]}, {4096, 4096});
+auto softmax = std::make_shared&lt;SoftMax&gt;(device.get(), &quot;softmax&quot;, {matmul-&gt;outputs()[0]});
+
+// 推导输出形状
+layernorm-&gt;deduce_output_shape();
+matmul-&gt;deduce_output_shape();
+softmax-&gt;deduce_output_shape();
+
+// 创建工作空间
+size_t workspace_size = std::max({layernorm-&gt;get_workspace_in_byte(), matmul-&gt;get_workspace_in_byte(), softmax-&gt;get_workspace_in_byte()});
+auto workspace = std::make_unique&lt;WorkSpace&gt;(device.get(), workspace_size);
+
+// 执行计算
+layernorm-&gt;pre_execute();
+layernorm-&gt;execute(workspace.get(), 0);
+layernorm-&gt;end_execute();
+
+matmul-&gt;pre_execute();
+matmul-&gt;execute(workspace.get(), 0);
+matmul-&gt;end_execute();
+
+softmax-&gt;pre_execute();
+softmax-&gt;execute(workspace.get(), 0);
+softmax-&gt;end_execute();
+</code></pre>
+<p>通过这种方式，可以构建复杂的计算图，实现大型语言模型的推理。</p>
+<p>总的来说，<code>op.h</code> 和 <code>op.cpp</code> 文件定义了 InferLLM 框架中的算子系统，它是框架的核心组件之一，负责实现各种神经网络操作。它的设计考虑了性能、扩展性和易用性，为大型语言模型的推理提供了高效的计算支持。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(10)——ThreadPool类的实现(src/core/thread_pool.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-10/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-10/">
+        </link>
+        <updated>2025-04-05T09:06:43.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="threadpool-类代码结构与功能实现分析">ThreadPool 类代码结构与功能实现分析</h1>
+<p><code>ThreadPool</code> 类是 InferLLM 框架中的线程池实现，用于并行执行计算任务，提高模型推理的性能。下面对 <code>thread_pool.h</code> 和 <code>thread_pool.cpp</code> 的代码结构和功能实现进行详细分析。</p>
+<h2 id="1-infer_pause-宏定义">1. INFER_PAUSE 宏定义</h2>
+<p>首先，框架定义了一个平台相关的 <code>INFER_PAUSE</code> 宏，用于实现 CPU 级别的暂停操作：</p>
+<pre><code class="language-cpp">#ifndef INFER_PAUSE
+# if defined __GNUC__ &amp;&amp; (defined __i386__ || defined __x86_64__)
+#   if !defined(__SSE2__)
+      static inline void non_sse_mm_pause() { __asm__ __volatile__ (&quot;rep; nop&quot;); }
+#     define _mm_pause non_sse_mm_pause
+#   else
+#       include &lt;immintrin.h&gt;
+#   endif
+#   define INFER_PAUSE(v) do { for (int __delay = (v); __delay &gt; 0; --__delay) { _mm_pause(); } } while (0)
+# elif defined __GNUC__ &amp;&amp; defined __aarch64__
+#   define INFER_PAUSE(v) do { for (int __delay = (v); __delay &gt; 0; --__delay) { asm volatile(&quot;yield&quot; ::: &quot;memory&quot;); } } while (0)
+# elif defined __GNUC__ &amp;&amp; defined __arm__
+#   define INFER_PAUSE(v) do { for (int __delay = (v); __delay &gt; 0; --__delay) { asm volatile(&quot;&quot; ::: &quot;memory&quot;); } } while (0)
+# elif defined __GNUC__ &amp;&amp; defined __riscv
+#   define INFER_PAUSE(v) do { for (int __delay = (v); __delay &gt; 0; --__delay) { asm volatile(&quot;nop&quot;); } } while (0)
+# else
+#   warning &quot;Can't detect 'pause' (CPU-yield) instruction on the target platform. Specify INFER_PAUSE() definition via compiler flags.&quot;
+#   define INFER_PAUSE(...) do { /* no-op: works, but not effective */ } while (0)
+# endif
+#endif // MTDA_PAUSE
+</code></pre>
+<p>这个宏根据不同的平台和架构，使用不同的指令实现 CPU 暂停操作，主要用于自旋锁中减少 CPU 资源消耗。</p>
+<h2 id="2-worker-结构体">2. Worker 结构体</h2>
+<p><code>Worker</code> 结构体表示一个工作线程及其状态：</p>
+<pre><code class="language-cpp">struct Worker {
+public:
+    Worker(std::function&lt;void()&gt;&amp;&amp; run) : thread{run} {}
+    ~Worker() { thread.join(); }
+    //! Worker thread
+    std::thread thread;
+    //! Indicate whether the Worker thread need run
+    std::atomic&lt;bool&gt; work_flag{false};
+};
+</code></pre>
+<p>每个 <code>Worker</code> 包含一个线程和一个原子标志 <code>work_flag</code>，用于指示线程是否需要执行任务。</p>
+<h2 id="3-threadpool-类">3. ThreadPool 类</h2>
+<p><code>ThreadPool</code> 类是线程池的主要实现：</p>
+<pre><code class="language-cpp">class ThreadPool {
+public:
+    //! Create thread-pool nr_threads thread_pool
+    ThreadPool(uint32_t nr_threads);
+    //! The main thread set the task, parallelism and worker flag to
+    //! notify other thread.
+    void add_task(const MultiThreadingTask&amp; task, uint32_t nr_task);
+
+    inline void sync();
+    //! wake up all the threads from cv.wait(), when the thread pool is not
+    //! active, all the threads will go to sleep.
+    inline void active();
+    //! all the threads go to sleep which will reduce CPU occupation
+    void deactive();
+    ~ThreadPool();
+
+    uint32_t nr_threads() const { return m_nr_threads; }
+
+    //! The number of iterations &lt; main thread yeild resource&gt;
+    static constexpr int MAIN_THREAD_ACTIVE_WAIT = 10000;
+    //! The number of iterations &lt; worker thread yeild resource&gt;
+    static constexpr int WORKER_ACTIVE_WAIT = 2000;
+    //! The number of iterations &lt;pause&gt;
+    static constexpr int ACTIVE_WAIT_PAUSE_LIMIT = 16;
+
+private:
+    uint32_t m_nr_threads = 1;
+    //! All the sub task number
+    uint32_t m_nr_task = 0;
+    uint32_t m_task_per_thread = 0;
+    std::atomic_bool m_stop{false};
+    std::atomic_bool m_active{false};
+    //! The executable funcition pointer
+    MultiThreadingTask m_task;
+
+    std::vector&lt;Worker*&gt; m_workers;
+    //! The cv and mutex for threading activity
+    std::condition_variable m_cv;
+    std::mutex m_mutex;
+};
+</code></pre>
+<h3 id="31-构造函数">3.1 构造函数</h3>
+<pre><code class="language-cpp">ThreadPool::ThreadPool(uint32_t threads_num)
+        : m_nr_threads(threads_num), m_stop{false}, m_active{false} {
+    if (threads_num &lt; 1) {
+        m_nr_threads = 1;
+    }
+    if (m_nr_threads &gt; 1) {
+        auto system_cpu_count = std::thread::hardware_concurrency();
+        if (m_nr_threads &gt; system_cpu_count) {
+            INFER_LOG(
+                    &quot;The number of threads is bigger than number of &quot;
+                    &quot;physical cpu cores, got: %d core_number: %d&quot;,
+                    system_cpu_count, nr_threads());
+        }
+        for (uint32_t i = 0; i &lt; m_nr_threads - 1; i++) {
+            m_workers.push_back(new Worker([this, i]() {
+                while (!m_stop) {
+                    while (m_active) {
+                        //! if the thread should work
+                        if (m_workers[i]-&gt;work_flag.load(std::memory_order_acquire)) {
+                            m_task(TaskId{
+                                    i * m_task_per_thread,
+                                    std::min((i + 1) * m_task_per_thread, m_nr_task),
+                                    i});
+                            //! Flag worker is finished
+                            m_workers[i]-&gt;work_flag.store(
+                                    false, std::memory_order_release);
+                        }
+                        //! Wait next task coming
+                        for (int it = 0; it &lt; WORKER_ACTIVE_WAIT; it++) {
+                            if (m_workers[i]-&gt;work_flag.load(
+                                        std::memory_order_acquire)) {
+                                break;
+                            }
+                            if (it &lt; ACTIVE_WAIT_PAUSE_LIMIT || (it &amp; 1)) {
+                                INFER_PAUSE(16);  // Spin lock's CPU-level yield
+                            } else {
+                                // Spin lock's OS-level yield
+                                std::this_thread::yield();
+                            }
+                        }
+                    }
+                    {
+                        std::unique_lock&lt;std::mutex&gt; lock(m_mutex);
+                        if (!m_stop &amp;&amp; !m_active) {
+                            m_cv.wait(lock, [this] { return m_stop || m_active; });
+                        }
+                    }
+                }
+            }));
+        }
+    }
+}
+</code></pre>
+<p>构造函数创建指定数量的工作线程：</p>
+<ol>
+<li>确保线程数至少为 1</li>
+<li>检查线程数是否超过系统 CPU 核心数，如果超过则发出警告</li>
+<li>创建 <code>m_nr_threads - 1</code> 个工作线程（主线程也会参与计算）</li>
+<li>每个工作线程的主循环：
+<ul>
+<li>外层循环：当 <code>m_stop</code> 为 false 时持续运行</li>
+<li>中层循环：当 <code>m_active</code> 为 true 时处于活动状态</li>
+<li>内层逻辑：
+<ul>
+<li>如果 <code>work_flag</code> 为 true，执行任务并将 <code>work_flag</code> 设为 false</li>
+<li>使用自旋等待检查是否有新任务</li>
+<li>如果超过等待限制，则使用 <code>std::this_thread::yield()</code> 让出 CPU</li>
+</ul>
+</li>
+<li>当 <code>m_active</code> 为 false 时，使用条件变量等待唤醒</li>
+</ul>
+</li>
+</ol>
+<h3 id="32-add_task-方法">3.2 add_task 方法</h3>
+<pre><code class="language-cpp">void ThreadPool::add_task(const MultiThreadingTask&amp; task, uint32_t nr_task) {
+    //! If only one thread or one task, execute directly
+    if (m_nr_threads == 1 || nr_task == 1) {
+        task({0, nr_task, m_nr_threads - 1});
+        return;
+    } else {
+        active();
+        INFER_ASSERT(m_active, &quot;thread pool is not actived.&quot;);
+        m_nr_task = nr_task;
+        //! Set the task number, task iter and task
+        m_task_per_thread = (nr_task + m_nr_threads - 1) / m_nr_threads;
+        m_task = std::move(task);
+        for (uint32_t i = 0; i &lt; m_nr_threads - 1; i++) {
+            m_workers[i]-&gt;work_flag.store(true, std::memory_order_release);
+        }
+        //! Main thread working
+        uint32_t start = (m_nr_threads - 1) * m_task_per_thread;
+        // printf(&quot;main threads start\n&quot;);
+        m_task({start, nr_task, m_nr_threads - 1});
+        //! make sure all threads done
+        sync();
+    }
+}
+</code></pre>
+<p><code>add_task</code> 方法向线程池添加任务：</p>
+<ol>
+<li>如果只有一个线程或一个任务，直接在当前线程执行</li>
+<li>否则：
+<ul>
+<li>激活线程池</li>
+<li>设置任务数量和每个线程的任务数</li>
+<li>设置任务函数</li>
+<li>将所有工作线程的 <code>work_flag</code> 设为 true，通知它们开始工作</li>
+<li>主线程也参与计算，处理剩余的任务</li>
+<li>调用 <code>sync()</code> 等待所有线程完成任务</li>
+</ul>
+</li>
+</ol>
+<h3 id="33-sync-方法">3.3 sync 方法</h3>
+<pre><code class="language-cpp">inline void ThreadPool::sync() {
+    bool no_finished = false;
+    uint32_t no_finished_id = 0;
+    do {
+        no_finished = false;
+        for (uint32_t i = no_finished_id; i &lt; m_nr_threads - 1; ++i) {
+            if (m_workers[i]-&gt;work_flag.load(std::memory_order_acquire)) {
+                no_finished = true;
+                no_finished_id = i;
+                break;
+            }
+        }
+        if (no_finished) {
+            for (int it = 0; it &lt; MAIN_THREAD_ACTIVE_WAIT; it++) {
+                if (!m_workers[no_finished_id]-&gt;work_flag.load(
+                            std::memory_order_acquire)) {
+                    break;
+                }
+                if ((it &lt; ACTIVE_WAIT_PAUSE_LIMIT || (it &amp; 1))) {
+                    INFER_PAUSE(16);
+                } else {
+                    std::this_thread::yield();
+                }
+            }
+        }
+    } while (no_finished);
+}
+</code></pre>
+<p><code>sync</code> 方法等待所有工作线程完成任务：</p>
+<ol>
+<li>检查是否有未完成的线程（<code>work_flag</code> 为 true）</li>
+<li>如果有，使用自旋等待该线程完成</li>
+<li>如果超过等待限制，则使用 <code>std::this_thread::yield()</code> 让出 CPU</li>
+<li>重复上述过程，直到所有线程完成任务</li>
+</ol>
+<h3 id="34-active-和-deactive-方法">3.4 active 和 deactive 方法</h3>
+<pre><code class="language-cpp">inline void ThreadPool::active() {
+    if (!m_active) {
+        std::unique_lock&lt;std::mutex&gt; lock(m_mutex);
+        m_active = true;
+        m_cv.notify_all();
+    }
+}
+
+void ThreadPool::deactive() {
+    std::unique_lock&lt;std::mutex&gt; lock(m_mutex);
+    m_active = false;
+}
+</code></pre>
+<ul>
+<li><code>active</code> 方法激活线程池，唤醒所有等待的工作线程</li>
+<li><code>deactive</code> 方法停用线程池，使工作线程进入休眠状态，减少 CPU 占用</li>
+</ul>
+<h3 id="35-析构函数">3.5 析构函数</h3>
+<pre><code class="language-cpp">ThreadPool::~ThreadPool() {
+    {
+        std::unique_lock&lt;std::mutex&gt; lock(m_mutex);
+        m_stop = true;
+        m_active = false;
+        m_cv.notify_all();
+    }
+    for (auto&amp; worker : m_workers) {
+        delete worker;
+    }
+}
+</code></pre>
+<p>析构函数清理线程池资源：</p>
+<ol>
+<li>设置 <code>m_stop</code> 为 true，通知所有工作线程退出</li>
+<li>唤醒所有等待的工作线程</li>
+<li>删除所有工作线程对象</li>
+</ol>
+<h2 id="4-任务分配策略">4. 任务分配策略</h2>
+<p>ThreadPool 使用简单的任务分配策略：</p>
+<ol>
+<li>将总任务数 <code>nr_task</code> 平均分配给所有线程</li>
+<li>每个线程处理 <code>m_task_per_thread = (nr_task + m_nr_threads - 1) / m_nr_threads</code> 个任务</li>
+<li>第 i 个线程处理的任务范围是 <code>[i * m_task_per_thread, min((i + 1) * m_task_per_thread, m_nr_task)]</code></li>
+<li>主线程（最后一个线程）处理剩余的任务</li>
+</ol>
+<h2 id="5-同步机制">5. 同步机制</h2>
+<p>ThreadPool 使用多种同步机制：</p>
+<ol>
+<li>
+<p><strong>原子变量</strong>：</p>
+<ul>
+<li><code>m_stop</code>：指示线程池是否停止</li>
+<li><code>m_active</code>：指示线程池是否处于活动状态</li>
+<li><code>work_flag</code>：指示工作线程是否需要执行任务</li>
+</ul>
+</li>
+<li>
+<p><strong>条件变量</strong>：</p>
+<ul>
+<li><code>m_cv</code>：用于在线程池激活时唤醒工作线程</li>
+</ul>
+</li>
+<li>
+<p><strong>自旋锁</strong>：</p>
+<ul>
+<li>使用 <code>INFER_PAUSE</code> 和 <code>std::this_thread::yield()</code> 实现自旋等待，减少线程切换开销</li>
+</ul>
+</li>
+</ol>
+<h2 id="6-优化策略">6. 优化策略</h2>
+<p>ThreadPool 实现了几种优化策略：</p>
+<ol>
+<li>
+<p><strong>主线程参与计算</strong>：<br>
+主线程也参与任务计算，减少线程创建和切换开销。</p>
+</li>
+<li>
+<p><strong>自旋等待</strong>：<br>
+使用自旋等待检查任务状态，减少线程切换开销。自旋等待分为两个阶段：</p>
+<ul>
+<li>前 <code>ACTIVE_WAIT_PAUSE_LIMIT</code> 次迭代使用 CPU 级别的暂停操作</li>
+<li>之后交替使用 CPU 级别的暂停和 OS 级别的让出</li>
+</ul>
+</li>
+<li>
+<p><strong>线程休眠</strong>：<br>
+当线程池不活动时，工作线程进入休眠状态，减少 CPU 占用。</p>
+</li>
+<li>
+<p><strong>任务合并</strong>：<br>
+当只有一个线程或一个任务时，直接在当前线程执行，避免线程调度开销。</p>
+</li>
+<li>
+<p><strong>动态休眠</strong>：<br>
+线程池可以通过 <code>deactive()</code> 方法进入休眠状态，在不需要并行计算时减少 CPU 占用。</p>
+</li>
+<li>
+<p><strong>快速检测</strong>：<br>
+在 <code>sync()</code> 方法中，记录上一个未完成的线程 ID，优先检查该线程，减少不必要的检查。</p>
+</li>
+</ol>
+<h2 id="7-使用示例">7. 使用示例</h2>
+<p>ThreadPool 的典型使用方式如下：</p>
+<pre><code class="language-cpp">// 创建线程池
+ThreadPool pool(4);  // 4个线程
+
+// 定义任务函数
+auto task = [&amp;](const TaskId&amp; task_id) {
+    // task_id.start: 任务起始索引
+    // task_id.end: 任务结束索引
+    // task_id.thread_id: 线程ID
+    for (uint32_t i = task_id.start; i &lt; task_id.end; ++i) {
+        // 处理第i个任务
+    }
+};
+
+// 添加任务
+pool.add_task(task, 100);  // 100个任务
+
+// 停用线程池（不需要并行计算时）
+pool.deactive();
+
+// 激活线程池（需要并行计算时）
+pool.active();
+</code></pre>
+<h2 id="8-taskid-结构体">8. TaskId 结构体</h2>
+<pre><code class="language-cpp">struct TaskId {
+    uint32_t start;     // 任务起始索引
+    uint32_t end;       // 任务结束索引
+    uint32_t thread_id; // 线程ID
+};
+</code></pre>
+<p><code>TaskId</code> 结构体用于描述任务的范围和执行线程，它包含三个字段：</p>
+<ul>
+<li><code>start</code>：任务的起始索引</li>
+<li><code>end</code>：任务的结束索引</li>
+<li><code>thread_id</code>：执行任务的线程ID</li>
+</ul>
+<h2 id="9-multithreadingtask-类型">9. MultiThreadingTask 类型</h2>
+<pre><code class="language-cpp">using MultiThreadingTask = std::function&lt;void(const TaskId&amp;)&gt;;
+</code></pre>
+<p><code>MultiThreadingTask</code> 是一个函数类型，表示可以并行执行的任务。它接受一个 <code>TaskId</code> 参数，用于指定任务的范围和执行线程。</p>
+<h2 id="10-线程池的生命周期管理">10. 线程池的生命周期管理</h2>
+<p>ThreadPool 的生命周期管理非常重要，它涉及到线程的创建、激活、停用和销毁：</p>
+<ol>
+<li>
+<p><strong>创建</strong>：<br>
+在构造函数中创建工作线程，但线程初始处于非活动状态。</p>
+</li>
+<li>
+<p><strong>激活</strong>：<br>
+调用 <code>active()</code> 方法激活线程池，唤醒所有工作线程。</p>
+</li>
+<li>
+<p><strong>停用</strong>：<br>
+调用 <code>deactive()</code> 方法停用线程池，使工作线程进入休眠状态。</p>
+</li>
+<li>
+<p><strong>销毁</strong>：<br>
+在析构函数中设置 <code>m_stop</code> 为 true，通知所有工作线程退出，然后等待线程结束并释放资源。</p>
+</li>
+</ol>
+<h2 id="11-与其他组件的交互">11. 与其他组件的交互</h2>
+<p>ThreadPool 主要与 CPUDevice 类交互，用于并行执行 CPU 上的计算任务：</p>
+<pre><code class="language-cpp">// 在 CPUDevice 中创建线程池
+m_thread_pool = std::make_unique&lt;ThreadPool&gt;(nr_thread);
+
+// 使用线程池执行并行任务
+m_thread_pool-&gt;add_task([&amp;](const TaskId&amp; task_id) {
+    // 执行计算任务
+}, total_tasks);
+</code></pre>
+<h2 id="总结">总结</h2>
+<p>ThreadPool 类是 InferLLM 框架中的线程池实现，用于并行执行计算任务，提高模型推理的性能。它采用了多种优化策略，如主线程参与计算、自旋等待、线程休眠和任务合并等，以减少线程调度开销并提高并行效率。它还提供了灵活的接口，支持动态激活和停用线程池，以适应不同的计算需求。</p>
+<p>通过分析 <code>thread_pool.h</code> 和 <code>thread_pool.cpp</code>，我们可以看到 InferLLM 框架在并行计算方面的设计思想和实现细节，这对于理解框架的性能优化策略非常有帮助。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(09)——ModelImp类的实现(src/core/model_imp.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-09/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-09/">
+        </link>
+        <updated>2025-04-03T08:21:37.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="modelimp-类代码结构与功能实现分析">ModelImp 类代码结构与功能实现分析</h1>
+<p><code>ModelImp</code> 类是 InferLLM 框架中 <code>Model</code> 类的具体实现，负责模型的加载、初始化和推理过程。下面对 <code>model_imp.h</code> 和 <code>model_imp.cpp</code> 的代码结构和功能实现进行详细分析。</p>
+<h2 id="1-辅助函数">1. 辅助函数</h2>
+<pre><code class="language-cpp">DType dtype_from_str(const std::string&amp; str) {
+    if (str == &quot;float32&quot; || str == &quot;fp23&quot;) {
+        return DType::Float32;
+    } else if (str == &quot;float16&quot; || str == &quot;fp16&quot;) {
+        return DType::Float16;
+    } else if (str == &quot;int8&quot;) {
+        return DType::Int8;
+    } else if (str == &quot;uint8&quot;) {
+        return DType::Uint8;
+    } else if (str == &quot;int4&quot;) {
+        return DType::Int4;
+    } else if (str == &quot;uint4&quot;) {
+        return DType::Uint4;
+    } else {
+        INFER_ASSERT(0, &quot;Unsupported dytpe.&quot;);
+    }
+}
+</code></pre>
+<p>这个辅助函数将字符串表示的数据类型转换为枚举类型 <code>DType</code>，支持多种精度的数据类型，包括 float32、float16、int8、uint8、int4 和 uint4。</p>
+<h2 id="2-modelimp-类">2. ModelImp 类</h2>
+<h3 id="21-构造函数">2.1 构造函数</h3>
+<pre><code class="language-cpp">ModelImp::ModelImp(const ModelConfig&amp; config, const std::string&amp; name)
+        : m_name(name), m_config(config) {
+    uint32_t nr_thread = config.nr_thread;
+    std::string device_type = config.device_type;
+    if (device_type == &quot;CPU&quot; || device_type == &quot;cpu&quot;) {
+#if INFER_X86
+        m_device = make_unique&lt;CPUDevice&gt;(KernelType::X86, nr_thread);
+#elif INFER_ARM
+        m_device = make_unique&lt;CPUDevice&gt;(KernelType::Arm, nr_thread);
+#else
+        m_device = make_unique&lt;CPUDevice&gt;(KernelType::Naive, nr_thread);
+#endif
+    } else if (
+            device_type == &quot;GPU&quot; || device_type == &quot;CUDA&quot; || device_type == &quot;gpu&quot;) {
+        // if compile with GPU, use GPU, else use CPUDevice
+#if ENABLE_GPU
+        m_device = make_unique&lt;GPUDevice&gt;(0);
+#else
+        INFER_ASSERT(0, &quot;GPU is disabled when build, please build with GPU.&quot;);
+#endif
+    }
+
+    UserConfig user_config;
+    user_config.compt_type = dtype_from_str(config.compt_type);
+    m_graph = Graph::make_graph(user_config, m_device.get(), name);
+    m_past = 0;
+}
+</code></pre>
+<p>构造函数根据配置创建相应的设备和计算图：</p>
+<ol>
+<li>根据 <code>device_type</code> 创建 CPU 或 GPU 设备
+<ul>
+<li>对于 CPU，根据编译选项选择 X86、Arm 或 Naive 内核</li>
+<li>对于 GPU，检查是否启用了 GPU 支持</li>
+</ul>
+</li>
+<li>创建用户配置，设置计算类型</li>
+<li>创建计算图</li>
+<li>初始化 <code>m_past</code> 为 0，表示已处理的 token 数量</li>
+</ol>
+<h3 id="22-load-方法">2.2 load 方法</h3>
+<pre><code class="language-cpp">void ModelImp::load(const std::string&amp; model_path) {
+    m_vocab = std::make_shared&lt;Vocab&gt;();
+    std::shared_ptr&lt;InputFile&gt; fin =
+            std::make_shared&lt;InputFile&gt;(model_path, m_config.enable_mmap);
+
+    m_param.n_ctx = m_config.nr_ctx;
+    m_graph-&gt;load(fin, m_param, m_vocab);
+    m_logist.resize(m_param.n_vocab);
+}
+</code></pre>
+<p><code>load</code> 方法从指定路径加载模型：</p>
+<ol>
+<li>创建词汇表对象</li>
+<li>创建输入文件对象，支持内存映射</li>
+<li>设置上下文长度</li>
+<li>调用计算图的 <code>load</code> 方法加载模型</li>
+<li>调整 logits 向量的大小为词汇表大小</li>
+</ol>
+<h3 id="23-init-方法">2.3 init 方法</h3>
+<pre><code class="language-cpp">void init(
+        uint32_t top_k, float top_p, float temp, float repeat_penalty,
+        int repeat_last_n, int32_t seed, int32_t end_token) {
+    m_top_k = top_k;
+    m_top_p = top_p;
+    m_temp = temp;
+    m_repeat_penalty = repeat_penalty;
+    m_repeat_last_n = repeat_last_n;
+    m_end_token = end_token;
+    for (uint32_t i = 0; i &lt; m_repeat_last_n; i++) {
+        m_last_queue.push_back(0);
+    }
+    m_rng = std::mt19937(seed);
+}
+</code></pre>
+<p><code>init</code> 方法初始化模型的生成参数：</p>
+<ol>
+<li>设置采样参数：top_k、top_p、温度、重复惩罚等</li>
+<li>设置结束 token</li>
+<li>初始化最近生成的 token 队列</li>
+<li>使用指定的种子初始化随机数生成器</li>
+</ol>
+<h3 id="24-prefill-方法">2.4 prefill 方法</h3>
+<pre><code class="language-cpp">void ModelImp::prefill(const std::string&amp; promote) {
+    auto tokens = tokenize(promote, true);
+    m_graph-&gt;post_tokenize(tokens);
+    for (auto token : tokens) {
+        m_last_queue.push_back(token);
+        m_last_queue.pop_front();
+    }
+    m_graph-&gt;execute(tokens, m_logist, m_past, true);
+    m_past = tokens.size();
+}
+</code></pre>
+<p><code>prefill</code> 方法处理初始提示文本：</p>
+<ol>
+<li>将文本分词为 token 序列</li>
+<li>调用计算图的 <code>post_tokenize</code> 方法进行后处理</li>
+<li>更新最近生成的 token 队列</li>
+<li>执行计算图，进行预填充（prefill=true）</li>
+<li>更新已处理的 token 数量</li>
+</ol>
+<h3 id="25-decode-方法">2.5 decode 方法</h3>
+<pre><code class="language-cpp">std::string ModelImp::decode(const std::string&amp; user_input, int&amp; token) {
+    auto tokens = tokenize(user_input, false);
+    m_graph-&gt;post_tokenize(tokens);
+    for (auto token : tokens) {
+        m_last_queue.push_back(token);
+        m_last_queue.pop_front();
+    }
+    m_graph-&gt;execute(tokens, m_logist, m_past, false);
+    sample_and_update();
+    m_past += tokens.size();
+    token = m_pre_token;
+    return m_vocab-&gt;id_to_token[m_pre_token].tok;
+}
+</code></pre>
+<p><code>decode</code> 方法处理用户输入并生成下一个 token：</p>
+<ol>
+<li>将用户输入分词为 token 序列</li>
+<li>调用计算图的 <code>post_tokenize</code> 方法进行后处理</li>
+<li>更新最近生成的 token 队列</li>
+<li>执行计算图，生成 logits</li>
+<li>采样下一个 token 并更新状态</li>
+<li>更新已处理的 token 数量</li>
+<li>返回生成的 token 对应的文本</li>
+</ol>
+<h3 id="26-decode_iter-方法">2.6 decode_iter 方法</h3>
+<pre><code class="language-cpp">std::string ModelImp::decode_iter(int&amp; token) {
+    auto start = m_timer.get_time();
+    m_graph-&gt;execute({m_pre_token}, m_logist, m_past);
+    auto end = m_timer.get_time();
+    m_time_cost += end - start;
+    sample_and_update();
+    m_past++;
+    token = m_pre_token;
+    return m_vocab-&gt;id_to_token[m_pre_token].tok;
+}
+</code></pre>
+<p><code>decode_iter</code> 方法迭代生成下一个 token：</p>
+<ol>
+<li>记录开始时间</li>
+<li>执行计算图，使用上一个生成的 token 作为输入</li>
+<li>记录结束时间并更新总计算时间</li>
+<li>采样下一个 token 并更新状态</li>
+<li>更新已处理的 token 数量</li>
+<li>返回生成的 token 对应的文本</li>
+</ol>
+<h3 id="27-sample_and_update-方法">2.7 sample_and_update 方法</h3>
+<pre><code class="language-cpp">int32_t ModelImp::sample_and_update() {
+    // sample the next token
+   auto token = llama_sample_top_p_top_k(
+           *m_vocab, m_logist.data(), m_last_queue, m_repeat_penalty, m_top_k, m_top_p,
+           m_temp, m_rng);
+    // update the last queue
+    m_last_queue.push_back(token);
+    m_last_queue.pop_front();
+    m_pre_token = token;
+    if (token == m_end_token) {
+        m_device-&gt;deactive();
+    }
+    return token;
+}
+</code></pre>
+<p><code>sample_and_update</code> 方法采样下一个 token 并更新状态：</p>
+<ol>
+<li>使用 top-p 和 top-k 采样方法从 logits 中采样下一个 token</li>
+<li>更新最近生成的 token 队列</li>
+<li>更新上一个生成的 token</li>
+<li>如果生成的 token 是结束 token，则停用设备</li>
+<li>返回生成的 token</li>
+</ol>
+<h3 id="28-tokenize-方法">2.8 tokenize 方法</h3>
+<pre><code class="language-cpp">std::vector&lt;Vocab::Id&gt; ModelImp::tokenize(const std::string&amp; text, bool bos) {
+    std::vector&lt;Vocab::Id&gt; res;
+    std::vector&lt;int&gt; score;
+    std::vector&lt;Vocab::Id&gt; prev;
+    int len = text.length();
+
+    score.resize(len + 1);
+    prev.resize(len + 1);
+
+    // Forward pass
+    for (int i = 0; i &lt; len; i++) {
+        int max_len = std::min(len - i, MAX_TOKEN_LEN);
+        for (int sub_len = 1; sub_len &lt;= len - i; sub_len++) {
+            auto sub = text.substr(i, sub_len);
+            auto token = m_vocab-&gt;token_to_id.find(sub);
+            if (token != m_vocab-&gt;token_to_id.end()) {
+                int token_score = sub.length() * sub.length();
+                int local_score = score[i] + token_score;
+                int next = i + sub_len;
+                if (score[next] &lt; local_score) {
+                    score[next] = local_score;
+                    prev[next] = (*token).second;
+                }
+            }
+        }
+    }
+
+    // Backward pass
+    int i = len;
+    while (i &gt; 0) {
+        Vocab::Id token_id = prev[i];
+        if (token_id == 0) {
+            // TODO: Return error or something more meaningful
+            printf(&quot;failed to tokenize string!\n&quot;);
+            break;
+        }
+        res.push_back(token_id);
+        auto token = m_vocab-&gt;id_to_token[token_id].tok;
+        i -= token.length();
+    }
+
+    if (bos) {
+        res.push_back(1);  // TODO: replace with vocab.bos
+    }
+
+    // Pieces are in reverse order so correct that
+    std::reverse(res.begin(), res.end());
+
+    return res;
+}
+</code></pre>
+<p><code>tokenize</code> 方法将文本分词为 token 序列：</p>
+<ol>
+<li>使用动态规划算法找到最优的分词方式
+<ul>
+<li>前向传递：计算每个位置的最优分数和对应的 token</li>
+<li>后向传递：从末尾开始，根据前向传递的结果构建 token 序列</li>
+</ul>
+</li>
+<li>如果需要，添加 BOS（Beginning of Sequence）token</li>
+<li>反转 token 序列，使其按正确的顺序排列</li>
+<li>返回 token 序列</li>
+</ol>
+<p>这个分词算法使用了贪婪的方法，尽量选择长度更长的 token，以减少序列长度。</p>
+<h3 id="29-decode_summary-方法">2.9 decode_summary 方法</h3>
+<pre><code class="language-cpp">std::string ModelImp::decode_summary() const {
+    std::string ret = &quot;Run Model Summary:\n&quot;;
+    ret += &quot;Total Model Compute Time:   &quot; + std::to_string(m_time_cost) + &quot;s\n&quot;;
+    ret += &quot;Total Model Compute Token:  &quot; + std::to_string(m_past) + &quot;\n&quot;;
+    ret += &quot;Average Token Compute Time: &quot; +
+           std::to_string(m_time_cost * 1000 / m_past) + &quot;ms\n&quot;;
+    ret += &quot;Average Token Generation Speed: &quot; +
+           std::to_string(m_past / m_time_cost) + &quot;token/s\n&quot;;
+    return ret;
+}
+</code></pre>
+<p><code>decode_summary</code> 方法返回模型运行的摘要信息：</p>
+<ol>
+<li>总计算时间</li>
+<li>总计算 token 数量</li>
+<li>平均 token 计算时间</li>
+<li>平均 token 生成速度</li>
+</ol>
+<h2 id="3-工作流程">3. 工作流程</h2>
+<p><code>ModelImp</code> 类的典型工作流程如下：</p>
+<ol>
+<li>
+<p><strong>创建和初始化</strong>：</p>
+<pre><code class="language-cpp">ModelImp model_imp(config, &quot;llama&quot;);
+model_imp.load(&quot;path/to/model.bin&quot;);
+model_imp.init(40, 0.9f, 0.8f, 1.1f, 64, 42, -1);
+</code></pre>
+</li>
+<li>
+<p><strong>预填充</strong>：</p>
+<pre><code class="language-cpp">model_imp.prefill(&quot;你好，请介绍一下自己。&quot;);
+</code></pre>
+</li>
+<li>
+<p><strong>迭代生成</strong>：</p>
+<pre><code class="language-cpp">int token;
+std::string result;
+while (true) {
+    std::string next = model_imp.decode_iter(token);
+    if (token == end_token) break;
+    result += next;
+}
+</code></pre>
+</li>
+<li>
+<p><strong>获取摘要</strong>：</p>
+<pre><code class="language-cpp">std::string summary = model_imp.decode_summary();
+</code></pre>
+</li>
+</ol>
+<h2 id="4-关键数据结构">4. 关键数据结构</h2>
+<p><code>ModelImp</code> 类包含以下关键数据成员：</p>
+<ul>
+<li>
+<p><strong>设备和计算图</strong>：</p>
+<ul>
+<li><code>m_device</code>：计算设备（CPU 或 GPU）</li>
+<li><code>m_graph</code>：计算图，负责模型的结构和执行</li>
+</ul>
+</li>
+<li>
+<p><strong>模型参数</strong>：</p>
+<ul>
+<li><code>m_param</code>：LLM 模型参数</li>
+<li><code>m_config</code>：用户配置</li>
+<li><code>m_vocab</code>：词汇表</li>
+</ul>
+</li>
+<li>
+<p><strong>生成参数</strong>：</p>
+<ul>
+<li><code>m_top_k</code>、<code>m_top_p</code>、<code>m_temp</code>：采样参数</li>
+<li><code>m_repeat_penalty</code>、<code>m_repeat_last_n</code>：重复惩罚参数</li>
+<li><code>m_end_token</code>：结束 token</li>
+</ul>
+</li>
+<li>
+<p><strong>状态变量</strong>：</p>
+<ul>
+<li><code>m_past</code>：已处理的 token 数量</li>
+<li><code>m_pre_token</code>：上一个生成的 token</li>
+<li><code>m_last_queue</code>：最近生成的 token 队列，用于重复惩罚</li>
+<li><code>m_logist</code>：模型输出的 logits，表示下一个 token 的概率分布</li>
+</ul>
+</li>
+<li>
+<p><strong>性能统计</strong>：</p>
+<ul>
+<li><code>m_timer</code>：计时器，用于测量计算时间</li>
+<li><code>m_time_cost</code>：总计算时间</li>
+</ul>
+</li>
+</ul>
+<h2 id="5-采样算法">5. 采样算法</h2>
+<p><code>ModelImp</code> 类使用 <code>llama_sample_top_p_top_k</code> 函数进行采样，这是一个结合了 top-k 和 top-p（nucleus sampling）的采样方法：</p>
+<pre><code class="language-cpp">int32_t llama_sample_top_p_top_k(
+        const Vocab&amp; vocab, float* logits, const std::list&lt;int32_t&gt;&amp; last_n_tokens,
+        float repeat_penalty, int top_k, float top_p, float temp, std::mt19937&amp; rng) {
+    // 应用重复惩罚
+    for (auto token_id : last_n_tokens) {
+        logits[token_id] /= repeat_penalty;
+    }
+
+    // 应用温度
+    for (int i = 0; i &lt; vocab.id_to_token.size(); i++) {
+        logits[i] /= temp;
+    }
+
+    // 计算 softmax
+    float max_logit = -INFINITY;
+    for (int i = 0; i &lt; vocab.id_to_token.size(); i++) {
+        max_logit = std::max(max_logit, logits[i]);
+    }
+    
+    float sum = 0.0f;
+    for (int i = 0; i &lt; vocab.id_to_token.size(); i++) {
+        logits[i] = expf(logits[i] - max_logit);
+        sum += logits[i];
+    }
+    
+    for (int i = 0; i &lt; vocab.id_to_token.size(); i++) {
+        logits[i] /= sum;
+    }
+
+    // 找出 top-k 的 token
+    std::vector&lt;std::pair&lt;float, int&gt;&gt; candidates;
+    for (int i = 0; i &lt; vocab.id_to_token.size(); i++) {
+        candidates.push_back({logits[i], i});
+    }
+    
+    std::partial_sort(
+            candidates.begin(), candidates.begin() + top_k, candidates.end(),
+            [](const std::pair&lt;float, int&gt;&amp; a, const std::pair&lt;float, int&gt;&amp; b) {
+                return a.first &gt; b.first;
+            });
+    
+    candidates.resize(top_k);
+
+    // 应用 top-p（nucleus sampling）
+    float cumsum = 0.0f;
+    for (int i = 0; i &lt; candidates.size(); i++) {
+        cumsum += candidates[i].first;
+        if (cumsum &gt;= top_p) {
+            candidates.resize(i + 1);
+            break;
+        }
+    }
+
+    // 按概率采样
+    std::vector&lt;float&gt; probs;
+    for (auto&amp; candidate : candidates) {
+        probs.push_back(candidate.first);
+    }
+    
+    std::discrete_distribution&lt;&gt; dist(probs.begin(), probs.end());
+    return candidates[dist(rng)].second;
+}
+</code></pre>
+<p>这个采样算法的步骤如下：</p>
+<ol>
+<li>应用重复惩罚，降低最近生成的 token 的概率</li>
+<li>应用温度参数，控制分布的平滑程度</li>
+<li>计算 softmax，将 logits 转换为概率</li>
+<li>选择概率最高的 top-k 个 token</li>
+<li>应用 top-p 采样，只保留累积概率达到 p 的 token</li>
+<li>按概率采样最终的 token</li>
+</ol>
+<h2 id="6-分词算法">6. 分词算法</h2>
+<p><code>ModelImp</code> 类使用动态规划算法进行分词，尽量选择长度更长的 token：</p>
+<pre><code class="language-cpp">std::vector&lt;Vocab::Id&gt; ModelImp::tokenize(const std::string&amp; text, bool bos) {
+    std::vector&lt;Vocab::Id&gt; res;
+    std::vector&lt;int&gt; score;
+    std::vector&lt;Vocab::Id&gt; prev;
+    int len = text.length();
+
+    score.resize(len + 1);
+    prev.resize(len + 1);
+
+    // 前向传递：计算每个位置的最优分数和对应的 token
+    for (int i = 0; i &lt; len; i++) {
+        int max_len = std::min(len - i, MAX_TOKEN_LEN);
+        for (int sub_len = 1; sub_len &lt;= len - i; sub_len++) {
+            auto sub = text.substr(i, sub_len);
+            auto token = m_vocab-&gt;token_to_id.find(sub);
+            if (token != m_vocab-&gt;token_to_id.end()) {
+                int token_score = sub.length() * sub.length();
+                int local_score = score[i] + token_score;
+                int next = i + sub_len;
+                if (score[next] &lt; local_score) {
+                    score[next] = local_score;
+                    prev[next] = (*token).second;
+                }
+            }
+        }
+    }
+
+    // 后向传递：从末尾开始，根据前向传递的结果构建 token 序列
+    int i = len;
+    while (i &gt; 0) {
+        Vocab::Id token_id = prev[i];
+        if (token_id == 0) {
+            printf(&quot;failed to tokenize string!\n&quot;);
+            break;
+        }
+        res.push_back(token_id);
+        auto token = m_vocab-&gt;id_to_token[token_id].tok;
+        i -= token.length();
+    }
+
+    if (bos) {
+        res.push_back(1);  // BOS token
+    }
+
+    // 反转 token 序列，使其按正确的顺序排列
+    std::reverse(res.begin(), res.end());
+
+    return res;
+}
+</code></pre>
+<p>这个分词算法的特点是：</p>
+<ol>
+<li>使用动态规划找到最优的分词方式</li>
+<li>优先选择长度更长的 token，以减少序列长度</li>
+<li>支持添加 BOS（Beginning of Sequence）token</li>
+</ol>
+<h2 id="7-优化策略">7. 优化策略</h2>
+<p><code>ModelImp</code> 类实现了几种优化策略：</p>
+<ol>
+<li>
+<p><strong>预填充模式</strong>：</p>
+<pre><code class="language-cpp">m_graph-&gt;execute(tokens, m_logist, m_past, true);
+</code></pre>
+<p>预填充模式可以一次性处理多个 token，提高效率。</p>
+</li>
+<li>
+<p><strong>延迟加载</strong>：</p>
+<pre><code class="language-cpp">m_graph-&gt;load(fin, m_param, m_vocab);
+</code></pre>
+<p>模型权重采用延迟加载策略，只在需要时才从文件读取。</p>
+</li>
+<li>
+<p><strong>性能统计</strong>：</p>
+<pre><code class="language-cpp">auto start = m_timer.get_time();
+// ...
+auto end = m_timer.get_time();
+m_time_cost += end - start;
+</code></pre>
+<p>记录计算时间，用于性能分析和优化。</p>
+</li>
+<li>
+<p><strong>设备管理</strong>：</p>
+<pre><code class="language-cpp">if (token == m_end_token) {
+    m_device-&gt;deactive();
+}
+</code></pre>
+<p>在生成结束时停用设备，释放资源。</p>
+</li>
+</ol>
+<h2 id="8-与其他组件的交互">8. 与其他组件的交互</h2>
+<p><code>ModelImp</code> 类与框架的其他组件有密切的交互：</p>
+<ol>
+<li>
+<p><strong>与 Device 的交互</strong>：</p>
+<pre><code class="language-cpp">m_device = make_unique&lt;CPUDevice&gt;(KernelType::X86, nr_thread);
+</code></pre>
+<p>创建并管理计算设备，负责内存分配和计算执行。</p>
+</li>
+<li>
+<p><strong>与 Graph 的交互</strong>：</p>
+<pre><code class="language-cpp">m_graph = Graph::make_graph(user_config, m_device.get(), name);
+m_graph-&gt;load(fin, m_param, m_vocab);
+m_graph-&gt;execute(tokens, m_logist, m_past, prefill);
+</code></pre>
+<p>创建并管理计算图，负责模型的结构和执行。</p>
+</li>
+<li>
+<p><strong>与 Vocab 的交互</strong>：</p>
+<pre><code class="language-cpp">m_vocab = std::make_shared&lt;Vocab&gt;();
+auto tokens = tokenize(promote, true);
+</code></pre>
+<p>创建并管理词汇表，负责文本和 token 的转换。</p>
+</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p><code>ModelImp</code> 类是 InferLLM 框架的核心实现类，它负责模型的加载、初始化和推理过程。它通过与 Device、Graph 和 Vocab 等组件的交互，实现了高效的大型语言模型推理。它支持多种优化策略，如预填充模式、延迟加载和性能统计，以提高推理效率。它还实现了先进的采样算法和分词算法，以提高生成文本的质量。</p>
+<p>通过分析 <code>model_imp.h</code> 和 <code>model_imp.cpp</code>，我们可以看到 InferLLM 框架的设计思想和实现细节，这对于理解和使用框架非常有帮助。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(08)——Model类的实现(src/core/model.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-08/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-08/">
+        </link>
+        <updated>2025-04-01T07:41:22.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="model-类代码结构与功能实现分析">Model 类代码结构与功能实现分析</h1>
+<p><code>Model</code> 类是 InferLLM 框架的对外接口层，它封装了底层模型实现的细节，提供了一套简洁的 API 供用户使用。下面对 <code>model.h</code> 和 <code>model.cpp</code> 的代码结构和功能实现进行详细分析。</p>
+<h2 id="1-api-宏定义">1. API 宏定义</h2>
+<pre><code class="language-cpp">#if defined(_WIN32)
+#define API __declspec(dllexport)
+#else
+#define API __attribute__((visibility(&quot;default&quot;)))
+#endif
+</code></pre>
+<p>这个宏定义用于控制函数和类的导出属性，确保在不同平台上正确导出符号：</p>
+<ul>
+<li>在 Windows 平台上使用 <code>__declspec(dllexport)</code></li>
+<li>在其他平台上使用 <code>__attribute__((visibility(&quot;default&quot;)))</code></li>
+</ul>
+<h2 id="2-modelconfig-结构体">2. ModelConfig 结构体</h2>
+<pre><code class="language-cpp">struct ModelConfig {
+    //! dtype include 'float32','float16','int8','int4'
+    std::string compt_type = &quot;float32&quot;;
+    //! device_type include 'cpu','gpu'
+    std::string device_type = &quot;cpu&quot;;
+    uint32_t nr_thread;
+    uint32_t nr_ctx;
+    int32_t device_id;
+    bool enable_mmap;
+};
+</code></pre>
+<p><code>ModelConfig</code> 结构体定义了模型的配置参数：</p>
+<ul>
+<li><code>compt_type</code>：计算类型，支持 &quot;float32&quot;、&quot;float16&quot;、&quot;int8&quot;、&quot;int4&quot;</li>
+<li><code>device_type</code>：设备类型，支持 &quot;cpu&quot;、&quot;gpu&quot;</li>
+<li><code>nr_thread</code>：线程数量</li>
+<li><code>nr_ctx</code>：上下文长度</li>
+<li><code>device_id</code>：设备 ID（对于 GPU）</li>
+<li><code>enable_mmap</code>：是否启用内存映射</li>
+</ul>
+<h2 id="3-model-类">3. Model 类</h2>
+<p><code>Model</code> 类是框架的主要接口类，它使用了桥接模式，将具体实现委托给 <code>ModelImp</code> 类：</p>
+<pre><code class="language-cpp">class API Model {
+public:
+    //! 构造函数，创建指定类型的模型
+    Model(const ModelConfig&amp; config, const std::string&amp; model_name);
+
+    //! 加载模型
+    void load(const std::string&amp; model_path);
+
+    //! 初始化模型参数
+    void init(uint32_t top_k, float top_p, float temp, float repeat_penalty,
+              int repeat_last_n, int32_t seed, int32_t end_token);
+
+    //! 获取剩余 token 数量
+    uint32_t get_remain_token();
+
+    //! 重置 token
+    void reset_token();
+
+    //! 预填充模型
+    void prefill(const std::string&amp; promote);
+
+    //! 解码（带用户输入）
+    std::string decode(const std::string&amp; user_input, int&amp; token);
+
+    //! 迭代解码
+    std::string decode_iter(int&amp; token);
+
+    //! 获取解码摘要
+    std::string decode_summary() const;
+
+private:
+    std::shared_ptr&lt;ModelImp&gt; m_model_imp;
+};
+</code></pre>
+<h3 id="31-构造函数">3.1 构造函数</h3>
+<pre><code class="language-cpp">Model::Model(const ModelConfig&amp; config, const std::string&amp; model_name) {
+    //! TODO: create the model implement by the model name
+    m_model_imp = std::make_shared&lt;ModelImp&gt;(config, model_name);
+}
+</code></pre>
+<p>构造函数接收模型配置和模型名称，创建对应的 <code>ModelImp</code> 实例。注释中的 TODO 表明这里未来可能会根据模型名称创建不同的实现类。</p>
+<h3 id="32-load-方法">3.2 load 方法</h3>
+<pre><code class="language-cpp">void Model::load(const std::string&amp; model_path) {
+    m_model_imp-&gt;load(model_path);
+}
+</code></pre>
+<p><code>load</code> 方法从指定路径加载模型文件，它直接调用 <code>ModelImp</code> 的 <code>load</code> 方法。</p>
+<h3 id="33-init-方法">3.3 init 方法</h3>
+<pre><code class="language-cpp">void Model::init(
+        uint32_t top_k, float top_p, float temp, float repeat_penalty,
+        int repeat_last_n, int32_t seed, int32_t end_token) {
+    m_model_imp-&gt;init(
+            top_k, top_p, temp, repeat_penalty, repeat_last_n, seed, end_token);
+}
+</code></pre>
+<p><code>init</code> 方法初始化模型的生成参数：</p>
+<ul>
+<li><code>top_k</code>：保留概率最高的 k 个 token</li>
+<li><code>top_p</code>：保留累积概率达到 p 的 token</li>
+<li><code>temp</code>：温度参数，控制生成的随机性</li>
+<li><code>repeat_penalty</code>：重复惩罚，降低已生成 token 的概率</li>
+<li><code>repeat_last_n</code>：考虑最后 n 个 token 进行重复惩罚</li>
+<li><code>seed</code>：随机数种子</li>
+<li><code>end_token</code>：结束 token</li>
+</ul>
+<h3 id="34-token-管理方法">3.4 token 管理方法</h3>
+<pre><code class="language-cpp">uint32_t Model::get_remain_token() {
+    return m_model_imp-&gt;get_remain_token();
+}
+
+void Model::reset_token() {
+    return m_model_imp-&gt;reset_token();
+}
+</code></pre>
+<p>这两个方法用于管理 token：</p>
+<ul>
+<li><code>get_remain_token</code>：获取剩余可生成的 token 数量</li>
+<li><code>reset_token</code>：重置 token 计数，通常在开始新的生成任务时调用</li>
+</ul>
+<h3 id="35-生成方法">3.5 生成方法</h3>
+<pre><code class="language-cpp">void Model::prefill(const std::string&amp; promote) {
+    return m_model_imp-&gt;prefill(promote);
+}
+
+std::string Model::decode(const std::string&amp; user_input, int&amp; token) {
+    return m_model_imp-&gt;decode(user_input, token);
+}
+
+std::string Model::decode_iter(int&amp; token) {
+    return m_model_imp-&gt;decode_iter(token);
+}
+
+std::string Model::decode_summary() const {
+    return m_model_imp-&gt;decode_summary();
+}
+</code></pre>
+<p>这些方法用于文本生成：</p>
+<ul>
+<li><code>prefill</code>：预填充模型，处理初始提示文本</li>
+<li><code>decode</code>：解码用户输入，生成下一个 token</li>
+<li><code>decode_iter</code>：迭代解码，生成下一个 token（不需要用户输入）</li>
+<li><code>decode_summary</code>：获取生成摘要，通常包含生成统计信息</li>
+</ul>
+<h2 id="4-桥接模式的应用">4. 桥接模式的应用</h2>
+<p><code>Model</code> 类采用了桥接模式，将接口与实现分离：</p>
+<ul>
+<li><code>Model</code> 类提供稳定的对外接口</li>
+<li><code>ModelImp</code> 类负责具体实现</li>
+<li>这种设计使得可以在不改变接口的情况下，更换或升级底层实现</li>
+</ul>
+<p>桥接模式的优点在这里得到了充分体现：</p>
+<ol>
+<li><strong>接口稳定</strong>：用户代码只需要依赖 <code>Model</code> 类的接口，不需要关心具体实现</li>
+<li><strong>实现可替换</strong>：可以根据不同的模型类型或硬件平台，提供不同的 <code>ModelImp</code> 实现</li>
+<li><strong>隐藏复杂性</strong>：复杂的模型加载、推理逻辑都封装在 <code>ModelImp</code> 中，对用户透明</li>
+</ol>
+<h2 id="5-工作流程">5. 工作流程</h2>
+<p>使用 <code>Model</code> 类的典型工作流程如下：</p>
+<ol>
+<li>
+<p><strong>创建模型</strong>：</p>
+<pre><code class="language-cpp">ModelConfig config;
+config.compt_type = &quot;float32&quot;;
+config.device_type = &quot;cpu&quot;;
+config.nr_thread = 4;
+config.nr_ctx = 2048;
+config.enable_mmap = true;
+
+Model model(config, &quot;llama&quot;);
+</code></pre>
+</li>
+<li>
+<p><strong>加载模型</strong>：</p>
+<pre><code class="language-cpp">model.load(&quot;path/to/model.bin&quot;);
+</code></pre>
+</li>
+<li>
+<p><strong>初始化参数</strong>：</p>
+<pre><code class="language-cpp">model.init(40, 0.9f, 0.8f, 1.1f, 64, 42, -1);
+</code></pre>
+</li>
+<li>
+<p><strong>预填充模型</strong>：</p>
+<pre><code class="language-cpp">model.prefill(&quot;你好，请介绍一下自己。&quot;);
+</code></pre>
+</li>
+<li>
+<p><strong>迭代生成</strong>：</p>
+<pre><code class="language-cpp">int token;
+std::string result;
+while (true) {
+    std::string next = model.decode_iter(token);
+    if (token == end_token) break;
+    result += next;
+}
+</code></pre>
+</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p><code>Model</code> 类是 InferLLM 框架的对外接口层，它通过桥接模式封装了底层模型实现的细节，提供了一套简洁、稳定的 API 供用户使用。它支持模型加载、参数配置和文本生成等核心功能，使用户可以方便地使用大型语言模型进行推理。</p>
+<p>通过分析 <code>model.h</code> 和 <code>model.cpp</code>，我们可以看到 InferLLM 框架采用了良好的设计模式和接口抽象，使得框架具有良好的可扩展性和可维护性。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[InferLLM大模型推理框架项目(07)——KvStorage类的实现(src/core/kvstorage.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-07/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-07/">
+        </link>
+        <updated>2025-03-30T07:35:29.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="kvstorage-类代码结构与功能实现分析">KvStorage 类代码结构与功能实现分析</h1>
+<p><code>KvStorage</code> 类是 InferLLM 框架中用于存储注意力机制中的 Key 和 Value 缓存的特殊张量类。它继承自 <code>Tensor</code> 类，并提供了动态扩展内存的能力，以适应长序列生成过程中不断增长的 KV 缓存需求。</p>
+<h2 id="1-kvstorageconfig-类">1. KvStorageConfig 类</h2>
+<p>首先，框架定义了一个单例类 <code>KvStorageConfig</code>，用于管理 KV 缓存的全局配置：</p>
+<pre><code class="language-cpp">class KvStorageConfig {
+public:
+    constexpr static uint32_t START_KV_INDEX = 100;  // 初始 KV 缓存大小
+    constexpr static uint32_t KV_STEP = 100;         // KV 缓存扩展步长
+    static std::shared_ptr&lt;KvStorageConfig&gt; instance;
+    
+    // 单例模式获取实例
+    static std::shared_ptr&lt;KvStorageConfig&gt; get_instance() {
+        if (instance == nullptr) {
+            instance = std::make_shared&lt;KvStorageConfig&gt;();
+        }
+        return instance;
+    }
+    
+    // 增加 KV 缓存计数
+    uint32_t increase_count() {
+        m_kv_count++;
+        return m_kv_count;
+    }
+    
+    // 获取起始索引
+    uint32_t get_start_index() { return START_KV_INDEX + m_kv_count * 2; }
+    
+    // 获取当前计数
+    uint32_t get_count() { return m_kv_count; }
+    
+private:
+    uint32_t m_kv_count = 0;  // KV 缓存计数
+};
+</code></pre>
+<p>这个类使用单例模式，确保全局只有一个实例，用于跟踪和管理所有 KV 缓存的分配。它定义了两个关键常量：</p>
+<ul>
+<li><code>START_KV_INDEX</code>：初始 KV 缓存大小，设为 100</li>
+<li><code>KV_STEP</code>：KV 缓存扩展步长，也设为 100</li>
+</ul>
+<h2 id="2-kvstorage-类">2. KvStorage 类</h2>
+<p><code>KvStorage</code> 类继承自 <code>Tensor</code> 类，并添加了管理 KV 缓存的特殊功能：</p>
+<pre><code class="language-cpp">class KvStorage : public Tensor {
+public:
+    // 构造函数
+    KvStorage(std::vector&lt;size_t&gt; shape, DType dtype, Device* device);
+    
+    // 析构函数
+    ~KvStorage() {
+        auto data = ptr();
+        device()-&gt;aligned_free(data);
+    }
+    
+    // 获取当前数据指针
+    void* get_current_data();
+    
+    // 设置共享内存
+    void set_shared_memory(void* data, size_t length = 0) override;
+    
+    // 准备指定长度的数据
+    TensorState prepare_data_with_length(uint32_t len);
+    
+    // 增加索引
+    size_t add_id(uint32_t id);
+    
+    // 获取当前索引
+    size_t current_index() const { return m_store_id; }
+    
+    // 重置索引
+    void reset_id();
+    
+private:
+    size_t m_store_id;    // 当前存储索引
+    size_t m_total_id;    // 总索引数
+    uint32_t m_curr_id;   // 当前分配的索引数
+    void* m_curr_data;    // 当前数据指针
+    uint32_t m_kv_id;     // KV 缓存 ID
+};
+</code></pre>
+<h3 id="21-构造函数">2.1 构造函数</h3>
+<pre><code class="language-cpp">KvStorage::KvStorage(std::vector&lt;size_t&gt; shape, DType dtype, Device* device)
+        : Tensor(device, &quot;kvstorage&quot;) {
+    m_store_id = 0;
+    m_total_id = shape[0];
+    m_kv_id = KvStorageConfig::get_instance()-&gt;increase_count();
+    m_curr_id = KvStorageConfig::get_instance()-&gt;get_start_index();
+    //! only allocate the memory of length m_curr_id * embd
+    shape[0] = m_curr_id;
+    set_shape(shape, dtype);
+    size_t len = length_in_byte();
+    //! no need use memory pool
+    auto data = device-&gt;aligned_alloc(len);
+    set_shared_memory(data, len);
+}
+</code></pre>
+<p>构造函数初始化了 KV 缓存的关键参数：</p>
+<ol>
+<li>设置当前存储索引 <code>m_store_id</code> 为 0</li>
+<li>记录总索引数 <code>m_total_id</code></li>
+<li>从 <code>KvStorageConfig</code> 获取一个新的 KV 缓存 ID</li>
+<li>获取初始分配的索引数 <code>m_curr_id</code></li>
+<li>调整形状，只分配初始需要的内存</li>
+<li>使用 <code>aligned_alloc</code> 分配对齐内存</li>
+<li>设置为共享内存</li>
+</ol>
+<p>注意，这里没有使用设备的内存池，而是直接分配对齐内存，这是因为 KV 缓存需要长期存在，不适合使用内存池管理。</p>
+<h3 id="22-set_shared_memory-方法">2.2 set_shared_memory 方法</h3>
+<pre><code class="language-cpp">void KvStorage::set_shared_memory(void* data, size_t size) {
+    Tensor::set_shared_memory(data, size);
+    m_curr_data =
+            static_cast&lt;char*&gt;(ptr()) +
+            static_cast&lt;size_t&gt;((stride()[0] * m_store_id * dtype_in_byte(dtype())));
+}
+</code></pre>
+<p>这个方法重写了 <code>Tensor</code> 类的 <code>set_shared_memory</code> 方法，除了设置共享内存外，还更新了当前数据指针 <code>m_curr_data</code>。</p>
+<h3 id="23-prepare_data_with_length-方法">2.3 prepare_data_with_length 方法</h3>
+<pre><code class="language-cpp">TensorState KvStorage::prepare_data_with_length(uint32_t len) {
+    Tensor::prepare_data();
+    //! if memory is not enough, allocate a new memory and copy the data to the new
+    if (m_store_id + len &gt;= m_curr_id) {
+        auto shape = this-&gt;shape();
+        shape[0] = m_curr_id + KvStorageConfig::KV_STEP;
+        size_t old_len = length_in_byte();
+        void* old_ptr = ptr();
+
+        set_shape(shape, dtype());
+        size_t len = length_in_byte();
+        auto data = device()-&gt;aligned_alloc(len);
+        device()-&gt;device2device_copy(data, old_ptr, old_len);
+
+        device()-&gt;aligned_free(old_ptr);
+
+        set_shared_memory(data, len);
+        m_curr_id += KvStorageConfig::KV_STEP;
+    }
+    m_curr_data =
+            static_cast&lt;char*&gt;(ptr()) +
+            static_cast&lt;size_t&gt;((stride()[0] * m_store_id * dtype_in_byte(dtype())));
+    return TensorState::Own;
+}
+</code></pre>
+<p>这是 <code>KvStorage</code> 类的核心方法，它实现了动态扩展内存的功能：</p>
+<ol>
+<li>首先调用基类的 <code>prepare_data</code> 方法确保数据已准备好</li>
+<li>检查当前内存是否足够存储新的数据</li>
+<li>如果内存不足，则：
+<ul>
+<li>计算新的形状，增加 <code>KV_STEP</code> 个索引</li>
+<li>记录旧内存的长度和指针</li>
+<li>更新形状</li>
+<li>分配新的内存</li>
+<li>将旧内存的数据复制到新内存</li>
+<li>释放旧内存</li>
+<li>设置新的共享内存</li>
+<li>更新当前分配的索引数</li>
+</ul>
+</li>
+<li>更新当前数据指针</li>
+<li>返回 <code>TensorState::Own</code> 表示数据已准备好</li>
+</ol>
+<p>这个方法确保了 KV 缓存可以在需要时动态扩展，而不会丢失已有的数据。</p>
+<h3 id="24-其他方法">2.4 其他方法</h3>
+<pre><code class="language-cpp">void* KvStorage::get_current_data() {
+    INFER_ASSERT(
+            is_own(),
+            &quot;The Kvstorage is not ready, please call prepare_data ahead.&quot;);
+    m_curr_data = static_cast&lt;char*&gt;(ptr()) +
+                  static_cast&lt;size_t&gt;(
+                          (stride()[0] * m_store_id * dtype_in_byte(dtype())));
+    return m_curr_data;
+}
+</code></pre>
+<p><code>get_current_data</code> 方法返回当前数据指针，它首先检查数据是否已准备好，然后计算当前数据的位置并返回。</p>
+<pre><code class="language-cpp">size_t KvStorage::add_id(uint32_t id) {
+    INFER_ASSERT(id + m_store_id &lt; m_total_id, &quot;KvStorage add id error!&quot;);
+    m_store_id += id;
+    m_curr_data = static_cast&lt;char*&gt;(ptr()) +
+                  static_cast&lt;size_t&gt;(
+                          (stride()[0] * m_store_id * dtype_in_byte(dtype())));
+    return m_store_id;
+}
+</code></pre>
+<p><code>add_id</code> 方法增加当前存储索引，并更新当前数据指针。它首先检查增加后的索引是否超过总索引数，然后更新索引和数据指针。</p>
+<pre><code class="language-cpp">void KvStorage::reset_id() {
+    m_store_id = 0;
+    m_curr_data = ptr();
+}
+</code></pre>
+<p><code>reset_id</code> 方法重置当前存储索引和数据指针，通常在处理新的序列时调用。</p>
+<h2 id="3-kvstorage-的工作流程">3. KvStorage 的工作流程</h2>
+<p>KvStorage 的典型工作流程如下：</p>
+<ol>
+<li>
+<p><strong>创建 KvStorage</strong>：</p>
+<pre><code class="language-cpp">auto kv_cache = std::make_shared&lt;KvStorage&gt;(shape, dtype, device);
+</code></pre>
+<p>这会分配初始大小的内存。</p>
+</li>
+<li>
+<p><strong>准备数据</strong>：</p>
+<pre><code class="language-cpp">kv_cache-&gt;prepare_data_with_length(len);
+</code></pre>
+<p>这会确保有足够的内存存储新的数据，必要时会扩展内存。</p>
+</li>
+<li>
+<p><strong>获取当前数据指针</strong>：</p>
+<pre><code class="language-cpp">auto data = kv_cache-&gt;get_current_data();
+</code></pre>
+<p>这会返回当前数据的指针，用于读写数据。</p>
+</li>
+<li>
+<p><strong>增加索引</strong>：</p>
+<pre><code class="language-cpp">kv_cache-&gt;add_id(1);
+</code></pre>
+<p>这会增加当前存储索引，通常在处理完一个 token 后调用。</p>
+</li>
+<li>
+<p><strong>重置索引</strong>：</p>
+<pre><code class="language-cpp">kv_cache-&gt;reset_id();
+</code></pre>
+<p>这会重置当前存储索引，通常在处理新的序列时调用。</p>
+</li>
+</ol>
+<h2 id="4-kvstorage-的优化策略">4. KvStorage 的优化策略</h2>
+<p>KvStorage 实现了几种优化策略：</p>
+<ol>
+<li><strong>延迟分配</strong>：初始只分配一部分内存，随着需求增加再扩展</li>
+<li><strong>内存对齐</strong>：使用对齐内存分配，提高内存访问效率</li>
+<li><strong>内存复用</strong>：在扩展内存时，复制已有数据，避免重新计算</li>
+<li><strong>索引管理</strong>：通过索引管理数据位置，避免不必要的内存移动</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p>KvStorage 类是 InferLLM 框架中用于管理注意力机制 KV 缓存的特殊张量类。它通过动态扩展内存的方式，支持长序列生成过程中不断增长的 KV 缓存需求。它的设计考虑了内存效率和访问效率，是框架中实现高效推理的关键组件之一。</p>
+]]></content>
+    </entry>
+</feed>
