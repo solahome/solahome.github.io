@@ -1,0 +1,2282 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="LlamaLike 模型代码结构与功能实现分析
+llama_like.h 和 llama_like.cpp 文件实现了 InferLLM 框架中对类 Llama 架构模型（如 Baichuan 和 Llama2）的支持。这些文件定义了 Ll..." />
+    <meta name="keywords" content="大语言模型,大语言模型推理,AI-Infra" />
+    <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
+    <!-- 代码渲染风格css -->
+    
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/styles/vs2015.min.css">
+    
+    <!-- 代码高亮插件 -->
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/highlight.min.js"></script>
+    <!-- 代码复制插件 -->
+    <script src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/clipboard.min.js"></script>
+    <!-- live2d插件 -->
+    <link rel="stylesheet" href="https://solahome.github.io/media/css/live2d.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
+    <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/5.13.1/css/all.min.css" rel="stylesheet">
+    <!-- 数学公式 -->
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0-beta/dist/katex.min.css"
+        integrity="sha384-9tPv11A+glH/on/wEu99NVwDPwkMQESOocs/ZGXPoIiLE8MU/qkqUcZ3zzL+6DuH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.10.0-beta/dist/katex.min.js"
+        integrity="sha384-U8Vrjwb8fuHMt6ewaCy8uqeUXv4oitYACKdB0VziCerzt011iQ/0TqlSlv8MReCm" crossorigin="anonymous">
+        </script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.10.0-beta/dist/contrib/auto-render.min.js"
+        integrity="sha384-aGfk5kvhIq5x1x5YdvCp4upKZYnA8ckafviDpmWEKp4afOZEqOli7gqSnh8I6enH" crossorigin="anonymous">
+        </script>
+    <script>
+        renderMathInElement(document.body, {
+            delimiters: [{
+                left: "$$",
+                right: "$$",
+                display: true
+            },
+            {
+                left: "$",
+                right: "$",
+                display: false
+            }
+            ]
+        });
+    </script>
+    
+    <title>[InferLLM大模型推理框架项目](16)LlamaLike模型代码实现(src/graph/llama_like.h+.cpp)</title>
+
+    <!-- 大纲索引css调整 -->
+    
+    <style>
+        .markdownIt-TOC {
+            margin-left: 28%;
+            padding-left: 2px;
+            width: 80%;
+        }
+
+        .markdownIt-TOC li {
+            padding-left: 8%;
+        }
+    </style>
+    
+</head>
+
+<body>
+    <div id="landlord">
+        <div class="message" style="opacity:0"></div>
+        <canvas id="live2d" width="240" height="250" class="live2d"></canvas>
+    </div>
+    <div id="domainname" style="display:none">https://solahome.github.io</div>
+    <div id="content">
+        <div>
+            <!----------- 移动端导航栏👇 ----------------->
+            <div id="bar">
+                <style>
+  .navmobile {
+    z-index: 15;
+    max-height: 40vh;
+    overflow-y: scroll;
+    overflow-x: hidden;
+  }
+
+  @media screen and (max-width: 1200px) {
+    .navbar {
+      max-width: 100vw;
+    }
+  }
+
+  @media screen and (max-width:1200px) and (min-width: 768px) {
+    @media (min-width: 768px) {
+      .navbar-nav {
+        float: right;
+        margin: 0;
+      }
+    }
+  }
+
+  @media screen and (max-width:768px) {
+    .mbapspan {
+      padding: 0;
+    }
+  }
+</style>
+<div class="pjaxloading"  onclick="pjaxloadingClose()">
+  <div class="loadingbackground"></div>
+  <div id="loading">
+    <div class="loading">
+    </div>
+  </div>
+</div>
+<nav class="navbar navbar-inverse navbar-fixed-top navmobile">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#barmenu"
+        aria-expanded="false" id="barbutton">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a data-pjax class="navbar-brand" style="color:white" href="https://solahome.github.io">sola的小屋&nbsp;&nbsp;|</a>
+      <span class="navbar-brand mbapspan"><i id="mbaplayer" class="fa fa-play-circle-o" aria-hidden="true"
+          style="font-size: 28px;top: 12px;position: absolute;" onclick="aplayerPlay();"></i></span>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="barmenu">
+      <ul class="nav navbar-nav">
+        
+        
+        <li>
+          <a data-pjax href="/" style="color:white">
+            首页
+          </a>
+        </li>
+        
+        
+        
+        <li>
+          <a data-pjax href="/archives" style="color:white">
+            归档
+          </a>
+        </li>
+        
+        
+        
+        <li>
+          <a data-pjax href="/tags" style="color:white">
+            标签
+          </a>
+        </li>
+        
+        
+        
+        <li>
+          <a data-pjax href="/post/about" style="color:white">
+            关于
+          </a>
+        </li>
+        
+        
+        
+        <li><a data-pjax href="https://solahome.github.io/talk" style="color:white">说说</a></li>
+        
+        
+          
+        <li><a data-pjax href="https://solahome.github.io/friends" style="color:white">友链</a></li>
+
+        
+        </ul>
+      </div><!-- /.navbar-collapse -->
+    </div><!-- /.container-fluid -->
+  </nav>
+
+
+  <!-- 引入jQuery核心js文件 -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
+  <script>
+    let btstate = false;
+    var bt = $("#barbutton");
+    var bm = $("#barmenu");
+    bt.click(function () {
+      dropdown();
+    })
+    function dropdown() {
+      console.log(btstate);
+      //下拉
+      if (btstate == false) {
+        bt.removeClass("collapsed");
+        bt.attr("aria-expanded", "true");
+        bm.attr("aria-expanded", "true")
+        bm.fadeIn(700);
+        btstate = true;
+      }
+      else {
+        bt.addClass("collapsed");
+        bt.attr("aria-expanded", "false");
+        bm.removeClass("in");
+        bm.hide();
+        bm.attr("aria-expanded", "false");
+        btstate = false;
+      }
+    }
+  </script> 
+            </div>
+            <!----------- 移动端导航栏👆 ----------------->
+
+            <!--------------- pc端菜单栏👇 ---------------->
+            <div class="side"><head>
+    <link rel="stylesheet" href="https://solahome.github.io/media/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://solahome.github.io/styles/main.css">
+    
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/styles/vs2015.min.css">
+    
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/clipboard.min.js"></script>
+    <link rel="stylesheet" href="https://solahome.github.io/media/css/live2d.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
+    <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/5.13.1/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- fancybox -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+    <script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script>
+
+
+    <!--------- 数学公式👇---- -->
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0-beta/dist/katex.min.css"
+        integrity="sha384-9tPv11A+glH/on/wEu99NVwDPwkMQESOocs/ZGXPoIiLE8MU/qkqUcZ3zzL+6DuH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.10.0-beta/dist/katex.min.js"
+        integrity="sha384-U8Vrjwb8fuHMt6ewaCy8uqeUXv4oitYACKdB0VziCerzt011iQ/0TqlSlv8MReCm" crossorigin="anonymous">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.10.0-beta/dist/contrib/auto-render.min.js"
+        integrity="sha384-aGfk5kvhIq5x1x5YdvCp4upKZYnA8ckafviDpmWEKp4afOZEqOli7gqSnh8I6enH" crossorigin="anonymous">
+    </script>
+    <script>
+        renderMathInElement(document.body, {
+            delimiters: [{
+                    left: "$$",
+                    right: "$$",
+                    display: true
+                },
+                {
+                    left: "$",
+                    right: "$",
+                    display: false
+                }
+            ]
+        });
+    </script>
+    
+    <!--------- 数学公式👆----------------- -->
+    <!--------- daovocie功能👇 ------------------->
+    
+    <!--------- daovocie功能👆 ------------------->
+    <!-- -----------------twikoo评论系统引入👇 --------->
+    <script src="https://cdn.jsdelivr.net/npm/twikoo@1.3.1/dist/twikoo.all.min.js"></script>
+    <!-- -----------------twikoo评论系统引入👆 --------->
+    <!---------------- leancloud api 功能依赖引入👇 -------->
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@3.13.0/dist/av-min.js"></script>
+    <!---------------- leancloud api 功能依赖引入👆 -------->
+    <!------------------ valine评论系统引入👇 ------------------>
+    <script src="https://solahome.github.io/media/js/valine.min.js"></script>
+    <!------------------ valine评论系统引入👆 ------------------>
+    <!---------------- 今日诗词api功能依赖👇 ----------------------->
+    <script src="https://sdk.jinrishici.com/v2/browser/jinrishici.js" charset="utf-8"></script>
+    <!---------------- 今日诗词api功能依赖👆 ----------------------->
+    <!---------------- 今日诗词api功能依赖👇 ----------------------->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ispeak-bber/ispeak-bber.min.js" charset="utf-8"></script>
+    <!---------------- 哔哔功能依赖👆 ----------------------->
+
+
+</head>
+
+<style>
+    body {
+        overflow-x: hidden;
+        height: 100vh;
+        overflow-y: scroll;
+        cursor: url("https://solahome.github.io/media/images/mouse_cursor.png"), auto
+    }
+</style>
+
+<body>
+    <!--=------ 页面加载动态画面👇 --------------->
+    <div class="pjaxloading" onclick="pjaxloadingClose()">
+        <div class="loadingbackground"></div>
+        <div id="loading-aname">
+            <div class="loading-aname">
+            </div>
+        </div>
+    </div>
+    <!--=------ 页面加载动态画面👆 --------------->
+
+    <!--------------- 左侧菜单栏👇 ------------------------>
+    
+    <div id=side>
+        <div class="r_m_div">
+            <a onclick="showAaplayer()"><i style="font-size: 20px;"><img
+                        src='https://solahome.github.io/media/images/music.png' alt="音乐播放器" class="musicbtn"></i></a>
+        </div>
+        <div class="avatar-border">
+            <img src="https://solahome.github.io/images/avatar.png?v=1750254968881" class="avatar">
+        </div>
+        <div class="sitename">sola的小屋</div>
+        <span class="description" data-text='["故事的结尾总写在开头"]'>&nbsp;</span>
+        <div class="siteinfocontainer">
+            <span class="siteinfo">文章</span>
+            <span class="siteinfo">标签</span>
+        </div>
+        <div class="siteinfocontainer">
+            <span class="siteinfo" id="siteinfo-postsnum"></span>
+            <span class="siteinfo">20</span>
+        </div>
+        
+        <div class="search">
+            <!-- <input type="text" class="search-input" placeholder="标题搜索(●'◡'●)" /> -->
+            <input type="text" class="search-input" placeholder="标题搜索 ⚆_⚆ つ♡">
+            <div class="search-results"></div>
+        </div>
+        
+    <div class="share-button">
+        <span></span>
+        
+        <a href="https://github.com/solahome" target="_blank"><i style="font-size: 20px;"><img class="icon"
+                    src="https://solahome.github.io/media/images/github.png" alt=""></i></a>
+        
+        
+        
+        <a href="https://www.zhihu.com/people/ovo-27-42-70" target="_blank"><i style="font-size: 20px;"><img class="icon"
+                    src="https://solahome.github.io/media/images/zh.png" alt=""></i></a>
+        
+        
+        
+        
+        
+        
+    </div>
+    <div id="qq" style="display:none"></div>
+    <!------------ 加载菜单按钮👇 ------------------------->
+    <div class="menucontainer">
+        
+        
+        <div class="mchocie description">
+            <a data-pjax href="/" class="menubutton" style="margin-right: 15px;">
+                <i><img class="icon menuicon" src="" alt="首页"></i>&nbsp;<span
+                    data-text="首页">首页</span>
+            </a>
+        </div>
+        
+        
+        
+        <div class="mchocie description">
+            <a data-pjax href="/archives" class="menubutton" style="margin-right: 15px;">
+                <i><img class="icon menuicon" src="" alt="归档"></i>&nbsp;<span
+                    data-text="归档">归档</span>
+            </a>
+        </div>
+        
+        
+        
+        <div class="mchocie description">
+            <a data-pjax href="/tags" class="menubutton" style="margin-right: 15px;">
+                <i><img class="icon menuicon" src="" alt="标签"></i>&nbsp;<span
+                    data-text="标签">标签</span>
+            </a>
+        </div>
+        
+        
+        
+        <div class="mchocie description">
+            <a data-pjax href="/post/about" class="menubutton" style="margin-right: 15px;">
+                <i><img class="icon menuicon" src="" alt="关于"></i>&nbsp;<span
+                    data-text="关于">关于</span>
+            </a>
+        </div>
+        
+        
+
+        
+        <div class="mchocie description">
+            <a data-pjax href="https://solahome.github.io/talk" class="menubutton" style="margin-right: 15px;">
+                <i><img class="icon menuicon" src="" alt="说说"></i>&nbsp;<span data-text="说说">说说</span>
+            </a>
+        </div>
+        
+        
+        
+        <div class="mchocie description">
+            <a data-pjax href="https://solahome.github.io/friends" class="menubutton" style="margin-right: 15px;">
+                <i><img class="icon menuicon" src="" alt="友人帐"></i>&nbsp;<span data-text="友人帐">友人帐</span>
+            </a>
+        </div>
+        
+        <!--  -->
+    </div>
+    <!------------ 加载菜单按钮👆 ------------------------->
+    <hr>
+    <style>
+    .copyright {
+        font-size: 15px;
+        color: #d9d9d9;
+    }
+
+
+    @media screen and (min-width: 1200px) {
+        .foot {
+            width: 100%;
+            height: 130px;
+        }
+    }
+
+    @media screen and (max-width: 1200px) {
+        .foot {
+            display: none;
+        }
+    }
+</style>
+
+<body>
+    <div class="foot">
+        <div id="footinfo">Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | Theme: <a
+                href="https://github.com/850552586/gridea-theme-fog">Fog</a>
+            <div>
+                
+                <div id="sitegotimeDate">载入天数...</div>
+                <div id="sitegotimes">载入时分秒...</div>
+                <div id="cussitetime" style="display:none">07/20/2020</div>
+                
+            </div>
+            <div>
+                
+                <script async
+                    src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/busuanzi.pure.mini.js"></script>
+                <div id="vistornum" style="margin:0">
+                    <span id="busuanzi_container_site_uv">
+                        <i class="fa fa-heart" aria-hidden="true" style="color: red;"></i> 总访问量:<span
+                            id="busuanzi_value_site_pv"></span>&nbsp;&nbsp;|&nbsp;&nbsp;
+                        <i class="fa fa-user-o" aria-hidden="true"></i> 访问人数:<span id="busuanzi_value_site_uv"></span>
+                    </span>
+                </div>
+                
+            </div>
+            <div class="copyright" style="color:white;text-align: center;"> 
+            </div>
+        </div>
+
+
+
+    </div>
+</body>
+
+<script>
+    //----------------------站点运行时间
+    var now = new Date();
+
+    function createtime() {
+        var sitegotime = document.getElementById("cussitetime").innerHTML + " 00:00:00";
+        var grt = new Date(sitegotime); //此处修改你的建站时间或者网站上线时间 
+        now.setTime(now.getTime() + 250);
+        days = (now - grt) / 1000 / 60 / 60 / 24;
+        dnum = Math.floor(days);
+        hours = (now - grt) / 1000 / 60 / 60 - (24 * dnum);
+        hnum = Math.floor(hours);
+        if (String(hnum).length == 1) {
+            hnum = "0" + hnum;
+        }
+        minutes = (now - grt) / 1000 / 60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes);
+        if (String(mnum).length == 1) {
+            mnum = "0" + mnum;
+        }
+        seconds = (now - grt) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds);
+        if (String(snum).length == 1) {
+            snum = "0" + snum;
+        }
+        document.getElementById("sitegotimeDate").innerHTML = "本站已安全运行 " + dnum + " 天 ";
+        document.getElementById("sitegotimes").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+
+    let intervalId = setInterval("createtime()", 250);
+</script>
+
+    </div>
+
+    <img class="moon" src="https://solahome.github.io/media/images/moon.png" onclick="moonlight()">
+    <script src="https://solahome.github.io/media/js/wordshow.js"></script>
+    
+    <!--------------- 左侧菜单栏👆 ------------------------>
+
+    <!----------------- 顶部菜单栏👇 ------------------------>
+    
+    <!----------------- 顶部菜单栏👆 ------------------------>
+
+<!--核心功能加载-->
+<script src="https://solahome.github.io/media/js/mainfunc.js"></script>
+
+<!------------- Fog1.0版本彩蛋👇 -------------->
+    <!-- <section id="terrestrial" class="popup">
+        <a href="#" class="back">&lt; back</a>
+    </section>
+
+    <div class="flycontainer">
+        <div class="flyword">御风飞行中...</div>
+    </div>
+
+    <script>
+        $("#fog_go").click(function(){fog_go()});
+        async function fog_go(){
+            $(".bars").hide()
+            $("#live2d").hide()
+            await sleep(3000);
+            $(".flycontainer").css("display","flex");
+            $(".popup").fadeOut(500)
+            await sleep(2000);
+            var sitename = "sola的小屋";
+            getFogUser(sitename);
+        }
+
+        function fog_goregis(){
+            var sitename = "sola的小屋";
+            var siteurl = "https://solahome.github.io";
+            regisFogUser(sitename,siteurl);
+        }
+        fog_goregis();
+    </script> -->
+<!------------- Fog1.0版本彩蛋👆 -------------->
+<script>
+    function change_topmenu(){
+        tmcolor = "antiquewhite"
+        tsnamecolor = "antiquewhite"
+        $(".navbar-inverse .navbar-nav>li>a").css("color",tmcolor)
+        $(".navbar-inverse .navbar-brand").css("color",tsnamecolor)
+        $(".navbar-fixed-top").css("border-radius","0 0 10px 10px")
+    }
+</script>
+
+<!------ 根据自定义配置声明变量👇 --------------------->
+    
+    <script>
+        var postnumChoice = false
+    </script>
+    
+    
+    <script>
+        var shareChoice = true
+    </script>
+    
+    
+    <script>
+        var donateChoice = true
+    </script>
+    
+    
+    <script>
+        var searchChoice = true
+    </script>
+    
+    <script>let postsnum = 0;</script>
+    <div id="side-posttitle" style="display: none;">
+    
+    
+    [InferLLM大模型推理框架项目](27)kern中ARM优化模块的optimized代码分析(src/kern/optimized/arm/optimized.h)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](26)kern中ARM优化模块的kernel代码分析(src/kern/optimized/arm/kernel_gpu.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](25)kern中ARM优化模块整体分析(src/kern/optimized/arm)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](24)kern中optimized模块整体分析(src/kern/optimized)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](23)kern模块中GPU内核的实现(src/kern/naive/gpu/kernel_gpu.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](22)kern模块中量化的实现(src/kern/naive/quantize.h)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](21)kern模块中naive的实现(src/kern/naive/naive.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](20)kern中naive模块的概述(src/kern/naive)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](19)kernel类的定义(src/kern/kernel.h)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](18)kernel计算的基础定义实现(src/kern/kernel_define.h)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](17)InferLLM模块kern的概述(src/kern)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](16)LlamaLike模型代码实现(src/graph/llama_like.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](15)Llama系列模型代码实现(src/graph/ggml_llama.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](14)ChatGLM系列模型代码实现(src/graph/...)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](13)计算图的工厂方法实现(src/graph/graph_imp.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](12)graph模块的功能和具体实现(src/graph)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](11)Op类的实现(src/core/op.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](10)ThreadPool类的实现(src/core/thread_pool.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](09)ModelImp类的实现(src/core/model_imp.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](08)Model类的实现(src/core/model.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](07)KvStorage类的实现(src/core/kvstorage.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](06)Graph类的实现(src/core/graph.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](05)Device类的实现(src/core/device.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](04)Tensor类的实现(src/core/tensor.h+.cpp)
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](03)InferLLM核心模块core(src/core)综合介绍
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](02)InferLLM的src模块
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    [InferLLM大模型推理框架项目](01)项目概括
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    数字设计与计算机架构课程的第三讲笔记
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    数字设计与计算机架构课程的第二讲笔记（3）
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    数字设计与计算机架构课程的第二讲笔记（2）
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    数字设计与计算机架构课程的第二讲笔记（1）
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    Leetcode每日一题：9. 回文数
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    Leetcode每日一题：11. 盛最多水的容器
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    Leetcode每日一题：893. 特殊等价字符串组
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    Leetcode每日一题：7. 整数反转
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    每日一题：1006 换个格式输出整数
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    每日一题：1005 继续(3n+1)猜想
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    每日一题：1004 成绩排名
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    wsl的相关命令
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    读书笔记(一) 人工智能导论 绪论
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    计算机发展历程
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    什么是因特网
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    每日一题：1002 写出这个数
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    每日一题：1001 害死人不偿命的(3n+1)猜想
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    冯•诺依曼结构的要点
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    浅谈C和C++中的头文件
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    Python中Tab键与空格键在处理代码缩进时的问题
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    关于scanf/printf及cin/cout在刷题时的选择
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    C++运行中的错误：error: stray &#39;\302&#39;(或&#39;\240&#39;) in program
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    Python编辑器的选择
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    关于Python的包管理器Anaconda的一些常见问题
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    写给刚刚开始学习Python的初学者
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    
+    漫漫长路一相逢，便胜却人间无数
+    <script>
+        postsnum += 1
+    </script>
+    
+    
+    </div>
+    
+        <script>
+            var menupos = 'left';
+            $("#siteinfo-postsnum").html(postsnum);
+        </script>
+    
+    <script>
+        let commentsHide = false
+    </script>
+    <!------ 根据自定义配置声明变量👆 --------------------->
+
+
+    <!----------根据自定义配置设置图标信息👇---------->
+    <script>
+        var icondict = new Array();
+    </script>
+    
+        
+    
+    <!----------根据自定义配置设置图标信息👆---------->
+</body>
+
+<script src="https://solahome.github.io/media/share/dist/Share.js"></script>
+<!-- 页面pjax测试 -->
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery.pjax/2.0.1/jquery.pjax.js"></script>
+<!--确保jQuery已经在此之前加载-->
+<!-- <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script> -->
+<script src="https://solahome.github.io/media/js/all-pjax.js"></script>
+<script>
+    //-------------------------------说说功能👇--------------------------------------
+    let talksall = [];
+    let talks = [];
+    let talkindex = 0;
+    get();
+
+    function get() {
+        var t = JSON.parse('[{"author":"sola","img":"https://i.postimg.cc/Bbrc9BvD/shuoshuo202009110956.jpg","text":"最近忙里偷闲挤出了一点时间读了三秋缒老师的《不哭不哭，痛痛飞走吧》，虽然很早就知道到了三秋缒的作品了，比如说《三日间的幸福》等等，不过实际这本书算是实际上第一次读的三秋缒老师的书。“爱也许就是人类最伟大的发明，或者是全世界最温柔的谎言”。看完这本书给我了一种淡淡的忧伤的感觉，等过一段时间有空了给大家分享一下我读后的感受（好像好久都没有写过这种东西了 哈哈）","time":"2020-09-11"},{"author":"sola","img":"https://i.postimg.cc/D09rW5ny/shuoshuo202009201030.jpg","text":"最近有在零零星星的时间中连着读了五十岚雄策老师的好几本书——《恋爱的死神，与我被遗忘的夏天》、《七日间的幽灵，第八日的女友》、《与你相约在未来的七月雪》。五十岚雄策老师的故事一般最后都有一个挺幸福的结局，相比于那种淡淡的忧伤，五十岚雄策老师的作品最后一般都是一种淡淡的甜味。读多了令人潸然泪下的故事之后，不妨试试，转换一下心情吧。","time":"2020-09-20"},{"author":"sola","img":"https://cdn.colorhub.me/yZoSKZ7KzjI/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vOWQvMDYvMjcwOWZmNzczYTA1MmVjYmM3NzJiMDk2YTQzZWIyYjUxMmE3OWQwNi5qcGc.webp","text":"最近发现vscode更新后越来越好用了，大家可以尝试一下哟o(^▽^)o","time":"2020-11-15"},{"author":"sola","img":"https://cdn.colorhub.me/Iw6z_han0oU/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vMWQvMjUvYjdiZjcxMWFhYThlMWIyY2UxYmYzMjU2MjBlNjJmNzZjNDcwMWQyNS5qcGVn.webp","text":"开始了一个新的内容“每日一题”，应该会记录一些我现在刷的题，争取做到每天更新(ง •_•)ง","time":"2020-11-19"},{"author":"sola","img":"https://cdn.colorhub.me/ECllLb4fnWk/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vYTYvY2UvZGZiOGYzNGU4NmVhZGYwODUxYTEyZTdhYzExZmMyYTZmMzAyYTZjZS5qcGVn.webp","text":"最近一连串考试终于是暂且告一段落了，之后大概就会恢复正常更新速度吧o(*≧▽≦)ツ","time":"2020-12-04"},{"author":"sola","img":"https://cdn.colorhub.me/B8N749UXK9k/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vMDYvYjAvNTViMGRmYjdjYTc0Nzc0NGMyZTFiY2Q1NzlhMmYzYjc1MWZiMDZiMC5qcGc.webp","text":"这几天一直再虚拟机里玩各种Linux的发行版本，尝试各种各样的美化，有空的话，找个机会给大家分享一下。","time":"2020-12-14"},{"author":"sola","img":"https://cdn.colorhub.me/0NuwkwkenXs/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vNzMvNjYvMDdlOGNkMzIxNjFlMzYyNzE3ZDhjOGM5MzRkMmMzNThkYTYwNzM2Ni5qcGVn.webp","text":"大家元旦快乐o(*≧▽≦)ツ","time":"2021-01-01"},{"author":"sola","img":"https://cdn.colorhub.me/LytaQWs3YRo/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vY2IvMmEvYmVlMTYxNjgwNjlmNjJhODRjNmVkMWYwNWViYTYyMzA1YzNiY2IyYS5qcGc.webp","text":"有好一阵子没更新啦，最近准备新开一个栏目，leetcode刷起来，这次要好好坚持下去啦！","time":"2023-03-07"}]');
+        talkindex = t.length - 1;
+        for (var i = 0; i <= t.length - 1; i++) {
+            var d = {};
+            d["time"] = t[i].time;
+            d["author"] = t[i].author;
+            d["text"] = t[i].text;
+            d["img"] = t[i].img;
+            talksall.push(d);
+        }
+    }
+
+    function add() {
+        for (var i = talkindex; i >= 0 && i > talkindex - 3; i--) {
+            talks.push(talksall[i]);
+        }
+        talkindex = (talkindex - 3) >= 0 ? (talkindex - 3) : -1;
+        if (talkindex < 0) $("#getmorebt").hide();
+        show();
+    }
+
+    function show() {
+        var talkT = document.getElementById("talkContainer");
+        talkT.innerHTML = "";
+        for (var i = 0; i < talks.length; i++) {
+            if (talks[i].img != '') {
+                talkT.innerHTML += '\
+            <div class="talk" v-for="t in talks"> \
+                <span data-fancybox="images" href="' + talks[i].img + '"><img src="' + talks[i].img + '" class="talkimg"></span> \
+                <div class="ainfo">\
+                    <div class="ainfo-intro">\
+                        <div class="author">' + talks[i].author + '</div>·\
+                        <div class="time">' + talks[i].time + '</div>\
+                    </div>\
+                </div>\
+                <div class="talkcontent">' + talks[i].text + '\
+                </div\>\
+            ';
+            } else {
+                talkT.innerHTML += '\
+            <div class="talk" v-for="t in talks"> \
+                <div class="ainfo">\
+                    <div class="ainfo-intro">\
+                        <div class="author">' + talks[i].author + '</div>·\
+                        <div class="time">' + talks[i].time + '</div>\
+                    </div>\
+                </div>\
+                <div class="talkcontent">' + talks[i].text + '\
+                </div\>\
+            ';
+            }
+        }
+    }
+    //-------------------------------说说功能👆--------------------------------------
+</script>
+
+<!---->
+<script>
+    function replaceAvatar() {
+        twikoo_avatar = $(".tk-avatar-img");
+        for (var i = 0; i < twikoo_avatar.length; i++) {
+            var asrc = twikoo_avatar.eq(i).attr('src');
+            if (asrc.search('cn.gravatar.com') != -1) {
+                twikoo_avatar.eq(i).attr('src', 'https://solahome.github.io/media/images/comavatar.png');
+            }
+        }
+    }
+
+    function showWechat() {
+        var wechat = '';
+        alert("博主微信号：" + wechat);
+        return false;
+    }
+</script>
+
+<script>
+    /**
+     * https://github.com/tangkaichuan/gridea-search
+     */
+    // 检查缓存是否最新
+    function checkCache() {
+        var caches_postsnum = localStorage.getItem("postsnum");
+        var pt = document.getElementById("side-posttitle").innerHTML;
+        pt = pt.replace(/\s+/g, '').replace(/<script>.*?<\/script>/gi, "")
+        var ptlen = pt.length;
+        var ptlen_storage = localStorage.getItem("poststitlelen");
+        if (caches_postsnum != postsnum || ptlen != ptlen_storage) {
+            console.log("更新缓存");
+            return false
+        }
+        return true;
+    }
+
+    (function () {
+        var CACHES = checkCache()
+        if (!CACHES) {
+            var NOW = Date.now()
+            var API_CONTENT = '../api-content/index.html' + '?_=' + NOW
+            preload(API_CONTENT);
+            getContents(show_getContentresult);
+        }
+
+        function show_getContentresult(data) {
+            console.log("获取成功");
+            var postslen = data["posts"].length;
+            localStorage.setItem('postsnum', postslen);
+            var poststitlelen = 0;
+            var pt = document.getElementById("side-posttitle").innerHTML;
+            pt = pt.replace(/\s+/g, '').replace(/<script>.*?<\/script>/gi, "");
+            localStorage.setItem('poststitlelen', pt.length);
+        }
+
+
+
+        // preload
+        function preload(url) {
+            var preloadLink = document.createElement('link')
+            preloadLink.href = url
+            preloadLink.rel = 'preload'
+            preloadLink.as = 'fetch'
+            preloadLink.crossOrigin = 'anonymous'
+            document.head.appendChild(preloadLink)
+        }
+
+        // 异步 GET 请求
+        function get(obj) {
+            var xhr = new XMLHttpRequest()
+            xhr.open('get', obj.url, true)
+            xhr.send(null)
+            xhr.onreadystatechange = function () {
+                // 异步请求：响应状态为4，数据加载完毕
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        obj.success(xhr.responseText)
+                    } else {
+                        obj.error(xhr.status)
+                    }
+                }
+            }
+        }
+
+        // 获取博客全文 api
+        function getContents(callback) {
+            if (CACHES) {
+                callback(CACHES.contents)
+            } else {
+                get({
+                    url: API_CONTENT,
+                    success: function (data) {
+                        callback(JSON.parse(data));
+                        localStorage.setItem('ContentsCache', data);
+                        getStorageContent();
+                    }
+                })
+            }
+        }
+    })()
+    //------------------------核心功能--pjax全局渲染👇-------------------
+    let talkinit = false;
+    $(document).pjax('a[data-pjax]', '#main', {
+        fragment: '#main',
+        timeout: 8000
+    }).on('pjax:complete', function () {
+        //代码块高亮渲染
+        document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightBlock(block);
+        });
+        //文章热度
+        if(postnumChoice){
+            getHotnum();
+        }
+        //文章索引
+        toginit();
+        //清空搜索栏
+        if (searchChoice) {
+            searchInit();
+            searchInput.value = "";
+        }
+        var pl = window.location.pathname;
+        //说说更新
+        if (pl.search("talk") != -1 && !talkinit) {
+            add();
+            talkinit = true;
+        } else if (pl.search("talk") != -1) {
+            show();
+        }
+        if (pl.search("post") != -1) {
+            if (shareChoice)
+                shareInit();
+            if (donateChoice)
+                donateInit();
+            if ("default" == "default"&&!commentsHide) {
+                $("#comment").hide()
+                commentsHide = true
+            }
+            lazyload();
+            codeinit();
+            if ("default" == "twikoo") {
+                //twikoo头像更换
+                setTimeout(replaceAvatar, 3000);
+                setTimeout(replaceAvatar, 8000); //部分博主站点速度加载过慢，再添加一个延迟
+            }
+        }
+        if (btstate == true)
+            dropdown();
+    }).on('pjax:start', function () {
+        $(".pjaxloading").fadeIn(50);
+    }).on('pjax:end', function () {
+        $(".pjaxloading").fadeOut(50);
+    });
+    //------------------------核心功能--pjax全局渲染👆-------------------
+
+    //-------------------------------------------------搜索
+    // 获取搜索框、搜索按钮、清空搜索、结果输出对应的元素
+    if (searchChoice) {
+        var searchInput = document.querySelector('.search-input');
+        var searchResults = document.querySelector('.search-results');
+    }
+    // 申明保存文章的标题、链接、内容的数组变量
+    var searchValue = '',
+        arrItems = [],
+        arrLinks = [],
+        arrTitles = [],
+        arrContents = [],
+        arrResults = [],
+        indexItem = [],
+        itemLength = 0;
+    var tmpDiv = document.createElement('div');
+    tmpDiv.className = 'result-item';
+
+
+    function getStorageContent() {
+        var data = localStorage.getItem('ContentsCache');
+        data = JSON.parse(data);
+        posts = data["posts"];
+        for (var i = 0; i < posts.length; i++) {
+            arrLinks[i] = posts[i].link;
+            arrTitles[i] = posts[i].title;
+            arrContents[i] = posts[i].content;
+            itemLength++;
+        }
+    }
+    if (checkCache())
+        getStorageContent();
+    // 输入框内容变化后就开始匹配，可以不用点按钮
+    // 经测试，onkeydown, onchange 等方法效果不太理想，
+    // 存在输入延迟等问题，最后发现触发 input 事件最理想，
+    // 并且可以处理中文输入法拼写的变化
+    searchInput.oninput = function () {
+        setTimeout(searchConfirm, 0);
+    }
+    searchInput.onfocus = function () {
+        searchResults.style.display = 'block';
+    }
+
+    function searchConfirm() {
+        if (searchInput.value == '') {
+            searchResults.style.display = 'none';
+        } else if (searchInput.value.search(/^\s+$/) >= 0) {
+            // 检测输入值全是空白的情况
+            searchInit();
+            var itemDiv = tmpDiv.cloneNode(true);
+            itemDiv.innerText = '请输入有效内容...';
+            searchResults.appendChild(itemDiv);
+        } else {
+            // 合法输入值的情况
+            searchInit();
+            searchValue = searchInput.value;
+            // 在标题、内容中查找
+            searchMatching(arrTitles, arrContents, searchValue);
+        }
+    }
+
+    // 每次搜索完成后的初始化
+    function searchInit() {
+        arrResults = [];
+        indexItem = [];
+        searchResults.innerHTML = '';
+        searchResults.style.display = 'block';
+    }
+
+    function searchMatching(arr1, arr2, input) {
+        // 忽略输入大小写
+        input = new RegExp(input, 'i');
+        var step = 10;
+        // 在所有文章标题、内容中匹配查询值
+        for (i = 0; i < itemLength; i++) {
+            var indexContent = arr2[i].search(input);
+            //标题匹配
+            if (arr1[i].search(input) != -1) {
+                indexItem.push(i); // 保存匹配值的索引
+                if (indexContent != -1) {
+                    startindex = (indexContent - step) >= 0 ? (indexContent - step) : 0;
+                    var searchcontent = arr2[i].slice(indexContent - step, indexContent + 5)
+                    arrResults.push("....." + searchcontent + ".....");
+                } else
+                    arrResults.push("");
+            }
+            //内容匹配
+            else if (indexContent != -1) {
+                indexItem.push(i); // 保存匹配值的索引
+
+                startindex = (indexContent - step) >= 0 ? (indexContent - step) : 0;
+                var searchcontent = arr2[i].slice(indexContent - step, indexContent + 5)
+                arrResults.push("....." + searchcontent + ".....");
+            }
+        }
+
+        // 输出总共匹配到的数目
+        var totalDiv = tmpDiv.cloneNode(true);
+        totalDiv.innerHTML = '<b>总匹配：' + indexItem.length + ' 项<hr></b>';
+        searchResults.appendChild(totalDiv);
+
+        // 未匹配到内容的情况
+        if (indexItem.length == 0) {
+            var itemDiv = tmpDiv.cloneNode(true);
+            itemDiv.innerText = '未匹配到内容...';
+            searchResults.appendChild(itemDiv);
+        }
+
+        // 将所有匹配内容进行组合
+        for (i = 0; i < arrResults.length; i++) {
+            var itemDiv = tmpDiv.cloneNode(true);
+            itemDiv.innerHTML = '<a data-pjax class="searchresults" href="' + arrLinks[indexItem[i]] + '"><b>[' +
+                arrTitles[indexItem[i]] +
+                ']</b><p>' + arrResults[i] + '</p></a><hr />';
+            searchResults.appendChild(itemDiv);
+        }
+    }
+</script>
+
+
+
+<!--------------------- 菜单栏图标加载功能👇 ----------------------->
+<script>
+var menulist = $(".menuicon");
+var menulength = menulist.length;
+for (var i = 0; i < menulength; i++) {
+    var altname = menulist.eq(i).attr("alt");
+    var iconurl = icondict[altname];
+    if (iconurl == undefined || iconurl == '')
+        continue;
+    if (iconurl == 'Home') {
+        menulist.eq(i).attr("src", "https://solahome.github.io/media/images/Home.png");
+menulist.eq(i).show();
+} else if (iconurl == 'Archive') {
+menulist.eq(i).attr("src", "https://solahome.github.io/media/images/Archive.png");
+menulist.eq(i).show();
+} else if (iconurl == 'Tag') {
+menulist.eq(i).attr("src", "https://solahome.github.io/media/images/Tag.png");
+menulist.eq(i).show();
+} else if (iconurl == 'About') {
+menulist.eq(i).attr("src", "https://solahome.github.io/media/images/About.png");
+menulist.eq(i).show();
+} else if (iconurl == 'Talk') {
+menulist.eq(i).attr("src", "https://solahome.github.io/media/images/Talk.png");
+menulist.eq(i).show();
+} else if (iconurl == 'Friends') {
+menulist.eq(i).attr("src", "https://solahome.github.io/media/images/Friends.png");
+menulist.eq(i).show();
+} else if (iconurl == 'Fly') {
+menulist.eq(i).attr("src", "https://solahome.github.io/media/images/wind.png");
+menulist.eq(i).show();
+} else {
+menulist.eq(i).attr("src", iconurl);
+menulist.eq(i).show();
+}
+}
+</script>
+<!--------------------- 菜单栏图标加载功能👆 ----------------------->
+
+<script>
+    //--------------------bber-onetalk加载👇--------------------------------
+    function bberonetalkLoad(){
+        bberjsonurl = '';
+        if ( $("#bber-talk").length > 0 ) {
+        jsonUrl = bberjsonurl
+        $.getJSON(jsonUrl+"?t="+Date.parse( new Date()),function(res){
+        var bberHtml = ''
+        $.each(res.data, function(i, item){
+            d = new Date(item.date)
+            date = d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate() +' '+d.getHours()+':'+d.getMinutes()+':'+d.getSeconds()
+            dataTime = '<span class="datatime">'+date+'</span>'
+            bberHtml += '<li class="item item-'+(i+1)+'">'+dataTime+'： <a data-pjax href="https://solahome.github.io/bber">'+item.content+'</a></li>'
+        });
+        $('#bber-talk').append('<span class="index-talk-icon"><svg viewBox="0 0 1024 1024" width="21" height="21"><path d="M184.32 891.667692c-12.603077 0-25.206154-2.363077-37.809231-7.876923-37.021538-14.966154-59.864615-49.624615-59.864615-89.009231v-275.692307c0-212.676923 173.292308-385.969231 385.969231-385.969231h78.76923c212.676923 0 385.969231 173.292308 385.969231 385.969231 0 169.353846-137.846154 307.2-307.2 307.2H289.083077l-37.021539 37.021538c-18.904615 18.116923-43.323077 28.356923-67.741538 28.356923zM472.615385 195.347692c-178.018462 0-322.953846 144.935385-322.953847 322.953846v275.692308c0 21.267692 15.753846 29.144615 20.48 31.507692 4.726154 2.363077 22.055385 7.876923 37.021539-7.08923l46.473846-46.473846c6.301538-6.301538 14.178462-9.452308 22.055385-9.452308h354.461538c134.695385 0 244.184615-109.489231 244.184616-244.184616 0-178.018462-144.935385-322.953846-322.953847-322.953846H472.615385z"></path><path d="M321.378462 512m-59.076924 0a59.076923 59.076923 0 1 0 118.153847 0 59.076923 59.076923 0 1 0-118.153847 0Z"></path><path d="M518.301538 512m-59.076923 0a59.076923 59.076923 0 1 0 118.153847 0 59.076923 59.076923 0 1 0-118.153847 0Z"></path><path d="M715.224615 512m-59.076923 0a59.076923 59.076923 0 1 0 118.153846 0 59.076923 59.076923 0 1 0-118.153846 0Z"></path></svg></span><ul class="talk-list">'+bberHtml+'</ul>')
+        //Lately({ 'target': '#bber-talk .datatime' });
+        });
+        function Roll (){
+        var list_li = $('.talk-list li'),cur_li = list_li.first(),last_li = list_li.last();
+        last_li.after(cur_li);
+        };
+        setInterval(Roll,3000);
+    }
+    }
+  //--------------------bber-onetalk加载👆--------------------------------
+</script>
+
+<script>
+    var ClicksideState = 1
+    var cur_readingmode = false
+    function readingmode(){
+        if (!cur_readingmode){
+            if(menupos == 'left'){
+                if(ClicksideState==1)
+                menu_openclose1()
+            }
+            $("#tab1").fadeOut(50)
+            $("#bg").fadeOut(50)
+            $(".navbar").fadeOut(50)
+            $(".markdownIt-TOC li a").css("color","black")
+            cur_readingmode = true
+        }else{
+            if(menupos == 'left'){
+                if(ClicksideState==0)
+                    menu_openclose1()
+            }
+            $("#tab1").fadeIn(50)
+            $("#bg").fadeIn(50)
+            $(".navbar").fadeIn(50)
+            $(".markdownIt-TOC li a").css("color","antiquewhite")
+            cur_readingmode = false  
+        }
+    }
+</script>
+
+
+<!----夜间模式👇-->
+<script>
+    var moonlightState = false
+    function moonlight(){
+        if(!moonlightState){
+            $("#bg").fadeOut(200)
+            $('body').css("background","rgba(0,0,0,0.8)")
+            $(".markdownIt-TOC li a").css("color","white")
+            $(".text p, .text ul").css("color","white")
+            $("#articlecontent").css("color","white")
+            $(".post-copyright").css("background","rgba(10,10,10,0.5)")
+            $('blockquote').css("background","rgba(10,10,10,0.6)")
+            $("#articlecontent").css("background","rgba(10,10,10,0.5)")
+            moonlightState = true
+            $(".moon").attr("src","https://solahome.github.io/media/images/sun.png")
+        }else{
+            $("#bg").show()
+            $(".markdownIt-TOC li a").css("color","antiquewhite")
+            $(".text p, .text ul").css("color","rgba(0, 0, 0, 0.7)")
+            $("#articlecontent").css("color","black")
+            $(".post-copyright").css("background","#f9f9f9")
+            $('blockquote').css("background","#eff8f0")
+            $("#articlecontent").css("background","white")
+            $(".moon").attr("src","https://solahome.github.io/media/images/moon.png")
+            $('body').css("background","white")
+            moonlightState = false
+        }
+    }
+</script>
+<!----夜间模式👆--></div>
+            <!--------------- pc端菜单栏👆 ---------------->
+
+            <!-- ----------------左侧菜单栏html 👇-------------------------------------->
+            
+            <div>
+                <div id="tab1" class="tab">
+                    <div class="bars">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="close"></div>
+                </div>
+                <div class="col-md-1 col-lg-3"></div>
+                <!-- main标签，pjax渲染时加载以下内容👇 -->
+                <div id="main" class="col-xs-12 col-sm-12 col-md-12 col-lg-7" style="padding:0;">
+                    <div class="readingmode" onclick="readingmode()">阅</div>
+                    <link rel="stylesheet" href="https://solahome.github.io/media/css/font-awesome.css">
+
+<body>
+    <div class="allcontent" id="postdetail">
+        <div class="postshow postpadding" style="padding-bottom: 0;">
+            
+            <div class="postdetailimg">
+                <img src="https://img.colorhub.me/wL9hdOhn06k/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vNWIvMmUvOWVhNzIyOThlYTY2ODY1Zjc3ZTY0NjYwMDUxNDQwMTU4N2U4NWIyZS5qcGVn.webp" class="postimage" style="cursor:auto">
+            </div>
+            <div class="postinfo-detail">
+                <div class="postdate"><i class="fa fa-calendar"></i>2025-04-16</div>
+                <div class="poststatus postdate"><i class="fa fa-clock-o"></i> 13 min read</div>
+                <div class="posttag">
+                    
+                    <a data-pjax href="https://solahome.github.io/tag/QJycDK-Pnt/" class="postlink">
+                        <i class="fa fa-tag"></i> 大语言模型
+                    </a>
+                    
+                    <a data-pjax href="https://solahome.github.io/tag/nQrX5LWbHdP/" class="postlink">
+                        <i class="fa fa-tag"></i> 大语言模型推理
+                    </a>
+                    
+                    <a data-pjax href="https://solahome.github.io/tag/48Xg_1oAEhE/" class="postlink">
+                        <i class="fa fa-tag"></i> AI-Infra
+                    </a>
+                    
+                </div>
+            </div>
+            
+        <div id="articlecontent">
+            <div id="texttitle" style="text-align: center">
+                <h2 id="ptitle">[InferLLM大模型推理框架项目](16)LlamaLike模型代码实现(src/graph/llama_like.h+.cpp)</h2>
+                <!-- id 将作为查询条件 -->
+                <div id="pl" style="display:none">https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-16/</div>
+                <div id="rootaddr" style="display:none">https://solahome.github.io</div>
+                
+            </div>
+            <div class="text ">
+                <h1 id="llamalike-模型代码结构与功能实现分析">LlamaLike 模型代码结构与功能实现分析</h1>
+<p><code>llama_like.h</code> 和 <code>llama_like.cpp</code> 文件实现了 InferLLM 框架中对类 Llama 架构模型（如 Baichuan 和 Llama2）的支持。这些文件定义了 <code>LlamaLikeGraph</code> 类，该类继承自基础的 <code>Graph</code> 类，并实现了特定于类 Llama 架构模型的加载和计算图构建逻辑。</p>
+<h2 id="1-llama_likeh-文件分析">1. llama_like.h 文件分析</h2>
+<h3 id="11-文件结构">1.1 文件结构</h3>
+<p><code>llama_like.h</code> 文件结构简洁，主要包含以下几个部分：</p>
+<ol>
+<li>
+<p><strong>头文件引入</strong>：</p>
+<pre><code class="language-cpp">#include &quot;core/graph.h&quot;
+</code></pre>
+<p>只引入了基础的图类头文件。</p>
+</li>
+<li>
+<p><strong>命名空间声明</strong>：</p>
+<pre><code class="language-cpp">namespace inferllm {
+</code></pre>
+<p>所有代码都在 inferllm 命名空间中。</p>
+</li>
+<li>
+<p><strong>LlamaLikeGraph 类定义</strong>：</p>
+<pre><code class="language-cpp">class LlamaLikeGraph : public Graph {
+    using Graph::Graph;
+
+public:
+    void set_weights_alias() override;
+    void construct_llm() override;
+    void load_param(
+            std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+            std::shared_ptr&lt;Vocab&gt; vocab) override;
+};
+</code></pre>
+<p>定义了 <code>LlamaLikeGraph</code> 类，继承自 <code>Graph</code> 类，并重写了三个关键方法：</p>
+<ul>
+<li><code>set_weights_alias</code>：设置权重别名映射</li>
+<li><code>construct_llm</code>：构建模型计算图</li>
+<li><code>load_param</code>：加载模型参数</li>
+</ul>
+</li>
+</ol>
+<h2 id="2-llama_likecpp-文件分析">2. llama_like.cpp 文件分析</h2>
+<h3 id="21-头文件引入">2.1 头文件引入</h3>
+<pre><code class="language-cpp">#include &quot;llama_like.h&quot;
+#include &quot;chatGLM.h&quot;
+</code></pre>
+<p>引入了 <code>llama_like.h</code> 和 <code>chatGLM.h</code> 头文件，后者可能是为了使用其中定义的一些数据结构（如 <code>Header</code>）。</p>
+<h3 id="22-权重别名设置">2.2 权重别名设置</h3>
+<pre><code class="language-cpp">void LlamaLikeGraph::set_weights_alias() {
+    m_weights_name_aliases.clear();
+    // clang-format off
+    m_weights_name_aliases = {
+            {&quot;model.embed_tokens.weight&quot;, &quot;tok_embeddings.weight&quot;},
+            {&quot;model.layers.x.input_layernorm.weight&quot;, &quot;layers.x.attention.norm.weight&quot;},
+            {&quot;model.layers.x.self_attn.q_proj.weight&quot;, &quot;layers.x.attention.wq.weight&quot;},
+            {&quot;model.layers.x.self_attn.k_proj.weight&quot;, &quot;layers.x.attention.wk.weight&quot;},
+            {&quot;model.layers.x.self_attn.v_proj.weight&quot;, &quot;layers.x.attention.wv.weight&quot;},
+            {&quot;model.layers.x.self_attn.o_proj.weight&quot;, &quot;layers.x.attention.wo.weight&quot;},
+            {&quot;model.layers.x.post_attention_layernorm.weight&quot;, &quot;layers.x.ffn.norm.weight&quot;},
+            {&quot;model.layers.x.mlp.up_proj.weight&quot;, &quot;layers.x.ffn.w3.weight&quot;},
+            {&quot;model.layers.x.mlp.down_proj.weight&quot;, &quot;layers.x.ffn.w2.weight&quot;},
+            {&quot;model.layers.x.mlp.gate_proj.weight&quot;, &quot;layers.x.ffn.w1.weight&quot;},
+            {&quot;model.norm.weight&quot;, &quot;head.norm.weight&quot;},
+            {&quot;lm_head.weight&quot;, &quot;head.output.weight&quot;},
+    };
+    // clang-format on
+}
+</code></pre>
+<p>这个方法建立了原始权重名称和内部使用的权重名称之间的映射关系。与 GGML Llama 和 ChatGLM 不同，LlamaLike 模型使用分离的 Q、K、V 权重，而不是融合的 QKV 权重。这反映了 Llama2 和 Baichuan 等模型的架构特点。</p>
+<h3 id="23-参数加载">2.3 参数加载</h3>
+<pre><code class="language-cpp">void LlamaLikeGraph::load_param(
+        std::shared_ptr&lt;InputFile&gt; fin, LlmParams&amp; param,
+        std::shared_ptr&lt;Vocab&gt; vocab) {
+    Header header;
+    // load model header
+    fin-&gt;read_raw((char*)&amp;header.param_offset, sizeof(header.param_offset));
+    fin-&gt;read_raw((char*)&amp;header.param_length, sizeof(header.param_length));
+    fin-&gt;read_raw((char*)&amp;header.vocab_offset, sizeof(header.vocab_offset));
+    fin-&gt;read_raw((char*)&amp;header.vocab_length, sizeof(header.vocab_length));
+    fin-&gt;read_raw((char*)&amp;header.tensor_offset, sizeof(header.tensor_offset));
+
+    fin-&gt;seek(header.param_offset);
+    // load param
+    fin-&gt;read_raw((char*)&amp;param.n_embd, sizeof(param.n_embd));
+    fin-&gt;read_raw((char*)&amp;param.n_head, sizeof(param.n_head));
+    fin-&gt;read_raw((char*)&amp;param.n_layer, sizeof(param.n_layer));
+    fin-&gt;read_raw((char*)&amp;param.n_mult, sizeof(param.n_mult));
+    fin-&gt;read_raw((char*)&amp;param.n_vocab, sizeof(param.n_vocab));
+    m_param = param;
+
+    // load vocab
+    fin-&gt;seek(header.vocab_offset);
+    vocab-&gt;load_vocab(fin, param.n_vocab);
+
+    INFER_LOG(&quot;total vocab length = %d\n&quot;, param.n_vocab);
+    fin-&gt;seek(header.tensor_offset);
+}
+</code></pre>
+<p>这个方法从模型文件中加载参数和词汇表，包括：</p>
+<ol>
+<li>
+<p><strong>读取模型头部信息</strong>：</p>
+<ul>
+<li>读取参数、词汇表和张量的偏移量和长度</li>
+</ul>
+</li>
+<li>
+<p><strong>加载模型参数</strong>：</p>
+<ul>
+<li>读取嵌入维度、头数、层数、前馈网络倍数和词汇表大小</li>
+</ul>
+</li>
+<li>
+<p><strong>加载词汇表</strong>：</p>
+<ul>
+<li>根据词汇表偏移量读取词汇表</li>
+</ul>
+</li>
+<li>
+<p><strong>输出日志</strong>：</p>
+<ul>
+<li>输出词汇表大小的日志信息</li>
+</ul>
+</li>
+<li>
+<p><strong>设置文件指针</strong>：</p>
+<ul>
+<li>将文件指针移动到张量数据的起始位置</li>
+</ul>
+</li>
+</ol>
+<h3 id="24-计算图构建">2.4 计算图构建</h3>
+<pre><code class="language-cpp">void LlamaLikeGraph::construct_llm() {
+    uint32_t embd = m_param.n_embd;
+    uint32_t ffn_size = m_param.n_mult;
+    uint32_t head = m_param.n_head;
+    uint32_t ctx = m_param.n_ctx;
+    uint32_t n_vocab = m_param.n_vocab;
+    uint32_t rot = embd / head;
+
+    m_input = std::make_shared&lt;Tensor&gt;(device(), name() + &quot;:input&quot;);
+    std::shared_ptr&lt;Tensor&gt; input = m_input;
+    //! embd
+    input = add_module&lt;EmbdModule&gt;(
+            this, input, embd, n_vocab, model_config(), device(), &quot;&quot;);
+
+    int nr_layer = m_param.n_layer;
+    for (int i = 0; i &lt; nr_layer; i++) {
+        std::string name = &quot;layers.&quot; + std::to_string(i);
+        //! layer norm
+        std::shared_ptr&lt;Tensor&gt; attention_input = input;
+        auto norm_out_attention = add_one_opr_module&lt;LayerNorm&gt;(
+                                          this, OpIOs{attention_input}, device(),
+                                          name + &quot;.attention.norm&quot;)
+                                          -&gt;add_opr(
+                                                  embd, /*mul*/ true, /*bias*/ false,
+                                                  /*rms*/ true, /*eps*/ 1e-6);
+        //! attentin
+        auto attention_output = add_module&lt;AttentionModule&lt;LlamaAttention&gt;&gt;(
+                this, norm_out_attention, embd, head, rot, ctx, model_config(),
+                device(), name + &quot;.attention&quot;, i, false, false, RotMode::ModelRotHalf);
+        //! add
+        auto add_output = add_one_opr_module&lt;Elemwise&gt;(
+                                  this, OpIOs{attention_input, attention_output},
+                                  device(), name + &quot;.attention_add&quot;)
+                                  -&gt;add_opr(ElemMode::Add);
+
+        std::shared_ptr&lt;Tensor&gt; feed_forward_input = add_output;
+        //! layer normal
+        auto ffn_norm_out =
+                add_one_opr_module&lt;LayerNorm&gt;(
+                        this, OpIOs{feed_forward_input}, device(), name + &quot;.ffn.norm&quot;)
+                        -&gt;add_opr(
+                                embd, /*mul*/ true, /*bias*/ false,
+                                /*rms*/ true, /*eps*/ 1e-6);
+        //! feed forward
+        auto ffn_output = add_module&lt;LlamaFFNModule&gt;(
+                this, ffn_norm_out, embd, ffn_size, model_config(), device(), name);
+        //! add
+        input = add_one_opr_module&lt;Elemwise&gt;(
+                        this, OpIOs{feed_forward_input, ffn_output}, device(),
+                        name + &quot;.ffn_add&quot;)
+                        -&gt;add_opr(ElemMode::Add);
+    }
+    //! the last layer
+    m_output = add_module&lt;HeadModule&gt;(
+            this, input, embd, n_vocab, model_config(), device(), &quot;head&quot;);
+}
+</code></pre>
+<p>这个方法构建了 LlamaLike 模型的计算图，包括：</p>
+<ol>
+<li>
+<p><strong>初始化参数</strong>：</p>
+<ul>
+<li>从模型参数中获取嵌入维度、前馈网络大小、头数等参数</li>
+<li>计算旋转位置编码的维度 <code>rot = embd / head</code></li>
+</ul>
+</li>
+<li>
+<p><strong>创建输入张量和嵌入层</strong>：</p>
+<ul>
+<li>创建输入张量</li>
+<li>添加嵌入层，将 token ID 转换为嵌入向量</li>
+</ul>
+</li>
+<li>
+<p><strong>循环添加 Transformer 层</strong>：<br>
+每个 Transformer 层包括：</p>
+<ul>
+<li>注意力层前的 RMSNorm（<code>rms = true</code>，<code>bias = false</code>，<code>eps = 1e-6</code>）</li>
+<li>注意力层 (LlamaAttention)，使用 ModelRotHalf 旋转模式</li>
+<li>残差连接</li>
+<li>前馈网络前的 RMSNorm</li>
+<li>前馈网络 (LlamaFFNModule)</li>
+<li>残差连接</li>
+</ul>
+</li>
+<li>
+<p><strong>添加输出层</strong>：</p>
+<ul>
+<li>添加 HeadModule，将隐藏状态转换为词汇表概率分布</li>
+</ul>
+</li>
+</ol>
+<h2 id="3-llamalike-模型的特点">3. LlamaLike 模型的特点</h2>
+<p>通过分析 <code>llama_like.h</code> 和 <code>llama_like.cpp</code> 文件，可以看出 LlamaLike 模型的以下特点：</p>
+<h3 id="31-模型架构">3.1 模型架构</h3>
+<ol>
+<li>
+<p><strong>Pre-LayerNorm 架构</strong>：</p>
+<ul>
+<li>在注意力层和前馈网络前进行层归一化</li>
+<li>使用 RMSNorm（<code>rms = true</code>，没有偏置项 <code>bias = false</code>）</li>
+<li>使用较小的 epsilon 值 (<code>eps = 1e-6</code>)</li>
+</ul>
+</li>
+<li>
+<p><strong>分离的 Q、K、V 权重</strong>：</p>
+<ul>
+<li>使用分离的 Q、K、V 权重，而不是融合的 QKV 权重</li>
+<li>权重别名映射反映了这一点：<pre><code class="language-cpp">{&quot;model.layers.x.self_attn.q_proj.weight&quot;, &quot;layers.x.attention.wq.weight&quot;},
+{&quot;model.layers.x.self_attn.k_proj.weight&quot;, &quot;layers.x.attention.wk.weight&quot;},
+{&quot;model.layers.x.self_attn.v_proj.weight&quot;, &quot;layers.x.attention.wv.weight&quot;},
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>旋转位置编码</strong>：</p>
+<ul>
+<li>使用旋转位置编码 (RoPE)，通过 <code>rot = embd / head</code> 计算旋转维度</li>
+<li>使用 ModelRotHalf 旋转模式：<code>RotMode::ModelRotHalf</code></li>
+</ul>
+</li>
+<li>
+<p><strong>SwiGLU 激活函数</strong>：</p>
+<ul>
+<li>在前馈网络中使用 SwiGLU 激活函数，通过 <code>LlamaFFNModule</code> 实现</li>
+<li>使用三个权重矩阵：w1、w2 和 w3</li>
+</ul>
+</li>
+<li>
+<p><strong>无偏置项</strong>：</p>
+<ul>
+<li>层归一化不使用偏置项 (<code>bias = false</code>)</li>
+<li>注意力层不使用偏置项 (<code>false</code> 参数)</li>
+</ul>
+</li>
+</ol>
+<h3 id="32-与-ggml-llama-的比较">3.2 与 GGML Llama 的比较</h3>
+<p>LlamaLike 模型与 GGML Llama 模型有以下区别：</p>
+<ol>
+<li>
+<p><strong>权重结构</strong>：</p>
+<ul>
+<li>LlamaLike 使用分离的 Q、K、V 权重</li>
+<li>GGML Llama 可能使用融合的 QKV 权重</li>
+</ul>
+</li>
+<li>
+<p><strong>权重命名</strong>：</p>
+<ul>
+<li>LlamaLike 使用 <code>model.embed_tokens.weight</code> 等命名</li>
+<li>GGML Llama 使用不同的命名约定</li>
+</ul>
+</li>
+<li>
+<p><strong>旋转模式</strong>：</p>
+<ul>
+<li>LlamaLike 明确指定了 ModelRotHalf 旋转模式</li>
+<li>GGML Llama 可能使用不同的旋转模式</li>
+</ul>
+</li>
+<li>
+<p><strong>模型格式</strong>：</p>
+<ul>
+<li>LlamaLike 使用自定义格式</li>
+<li>GGML Llama 使用 GGML 格式</li>
+</ul>
+</li>
+</ol>
+<h3 id="33-与-chatglm-系列的比较">3.3 与 ChatGLM 系列的比较</h3>
+<p>LlamaLike 模型与 ChatGLM 系列模型有以下区别：</p>
+<ol>
+<li>
+<p><strong>层归一化</strong>：</p>
+<ul>
+<li>LlamaLike 使用 RMSNorm（<code>rms = true</code>，<code>bias = false</code>）</li>
+<li>ChatGLM 使用传统的层归一化（<code>rms = false</code>，<code>bias = true</code>）</li>
+</ul>
+</li>
+<li>
+<p><strong>注意力机制</strong>：</p>
+<ul>
+<li>LlamaLike 使用 <code>LlamaAttention</code></li>
+<li>ChatGLM 使用 <code>GlmAttention</code> 或 <code>Glm2MultiQueryAttention</code></li>
+</ul>
+</li>
+<li>
+<p><strong>前馈网络</strong>：</p>
+<ul>
+<li>LlamaLike 使用 <code>LlamaFFNModule</code></li>
+<li>ChatGLM 使用 <code>GlmFFNModule</code></li>
+</ul>
+</li>
+<li>
+<p><strong>残差连接</strong>：</p>
+<ul>
+<li>LlamaLike 使用普通的残差连接</li>
+<li>ChatGLM 使用带缩放因子的残差连接</li>
+</ul>
+</li>
+<li>
+<p><strong>特殊 token 处理</strong>：</p>
+<ul>
+<li>LlamaLike 模型没有实现 <code>post_tokenize</code> 方法，可能不需要特殊的 token 处理</li>
+<li>ChatGLM 系列模型实现了 <code>post_tokenize</code> 方法，在输入序列的开头和结尾添加特殊 token</li>
+</ul>
+</li>
+<li>
+<p><strong>词汇表大小</strong>：</p>
+<ul>
+<li>LlamaLike 模型的词汇表大小由模型文件决定</li>
+<li>ChatGLM 系列模型使用固定的词汇表大小（ChatGLM 为 130528，ChatGLM2/3 为 65024）</li>
+</ul>
+</li>
+</ol>
+<h2 id="4-模型加载流程">4. 模型加载流程</h2>
+<p>LlamaLike 模型的加载流程包括以下步骤：</p>
+<ol>
+<li>
+<p><strong>读取模型头部信息</strong>：</p>
+<pre><code class="language-cpp">fin-&gt;read_raw((char*)&amp;header.param_offset, sizeof(header.param_offset));
+fin-&gt;read_raw((char*)&amp;header.param_length, sizeof(header.param_length));
+fin-&gt;read_raw((char*)&amp;header.vocab_offset, sizeof(header.vocab_offset));
+fin-&gt;read_raw((char*)&amp;header.vocab_length, sizeof(header.vocab_length));
+fin-&gt;read_raw((char*)&amp;header.tensor_offset, sizeof(header.tensor_offset));
+</code></pre>
+</li>
+<li>
+<p><strong>加载模型参数</strong>：</p>
+<pre><code class="language-cpp">fin-&gt;seek(header.param_offset);
+fin-&gt;read_raw((char*)&amp;param.n_embd, sizeof(param.n_embd));
+fin-&gt;read_raw((char*)&amp;param.n_head, sizeof(param.n_head));
+fin-&gt;read_raw((char*)&amp;param.n_layer, sizeof(param.n_layer));
+fin-&gt;read_raw((char*)&amp;param.n_mult, sizeof(param.n_mult));
+fin-&gt;read_raw((char*)&amp;param.n_vocab, sizeof(param.n_vocab));
+</code></pre>
+</li>
+<li>
+<p><strong>加载词汇表</strong>：</p>
+<pre><code class="language-cpp">fin-&gt;seek(header.vocab_offset);
+vocab-&gt;load_vocab(fin, param.n_vocab);
+</code></pre>
+</li>
+<li>
+<p><strong>构建计算图</strong>：<br>
+在 <code>Graph::load</code> 方法中调用 <code>construct_llm</code> 构建计算图</p>
+</li>
+<li>
+<p><strong>收集权重</strong>：<br>
+在 <code>Graph::load</code> 方法中调用 <code>collect_weights</code> 收集权重</p>
+</li>
+<li>
+<p><strong>设置权重别名</strong>：<br>
+在 <code>Graph::load</code> 方法中调用 <code>set_weights_alias</code> 设置权重别名</p>
+</li>
+<li>
+<p><strong>加载权重</strong>：<br>
+在 <code>Graph::load</code> 方法中循环读取权重数据，并将其与计算图中的权重关联</p>
+</li>
+</ol>
+<h2 id="5-计算图执行流程">5. 计算图执行流程</h2>
+<p>LlamaLike 模型的计算图执行流程与其他模型类似，包括以下步骤：</p>
+<ol>
+<li>
+<p><strong>准备输入</strong>：</p>
+<ul>
+<li>将输入文本转换为 token ID</li>
+<li>如果需要，进行特殊 token 处理</li>
+</ul>
+</li>
+<li>
+<p><strong>执行计算图</strong>：</p>
+<ul>
+<li>从输入到输出执行计算图</li>
+<li>每个 Transformer 层按顺序执行</li>
+</ul>
+</li>
+<li>
+<p><strong>采样</strong>：</p>
+<ul>
+<li>根据输出概率分布采样下一个 token</li>
+</ul>
+</li>
+<li>
+<p><strong>生成文本</strong>：</p>
+<ul>
+<li>将采样得到的 token ID 转换为文本</li>
+<li>重复执行计算图和采样，直到生成结束</li>
+</ul>
+</li>
+</ol>
+<h2 id="6-优化策略">6. 优化策略</h2>
+<p>LlamaLike 模型实现了一些优化策略：</p>
+<ol>
+<li>
+<p><strong>RMSNorm</strong>：</p>
+<ul>
+<li>使用 RMSNorm 代替传统的层归一化，减少计算量</li>
+<li>不使用偏置项，减少参数量</li>
+</ul>
+</li>
+<li>
+<p><strong>旋转位置编码</strong>：</p>
+<ul>
+<li>使用旋转位置编码 (RoPE)，避免了位置嵌入的额外参数</li>
+<li>使用 ModelRotHalf 旋转模式，可能是为了优化性能</li>
+</ul>
+</li>
+<li>
+<p><strong>SwiGLU 激活函数</strong>：</p>
+<ul>
+<li>在前馈网络中使用 SwiGLU 激活函数，提高模型性能</li>
+</ul>
+</li>
+<li>
+<p><strong>分离的 Q、K、V 权重</strong>：</p>
+<ul>
+<li>使用分离的 Q、K、V 权重，可能有助于并行计算</li>
+</ul>
+</li>
+</ol>
+<h2 id="7-扩展性分析">7. 扩展性分析</h2>
+<p>LlamaLike 模型的设计具有良好的扩展性：</p>
+<ol>
+<li>
+<p><strong>支持多种模型</strong>：</p>
+<ul>
+<li>通过相同的接口支持 Baichuan 和 Llama2 等多种模型</li>
+<li>只需修改权重别名映射，就可以支持新的模型变体</li>
+</ul>
+</li>
+<li>
+<p><strong>模块化设计</strong>：</p>
+<ul>
+<li>使用模块化设计构建计算图，便于扩展和维护</li>
+<li>可以方便地替换或修改特定模块</li>
+</ul>
+</li>
+<li>
+<p><strong>参数化配置</strong>：</p>
+<ul>
+<li>模型参数（如嵌入维度、头数、层数等）由模型文件决定</li>
+<li>不需要硬编码特定模型的参数</li>
+</ul>
+</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p><code>llama_like.h</code> 和 <code>llama_like.cpp</code> 文件实现了 InferLLM 框架中对类 Llama 架构模型（如 Baichuan 和 Llama2）的支持。它们定义了 <code>LlamaLikeGraph</code> 类，该类继承自基础的 <code>Graph</code> 类，并实现了特定于类 Llama 架构模型的加载和计算图构建逻辑。</p>
+<p>通过分析这些文件，我们可以了解类 Llama 架构模型的结构特点和实现细节，以及 InferLLM 框架如何支持不同架构的模型。这种设计使得 InferLLM 可以灵活地支持多种模型架构，而不需要修改框架的核心代码。</p>
+<p>LlamaLike 模型的实现展示了现代大型语言模型的一些关键技术，如 RMSNorm、旋转位置编码和 SwiGLU 激活函数等。这些技术的应用使得模型在保持高性能的同时，减少了参数量和计算量，提高了推理效率。</p>
+
+            </div>
+            <hr style="width: 80%;">
+            
+            <div class="donateContainer">
+                <span class="donatebtn">赏</span>
+            </div>
+            <div class="donateContainer">
+                <img src="https://i.postimg.cc/XYDh2Nx5/donate.png" alt="" class="donate">
+            </div>
+            
+            <div class="postfooter">
+                <ul class="post-copyright">
+                    <li><strong>文章作者：</strong>sola</li>
+            <li><strong>原文链接：</strong>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-16/</li>
+            <li><strong>版权声明：</strong>本博客所有文章除特别声明外，均采用<i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA
+                许可协议。转载请注明出处！</li>
+            </ul>
+        </div>
+        
+            <div class="shareContainer">
+                <div class="share" style="height:30px;">
+                    <a class="qq" href=""><i><img class="shareicon"
+                                src="https://solahome.github.io/media/images/qqs.png" alt=""></i></a>
+                    <a class="wechat" href=""><i><img class="shareicon"
+                                src="https://solahome.github.io/media/images/wechats.png" alt=""></i></a>
+                    <a class="weibo" href=""><i><img class="shareicon"
+                                src="https://solahome.github.io/media/images/weibos.png" alt=""></i></a>
+                    <a class="qzone" href=""><i><img class="shareicon"
+                                src="https://solahome.github.io/media/images/qzones.png" alt=""></i></a>
+                    <a class="douban" href=""><i><img class="shareicon"
+                                src="https://solahome.github.io/media/images/doubans.png" alt=""></i></a>
+                    <a class="facebook" href=""><i><img class="shareicon"
+                                src="https://solahome.github.io/media/images/facebooks.png" alt=""></i></a>
+                    <a class="twitter" href=""><i><img class="shareicon"
+                                src="https://solahome.github.io/media/images/twitter.png" alt=""></i></a>
+                </div>
+            </div>
+            
+        <div id="otherpost">
+            
+            <a  data-pjax class="prev-post-pc" href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-17/"  style="color: black;">
+                <div id="ppcontainer">
+                    
+                    <img src="https://cdn.colorhub.me/x4mcUbBKPnU/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vM2EvZjcvODIzYTYyZWYzYTA2ZmQ2NzY2ZTMzOTA3NDExZWM5NTY5ODQ4M2FmNy5qcGVn.webp" style="width: 100%;" class="opimg">
+                    
+                    <h4 class="optitle">[InferLLM大模型推理框架项目](17)InferLLM模块kern的概述(src/kern)</h4>
+                </div>
+            </a>
+            <div class="prev-post">
+                上一篇 <a  data-pjax href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-17/">[InferLLM大模型推理框架项目](17)InferLLM模块kern的概述(src/kern)</a>
+            </div>
+            
+            
+            <a data-pjax class="next-post-pc" href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-15/"  style="color: black;">
+                <div id="npcontainer">
+                    
+                    <img src="https://img.colorhub.me/VvogC8UZ0xY/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vOTAvZGIvNjBjNTNhYmRiNjY2OWM0NmQyYzIzMzI3N2Q1Yjc5NTk3MWM4OTBkYi5qcGVn.webp" style="width: 100%;" class="opimg">
+                    
+                    <h4 class="optitle">[InferLLM大模型推理框架项目](15)Llama系列模型代码实现(src/graph/ggml_llama.h+.cpp)</h4>
+                </div>
+            </a>
+            <div class="next-post">
+                下一篇 <a  data-pjax href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-15/">[InferLLM大模型推理框架项目](15)Llama系列模型代码实现(src/graph/ggml_llama.h+.cpp)</a>
+            </div>
+            
+        </div>
+    </div>
+    </div>
+    </div>
+    <!-- 弹窗 -->
+    <div id="myModal" class="modal">
+        <img class="modal-content" id="img01">
+    </div>
+</body>
+<script>
+    //文章阅读热度
+    var pl = $("#pl").html();
+    var rootaddr = $("#rootaddr").html();
+    pl = pl.replace(rootaddr, "");
+    $("#hotnum").attr('id', pl);
+</script>
+                    <div class="toc-container">
+                        <ul class="markdownIt-TOC">
+<li><a href="#llamalike-%E6%A8%A1%E5%9E%8B%E4%BB%A3%E7%A0%81%E7%BB%93%E6%9E%84%E4%B8%8E%E5%8A%9F%E8%83%BD%E5%AE%9E%E7%8E%B0%E5%88%86%E6%9E%90">LlamaLike 模型代码结构与功能实现分析</a>
+<ul>
+<li><a href="#1-llama_likeh-%E6%96%87%E4%BB%B6%E5%88%86%E6%9E%90">1. llama_like.h 文件分析</a>
+<ul>
+<li><a href="#11-%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84">1.1 文件结构</a></li>
+</ul>
+</li>
+<li><a href="#2-llama_likecpp-%E6%96%87%E4%BB%B6%E5%88%86%E6%9E%90">2. llama_like.cpp 文件分析</a>
+<ul>
+<li><a href="#21-%E5%A4%B4%E6%96%87%E4%BB%B6%E5%BC%95%E5%85%A5">2.1 头文件引入</a></li>
+<li><a href="#22-%E6%9D%83%E9%87%8D%E5%88%AB%E5%90%8D%E8%AE%BE%E7%BD%AE">2.2 权重别名设置</a></li>
+<li><a href="#23-%E5%8F%82%E6%95%B0%E5%8A%A0%E8%BD%BD">2.3 参数加载</a></li>
+<li><a href="#24-%E8%AE%A1%E7%AE%97%E5%9B%BE%E6%9E%84%E5%BB%BA">2.4 计算图构建</a></li>
+</ul>
+</li>
+<li><a href="#3-llamalike-%E6%A8%A1%E5%9E%8B%E7%9A%84%E7%89%B9%E7%82%B9">3. LlamaLike 模型的特点</a>
+<ul>
+<li><a href="#31-%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84">3.1 模型架构</a></li>
+<li><a href="#32-%E4%B8%8E-ggml-llama-%E7%9A%84%E6%AF%94%E8%BE%83">3.2 与 GGML Llama 的比较</a></li>
+<li><a href="#33-%E4%B8%8E-chatglm-%E7%B3%BB%E5%88%97%E7%9A%84%E6%AF%94%E8%BE%83">3.3 与 ChatGLM 系列的比较</a></li>
+</ul>
+</li>
+<li><a href="#4-%E6%A8%A1%E5%9E%8B%E5%8A%A0%E8%BD%BD%E6%B5%81%E7%A8%8B">4. 模型加载流程</a></li>
+<li><a href="#5-%E8%AE%A1%E7%AE%97%E5%9B%BE%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B">5. 计算图执行流程</a></li>
+<li><a href="#6-%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5">6. 优化策略</a></li>
+<li><a href="#7-%E6%89%A9%E5%B1%95%E6%80%A7%E5%88%86%E6%9E%90">7. 扩展性分析</a></li>
+<li><a href="#%E6%80%BB%E7%BB%93">总结</a></li>
+</ul>
+</li>
+</ul>
+
+                    </div>
+                    <div class="tog">
+                        <div class="toggleContainer">
+                            <div class="toggle">
+                                <i class="fas fa-angle-double-up"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!---------------------------- 评论系统👇 ------------------------->
+                    <div id="comment" class="comment">
+                        <div class="commentcontainer">
+                            
+                                
+                            
+                        </div>
+                    </div>
+                    <!---------------------------- 评论系统👆 ------------------------->
+                </div>
+                <!-- main标签，pjax渲染时加载以上内容👆 -->
+                <div class="col-md-1 col-lg-2"></div>
+                <div id="bg">
+                </div>
+            </div>
+            <!-- ----------------左侧菜单栏html 👆-------------------------------------->
+            
+        </div>
+        <!-- aplayer播放器加载👇 -->
+            
+            <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css">
+</head>
+
+<body>
+    <div class="miniMode">
+        <meting-js id="myaplayer" server="netease" type="playlist" fixed="true" order="default" muted="muted">
+        </meting-js>
+    </div>
+</body>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
+<script>
+    function aplayerInit() {
+        var aplayerid = "486899256";
+        var aplayerserver = "netease";
+        var aplayerorder = "random";
+        var aplayerautoplay = "false";
+        var aplayer = $("#myaplayer");
+        aplayer.attr("server", aplayerserver);
+        aplayer.attr("id", aplayerid);
+        aplayer.attr("order", aplayerorder);
+        if (aplayerautoplay == "true")
+            aplayer.attr("autoplay", "true");
+    }
+    aplayerInit();
+</script>
+
+<script src="https://cdn.jsdelivr.net/gh/850552586/ericamcdn@0.1/js/Aplayer.min.js"></script>
+<!-- require MetingJS -->
+<script src="https://cdn.jsdelivr.net/npm/meting@2/dist/Meting.min.js"></script>
+
+<script>
+    function aplayerbtnInit() {
+        var player = document.querySelectorAll('meting-js')[0].aplayer;
+        if(player==undefined)return false;
+        player.lrc.hide();
+        var mbabtn = $("#mbaplayer");
+        if (player.paused == false) {
+            mbabtn.removeClass("fa-play-circle-o");
+            mbabtn.addClass("fa-pause-circle");
+        } else {
+            mbabtn.addClass("fa-play-circle-o");
+            mbabtn.removeClass("fa-pause-circle");
+        }
+    }
+
+    function aplayerPlay() {
+        var player = document.querySelectorAll('meting-js')[0].aplayer;
+        var mbabtn = $("#mbaplayer");
+        if (player.paused == true) {
+            player.play();
+            mbabtn.removeClass("fa-play-circle-o");
+            mbabtn.addClass("fa-pause-circle");
+        } else {
+            player.pause();
+            mbabtn.addClass("fa-play-circle-o");
+            mbabtn.removeClass("fa-pause-circle");
+        }
+    }
+</script>
+            
+        <!-- aplayer播放器加载👆 -->
+    </div>
+    <!-- 背景图加载方式👇 -->
+    <div id="bgchoice" style="display: none">link
+                </div>
+                
+                <div id="bgurl" style="display:none">https://cdn.colorhub.me/sU3CVeqJayE/rs:auto:0:500:0/g:ce/fn:colorhub/bG9jYWw6Ly8vZDgvZTQvNTlkMmI4MTNjYmU5ZWE2ZDRlNDE1OGQ5YjdkMzMxZjBmZDEwZDhlNC5qcGc.webp</div>
+                
+    <!-- 背景图加载方式👆 -->
+</body>
+
+<script>
+    //初始化
+    //更换twikoo头像
+    setTimeout(replaceAvatar,1000);
+    setTimeout(replaceAvatar,2000);
+    setTimeout(replaceAvatar,8000);
+    // --------为每张图片添加懒加载（lazyload）标签-->懒加载功能 👇------------
+    lazyload();
+    //为文章内所有代码块添加代码复制功能 👇
+    codeinit();
+    // ------代码高亮显示功能-------------
+    hljs.initHighlightingOnLoad();
+    if (shareChoice)
+        shareInit();
+    if (donateChoice)
+        donateInit();
+</script>
+
+<!------------------ 加载live2d模型功能（看板娘）👇 ---------------->
+
+<script type="text/javascript">
+    var message_Path = '/live2d/'
+    var home_Path = document.getElementById("domainname").innerHTML + "/"; //此处修改为你的域名，必须带斜杠
+</script>
+<script type="text/javascript" src="https://solahome.github.io/media/js/live2d.js"></script>
+<script type="text/javascript" src="https://solahome.github.io/media/live2d/js/message.js"></script>
+<script type="text/javascript">
+    loadlive2d("live2d", "https://solahome.github.io/media/live2d/assets/haru01.model.json");
+</script>
+
+<!------------------ 加载live2d模型功能（看板娘）👆 ---------------->
+
+
+<!----------------------- 返回顶部按钮功能👇 --------------------->
+<script>
+    $(function () {
+        $('.toggleContainer').click(function () {
+            $('html,body').animate({
+                scrollTop: '0px'
+            }, 800);
+        });
+        $(window).scroll(function () {
+            var st = $(window).scrollTop();
+            if (st > 30) {
+                $(".toggleContainer").fadeIn(400);
+            } else {
+                $(".toggleContainer").fadeOut(100);
+            }
+        });
+    });
+</script>
+<!----------------------- 返回顶部按钮功能👆 --------------------->
+
+
+<!------------ 加载全局背景图功能👇（开始时没有写好，这功能有点鸡肋/(ㄒoㄒ)/~~） -->
+<script>
+    var bgchoice = "link"
+    var bg = $('#bg');
+    var bgurl = document.getElementById("bgurl").innerHTML;
+    if (bgchoice == 'default')
+    {
+        for (var i = 0; i < 3; i++)
+            bgurl = bgurl.replace("\\", "/");
+        bgurl = "https://solahome.github.io/" + bgurl;
+    }
+    bg.css("background", "url('" + bgurl + "')");
+
+    window.onload = function () {
+        aplayerbtnInit();
+    }
+</script>
+<!------------ 加载全局背景图功能👆（开始时没有写好，这功能有点鸡肋/(ㄒoㄒ)/~~） -->
+
+
+
+
+<script src="https://solahome.github.io/media/js/index.js"></script>
+
+
+<script>
+    //加载后的事件同步（阅读量、移动端评论等
+    window.onload = function () {
+    //代码块高亮渲染
+    document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightBlock(block);
+    });
+        getHotnum();
+        var sharepc = $(".share").eq(0).html();
+        $(".share").eq(1).html(sharepc);   //插件只会寻找一个分享标签渲染，所以需要手动添加到移动端
+        aplayerbtnInit();
+        $(".hljs").css({
+            "padding": "20px"
+        })
+    }
+</script>
+
+<!-- <script src="https://solahome.github.io/media/js/av-min.js"></script> -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@3.13.0/dist/av-min.js"></script> -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-live-query-min.js"></script> -->

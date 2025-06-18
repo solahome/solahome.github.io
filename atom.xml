@@ -1,0 +1,4067 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://solahome.github.io</id>
+    <title>sola的小屋</title>
+    <updated>2025-06-18T14:15:31.104Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://solahome.github.io"/>
+    <link rel="self" href="https://solahome.github.io/atom.xml"/>
+    <subtitle>故事的结尾总写在开头</subtitle>
+    <logo>https://solahome.github.io/images/avatar.png</logo>
+    <icon>https://solahome.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2025, sola的小屋</rights>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](27)kern中ARM优化模块的optimized代码分析(src/kern/optimized/arm/optimized.h)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-27/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-27/">
+        </link>
+        <updated>2025-05-08T09:21:04.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm-框架中-arm-优化模块的-optimizedh-分析">InferLLM 框架中 ARM 优化模块的 optimized.h 分析</h1>
+<p><code>optimized.h</code> 文件是 InferLLM 框架中 ARM 优化模块的核心部分，它实现了各种基础向量运算函数，这些函数被 <code>kernel.cpp</code> 中的高级计算函数调用。下面对其代码结构和功能实现进行详细分析。</p>
+<h2 id="1-文件结构概述">1. 文件结构概述</h2>
+<pre><code class="language-cpp">#pragma once
+
+#include &lt;assert.h&gt;
+#include &quot;arm_neon.h&quot;
+#include &quot;kern/kernel_define.h&quot;
+
+namespace inferllm {
+namespace opt {
+    // 各种优化的向量运算函数
+}  // namespace opt
+}  // namespace inferllm
+</code></pre>
+<p>该文件包含了必要的头文件，其中 <code>arm_neon.h</code> 是 ARM NEON 指令集的头文件，提供了 NEON 指令集的内联函数。所有函数都定义在 <code>inferllm::opt</code> 命名空间中。</p>
+<h2 id="2-基础元素级运算函数">2. 基础元素级运算函数</h2>
+<h3 id="21-向量加法">2.1 向量加法</h3>
+<pre><code class="language-cpp">inline void elemwise_vector_add(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    for (int i = 0; i &lt; n; i++) {
+        z[i] = x[i] + y[i];
+    }
+}
+</code></pre>
+<p>这个函数实现了向量加法，将两个向量 <code>x</code> 和 <code>y</code> 相加，结果存储在向量 <code>z</code> 中。使用 <code>__restrict</code> 关键字告诉编译器这些指针不会重叠，有助于编译器生成更优化的代码。</p>
+<h3 id="22-向量乘法">2.2 向量乘法</h3>
+<pre><code class="language-cpp">inline void elemwise_vector_mul(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    for (int i = 0; i &lt; n; i++) {
+        z[i] = x[i] * y[i];
+    }
+}
+</code></pre>
+<p>这个函数实现了向量乘法，将两个向量 <code>x</code> 和 <code>y</code> 对应元素相乘，结果存储在向量 <code>z</code> 中。</p>
+<h3 id="23-silu-激活函数">2.3 SiLU 激活函数</h3>
+<pre><code class="language-cpp">inline void elemwise_vector_silu(
+        const int n, const float* __restrict x, float* __restrict z) {
+    for (int i = 0; i &lt; n; i++) {
+        z[i] = x[i] / (1 + exp(-x[i]));
+    }
+}
+</code></pre>
+<p>这个函数实现了 SiLU 激活函数，也称为 Swish 激活函数，公式为 <code>f(x) = x * sigmoid(x)</code>，这里使用等价形式 <code>f(x) = x / (1 + exp(-x))</code>。</p>
+<h3 id="24-gelu-激活函数">2.4 GELU 激活函数</h3>
+<pre><code class="language-cpp">inline void elemwise_vector_gelu(
+        const int n, const float* __restrict x, float* __restrict z) {
+    for (int i = 0; i &lt; n; i++) {
+        float src = x[i];
+        z[i] = 0.5 * src * (1 + tanh(sqrt(2.0 / PI) * (src + PGELU * src * src * src)));
+    }
+}
+</code></pre>
+<p>这个函数实现了 GELU 激活函数，使用近似公式 <code>f(x) = 0.5 * x * (1 + tanh(sqrt(2/π) * (x + 0.044715 * x^3)))</code>，其中 <code>PGELU</code> 是常数 0.044715。</p>
+<h3 id="25-向量缩放">2.5 向量缩放</h3>
+<pre><code class="language-cpp">inline void elemwise_vec_scale(
+        const int n, const float* __restrict x, float scale, float* __restrict z) {
+    int i = 0;
+    for (; i &lt; n; i++) {
+        z[i] = x[i] * scale;
+    }
+}
+</code></pre>
+<p>这个函数实现了向量缩放，将向量 <code>x</code> 的每个元素乘以缩放因子 <code>scale</code>，结果存储在向量 <code>z</code> 中。</p>
+<h2 id="3-归约运算函数">3. 归约运算函数</h2>
+<h3 id="31-平方和归约">3.1 平方和归约</h3>
+<pre><code class="language-cpp">inline float reduce_square_sum(const int n, const float* __restrict x) {
+    float sum = 0.0f;
+    for (int i = 0; i &lt; n; i++) {
+        sum += x[i] * x[i];
+    }
+    return sum;
+}
+</code></pre>
+<p>这个函数计算向量 <code>x</code> 的平方和，用于 RMS 归一化。</p>
+<h3 id="32-最大值归约">3.2 最大值归约</h3>
+<pre><code class="language-cpp">inline float reduce_max(const int n, const float* __restrict x) {
+    float max = -INFINITY;
+    for (int i = 0; i &lt; n; i++) {
+        max = std::max(max, x[i]);
+    }
+    return max;
+}
+</code></pre>
+<p>这个函数找到向量 <code>x</code> 的最大值，用于 Softmax 计算。</p>
+<h3 id="33-减去最大值并计算指数和">3.3 减去最大值并计算指数和</h3>
+<pre><code class="language-cpp">inline float select_sub_max_and_reduce_sum(
+        const int n, const float* __restrict x, float* __restrict y, const float max) {
+    float sum = 0.0f;
+    for (uint32_t i = 0; i &lt; n; i++) {
+        if (x[i] == -INFINITY) {
+            y[i] = 0.0f;
+        } else {
+            float val = exp(x[i] - max);
+            sum += val;
+            y[i] = val;
+        }
+    }
+    return sum;
+}
+</code></pre>
+<p>这个函数将向量 <code>x</code> 的每个元素减去最大值 <code>max</code>，然后计算指数，结果存储在向量 <code>y</code> 中，并返回指数和。这是 Softmax 计算的一部分，减去最大值可以提高数值稳定性。</p>
+<h2 id="4-矩阵乘法函数">4. 矩阵乘法函数</h2>
+<h3 id="41-带偏移的矩阵乘法">4.1 带偏移的矩阵乘法</h3>
+<pre><code class="language-cpp">inline void compute_src_offset_embd_matmul(
+        const float* __restrict srcq_head, int offsetq,
+        const float* __restrict srck_head, int offsetk, float* dst_head, int seqlen,
+        int length, int sub_embd) {
+    for (uint32_t row = 0; row &lt; seqlen; row++) {
+        auto p_srcq = srcq_head + row * offsetq;
+        uint32_t len = 0;
+        for (; len + 3 &lt; length; len += 4) {
+            auto p_dst = dst_head + row * length + len;
+            auto p_srck0 = srck_head + len * offsetk;
+            auto p_srck1 = srck_head + (len + 1) * offsetk;
+            auto p_srck2 = srck_head + (len + 2) * offsetk;
+            auto p_srck3 = srck_head + (len + 3) * offsetk;
+            float sum0 = 0;
+            float sum1 = 0;
+            float sum2 = 0;
+            float sum3 = 0;
+            for (uint32_t k = 0; k &lt; sub_embd; k++) {
+                sum0 += p_srck0[k] * p_srcq[k];
+                sum1 += p_srck1[k] * p_srcq[k];
+                sum2 += p_srck2[k] * p_srcq[k];
+                sum3 += p_srck3[k] * p_srcq[k];
+            }
+            p_dst[0] = sum0;
+            p_dst[1] = sum1;
+            p_dst[2] = sum2;
+            p_dst[3] = sum3;
+        }
+        for (; len &lt; length; len++) {
+            auto p_dst = dst_head + row * length + len;
+            auto p_srck = srck_head + len * offsetk;
+            float sum = 0;
+            for (uint32_t k = 0; k &lt; sub_embd; k++) {
+                sum += p_srck[k] * p_srcq[k];
+            }
+            *p_dst = sum;
+        }
+    }
+}
+</code></pre>
+<p>这个函数实现了带偏移的矩阵乘法，用于多头注意力中的 Q 和 K 的矩阵乘法。它使用分块处理策略，每次处理 4 列，提高计算效率。</p>
+<h3 id="42-带不连续目标的矩阵乘法">4.2 带不连续目标的矩阵乘法</h3>
+<pre><code class="language-cpp">inline void comput_matmul_with_dst_uncontinue(
+        float* __restrict dst, int offset_dst, const float* __restrict srcv,
+        int offset_v, const float* __restrict srcqk, int seqlen, int length, int K) {
+    for (uint32_t row = 0; row &lt; seqlen; row++) {
+        auto p_qk = srcqk + row * length;
+        for (uint32_t len = 0; len &lt; K; len++) {
+            auto p_dst = dst + row * offset_dst + len;
+            auto p_v = srcv + len;
+            float sum = 0;
+            for (uint32_t k = 0; k &lt; length; k++) {
+                sum += p_v[k * offset_v] * p_qk[k];
+            }
+            *p_dst = sum;
+        }
+    }
+}
+</code></pre>
+<p>这个函数实现了带不连续目标的矩阵乘法，用于多头注意力中的 QK 和 V 的矩阵乘法。目标矩阵 <code>dst</code> 的元素不是连续存储的，而是按照 <code>offset_dst</code> 的偏移存储。</p>
+<h2 id="5-量化点积计算">5. 量化点积计算</h2>
+<pre><code class="language-cpp">inline float vec_vec_dot_q40_with_q80(
+        const int n, const void* __restrict vx, const void* __restrict vy) {
+    // ... 前面部分已分析 ...
+
+    // 根据是否支持 ARM 点积指令选择不同的实现
+#if defined(__ARM_FEATURE_DOTPROD)
+    // 使用 SDOT 指令计算点积
+    const int32x4_t p_0 =
+            vdotq_s32(vdotq_s32(vdupq_n_s32(0), v0_0ls, v1_0ls), v0_0hs, v1_0hs);
+    const int32x4_t p_1 =
+            vdotq_s32(vdotq_s32(vdupq_n_s32(0), v0_1ls, v1_1ls), v0_1hs, v1_1hs);
+
+    // 乘以量化参数并累加
+    sumv0 = vmlaq_n_f32(sumv0, vcvtq_f32_s32(p_0), x0-&gt;d * y0-&gt;d);
+    sumv1 = vmlaq_n_f32(sumv1, vcvtq_f32_s32(p_1), x1-&gt;d * y1-&gt;d);
+#else
+    // 不支持 SDOT 指令时的模拟实现
+    // 使用 vmull_s8 计算 8 位整数的乘法，结果为 16 位整数
+    const int16x8_t pl0l = vmull_s8(vget_low_s8(v0_0ls), vget_low_s8(v1_0ls));
+    const int16x8_t pl0h = vmull_s8(vget_high_s8(v0_0ls), vget_high_s8(v1_0ls));
+    const int16x8_t ph0l = vmull_s8(vget_low_s8(v0_0hs), vget_low_s8(v1_0hs));
+    const int16x8_t ph0h = vmull_s8(vget_high_s8(v0_0hs), vget_high_s8(v1_0hs));
+
+    const int16x8_t pl1l = vmull_s8(vget_low_s8(v0_1ls), vget_low_s8(v1_1ls));
+    const int16x8_t pl1h = vmull_s8(vget_high_s8(v0_1ls), vget_high_s8(v1_1ls));
+    const int16x8_t ph1l = vmull_s8(vget_low_s8(v0_1hs), vget_low_s8(v1_1hs));
+    const int16x8_t ph1h = vmull_s8(vget_high_s8(v0_1hs), vget_high_s8(v1_1hs));
+
+    // 使用 vpaddlq_s16 计算相邻元素的和，结果为 32 位整数
+    const int32x4_t pl0 = vaddq_s32(vpaddlq_s16(pl0l), vpaddlq_s16(pl0h));
+    const int32x4_t ph0 = vaddq_s32(vpaddlq_s16(ph0l), vpaddlq_s16(ph0h));
+    const int32x4_t pl1 = vaddq_s32(vpaddlq_s16(pl1l), vpaddlq_s16(pl1h));
+    const int32x4_t ph1 = vaddq_s32(vpaddlq_s16(ph1l), vpaddlq_s16(ph1h));
+
+    // 乘以量化参数并累加
+    sumv0 = vmlaq_n_f32(sumv0, vcvtq_f32_s32(vaddq_s32(pl0, ph0)), x0-&gt;d * y0-&gt;d);
+    sumv1 = vmlaq_n_f32(sumv1, vcvtq_f32_s32(vaddq_s32(pl1, ph1)), x1-&gt;d * y1-&gt;d);
+#endif
+    }
+    // 水平求和并返回结果
+    return vaddvq_f32(sumv0) + vaddvq_f32(sumv1);
+}
+</code></pre>
+<p>这个函数实现了 4 位整数量化与 8 位整数量化的点积计算，是矩阵乘法中的核心计算部分。它使用 NEON 指令集进行向量化计算，并根据处理器是否支持 SDOT 指令选择不同的实现。</p>
+<p>主要优化点包括：</p>
+<ol>
+<li><strong>条件编译</strong>：根据 <code>__ARM_FEATURE_DOTPROD</code> 宏判断处理器是否支持 SDOT 指令，选择不同的实现</li>
+<li><strong>NEON 指令集优化</strong>：使用 NEON 指令集进行向量化计算，每次处理多个数据元素</li>
+<li><strong>分块处理</strong>：每次处理两个块，减少循环开销</li>
+<li><strong>并行计算</strong>：使用多个向量寄存器并行计算，提高指令级并行性</li>
+<li><strong>内存访问优化</strong>：使用连续的内存访问模式，提高缓存命中率</li>
+</ol>
+<h2 id="6-neon-指令集优化分析">6. NEON 指令集优化分析</h2>
+<p>ARM 优化模块使用 NEON 指令集进行向量化计算，提高计算效率。NEON 指令集是 ARM 处理器的 SIMD（单指令多数据）扩展，可以同时处理多个数据元素。</p>
+<h3 id="61-neon-指令集的基本操作">6.1 NEON 指令集的基本操作</h3>
+<ol>
+<li><strong>数据加载</strong>：使用 <code>vld1q_u8</code>、<code>vld1q_s8</code> 等指令加载数据到向量寄存器</li>
+<li><strong>数据存储</strong>：使用 <code>vst1q_f32</code> 等指令将向量寄存器中的数据存储到内存</li>
+<li><strong>算术运算</strong>：使用 <code>vaddq_f32</code>、<code>vmulq_f32</code> 等指令进行向量加法、乘法等运算</li>
+<li><strong>位运算</strong>：使用 <code>vandq_u8</code>、<code>vshrq_n_u8</code> 等指令进行位运算</li>
+<li><strong>类型转换</strong>：使用 <code>vreinterpretq_s8_u8</code>、<code>vcvtq_f32_s32</code> 等指令进行类型转换</li>
+<li><strong>归约运算</strong>：使用 <code>vaddvq_f32</code> 等指令进行水平求和</li>
+</ol>
+<h3 id="62-neon-指令集在-optimizedh-中的应用">6.2 NEON 指令集在 optimized.h 中的应用</h3>
+<ol>
+<li><strong>向量加法</strong>：可以使用 <code>vaddq_f32</code> 指令同时处理 4 个浮点数</li>
+<li><strong>向量乘法</strong>：可以使用 <code>vmulq_f32</code> 指令同时处理 4 个浮点数</li>
+<li><strong>点积计算</strong>：可以使用 <code>vdotq_s32</code> 指令（如果支持）或模拟实现计算点积</li>
+<li><strong>归约运算</strong>：可以使用 <code>vaddvq_f32</code> 指令计算向量的水平求和</li>
+</ol>
+<h3 id="63-neon-指令集的优化效果">6.3 NEON 指令集的优化效果</h3>
+<p>使用 NEON 指令集可以显著提高计算效率，特别是对于大型矩阵乘法和向量运算。在支持 SDOT 指令的处理器上，点积计算的性能更高。</p>
+<h2 id="7-优化策略分析">7. 优化策略分析</h2>
+<h3 id="71-向量化计算">7.1 向量化计算</h3>
+<p>ARM 优化模块使用 NEON 指令集进行向量化计算，每次处理多个数据元素，提高计算效率。例如，在点积计算中，每次处理 32 个 4 位整数和 32 个 8 位整数。</p>
+<h3 id="72-分块处理">7.2 分块处理</h3>
+<p>ARM 优化模块使用分块处理策略，将数据分成多个块进行处理，减少循环开销。例如，在矩阵乘法中，每次处理 4 列，在点积计算中，每次处理两个块。</p>
+<h3 id="73-条件编译">7.3 条件编译</h3>
+<p>ARM 优化模块使用条件编译，根据处理器支持的指令集选择不同的实现。例如，在点积计算中，根据处理器是否支持 SDOT 指令选择不同的实现。</p>
+<h3 id="74-内存访问优化">7.4 内存访问优化</h3>
+<p>ARM 优化模块优化了内存访问模式，使用连续的内存访问模式，提高缓存命中率。例如，在矩阵乘法中，一次加载输入数据，然后计算多个输出元素。</p>
+<h2 id="8-与-naive-实现的比较">8. 与 naive 实现的比较</h2>
+<p>ARM 优化模块中的函数与 naive 模块中的函数相比，主要区别在于：</p>
+<ol>
+<li><strong>向量化实现</strong>：ARM 优化模块使用 NEON 指令集进行向量化计算，naive 模块使用标量实现</li>
+<li><strong>分块处理</strong>：ARM 优化模块使用分块处理策略，naive 模块使用简单的循环</li>
+<li><strong>条件编译</strong>：ARM 优化模块使用条件编译，根据处理器支持的指令集选择不同的实现，naive 模块没有这种优化</li>
+<li><strong>内存访问优化</strong>：ARM 优化模块优化了内存访问模式，naive 模块没有这种优化</li>
+</ol>
+<p>在实际应用中，ARM 优化模块的性能明显优于 naive 模块，特别是在支持 NEON 指令集的 ARM 处理器上。</p>
+<h2 id="9-未来优化方向">9. 未来优化方向</h2>
+<p>基于当前实现，可以考虑以下优化方向：</p>
+<h3 id="91-更多-neon-指令集优化">9.1 更多 NEON 指令集优化</h3>
+<ol>
+<li><strong>使用 NEON 指令集优化基础向量运算函数</strong>：目前 <code>elemwise_vector_add</code>、<code>elemwise_vector_mul</code> 等函数没有使用 NEON 指令集优化，可以添加 NEON 实现</li>
+<li><strong>使用 NEON 指令集优化激活函数</strong>：目前 <code>elemwise_vector_silu</code>、<code>elemwise_vector_gelu</code> 等函数没有使用 NEON 指令集优化，可以添加 NEON 实现</li>
+<li><strong>使用 NEON 指令集优化归约运算</strong>：目前 <code>reduce_square_sum</code>、<code>reduce_max</code> 等函数没有使用 NEON 指令集优化，可以添加 NEON 实现</li>
+</ol>
+<h3 id="92-更多-arm-指令集支持">9.2 更多 ARM 指令集支持</h3>
+<ol>
+<li><strong>支持 ARMv8.2-A 的 FP16 指令</strong>：使用半精度浮点数进行计算，减少内存占用和计算量</li>
+<li><strong>支持 ARMv8.2-A 的 DotProd 指令</strong>：加速点积计算，提高矩阵乘法性能</li>
+<li><strong>支持 ARMv8.6-A 的 BFloat16 指令</strong>：使用 BFloat16 进行计算，减少内存占用和计算量</li>
+</ol>
+<h3 id="93-更高效的算法">9.3 更高效的算法</h3>
+<ol>
+<li><strong>使用 Winograd 算法优化矩阵乘法</strong>：减少乘法次数，提高计算效率</li>
+<li><strong>使用 Flash Attention 算法优化注意力计算</strong>：减少内存占用和计算量</li>
+<li><strong>使用混合精度计算提高性能</strong>：在不同的计算阶段使用不同的精度，平衡精度和性能</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p>InferLLM 框架中的 ARM 优化模块通过 optimized.h 文件实现了各种基础向量运算函数，这些函数被 kernel.cpp 中的高级计算函数调用。optimized.h 文件中的函数使用 NEON 指令集进行向量化计算，使用分块处理策略和条件编译等优化技术，提高大语言模型推理的性能。</p>
+<p>与 naive 模块相比，ARM 优化模块的性能明显更高，特别是在支持 NEON 指令集的 ARM 处理器上。未来可以考虑添加更多 NEON 指令集优化、支持更多 ARM 指令集和使用更高效的算法等方向进行优化，进一步提高大语言模型在 ARM 平台上的推理性能。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](26)kern中ARM优化模块的kernel代码分析(src/kern/optimized/arm/kernel_gpu.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-26/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-26/">
+        </link>
+        <updated>2025-05-06T09:07:59.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm-框架中-arm-优化模块的-kernelh-和-kernelcpp-分析">InferLLM 框架中 ARM 优化模块的 kernel.h 和 kernel.cpp 分析</h1>
+<p>InferLLM 框架中的 ARM 优化模块主要通过 kernel.h 和 kernel.cpp 文件实现了针对 ARM 架构的优化计算函数。这两个文件共同构成了 ARM 平台上大语言模型推理的核心计算部分。</p>
+<h2 id="1-kernelh-文件分析">1. kernel.h 文件分析</h2>
+<p>kernel.h 文件主要声明了各种计算函数和注册内核的宏。</p>
+<h3 id="11-头文件包含">1.1 头文件包含</h3>
+<pre><code class="language-cpp">#pragma once
+
+#include &quot;kern/naive/naive.h&quot;
+#include &quot;math.h&quot;
+#include &quot;string.h&quot;
+</code></pre>
+<p>这里包含了必要的头文件，其中 &quot;kern/naive/naive.h&quot; 包含了朴素实现的函数，用于在 ARM 优化不可用时作为回退方案。</p>
+<h3 id="12-函数声明">1.2 函数声明</h3>
+<p>kernel.h 文件声明了一系列计算函数，这些函数都返回 TaskSet 类型，用于多线程并行计算：</p>
+<pre><code class="language-cpp">namespace inferllm {
+namespace opt {
+
+// 嵌入层计算
+TaskSet llm_embedding_get_int4_float(
+        const void* weights, const uint32_t* index, float* dst, uint32_t len_seq,
+        uint32_t embd);
+
+// 元素级计算
+TaskSet llm_elemwise_compute_float(
+        InData&lt;float&gt; srcs, float* dst, size_t len, ElemMode mode);
+
+// 广播计算
+TaskSet llm_elemwise_broadcast_dim0_src1_compute_float(
+        const float* src0, const float* src1, float* dst, uint32_t len0, uint32_t len1,
+        ElemMode mode);
+
+// RMS 归一化
+TaskSet llm_rms_norm_compute_float(
+        const float* src, float* dst, uint32_t seq_len, uint32_t embd, float eps);
+
+// Softmax 计算
+TaskSet llm_softmax_compute_float(
+        const float* src, float* dst, uint32_t len_row, uint32_t col);
+
+// 量化矩阵乘法
+TaskSet llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size);
+
+// 打包的量化矩阵乘法
+TaskSet llm_matmul_compute_int4_float_packed(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size);
+
+// 获取矩阵乘法所需的工作空间大小
+size_t llm_matmul_get_workspace_float(
+        uint32_t nr_thread, uint32_t M, uint32_t N, uint32_t K);
+
+// 多头注意力中的 Q 和 K 的矩阵乘法
+TaskSet llm_matmul_compute_with_head_stride_float(
+        float* dst, const float* srck, const float* srcq, uint32_t seqlen,
+        uint32_t embd, uint32_t head, uint32_t nr_past);
+
+// 多头注意力中的 QK 和 V 的矩阵乘法
+TaskSet llm_head_batched_matmul_compute_float(
+        float* dst, const float* v, const float* qk, uint32_t seqlen, uint32_t embd,
+        uint32_t head, uint32_t nr_past);
+</code></pre>
+<h3 id="13-内核注册">1.3 内核注册</h3>
+<p>kernel.h 文件使用 PartialImplementKernel 和 PartialImplementSpace 宏注册内核：</p>
+<pre><code class="language-cpp">// 注册计算函数
+PartialImplementKernel(ElemwiseFloat, llm_elemwise_compute_float);
+PartialImplementKernel(
+        ElemwiseBroadcastDim0Src1Float, llm_elemwise_broadcast_dim0_src1_compute_float);
+PartialImplementKernel(RmsNormFloat, llm_rms_norm_compute_float);
+PartialImplementKernel(EmbeddingGetInt4Float, llm_embedding_get_int4_float);
+PartialImplementKernel(MatmulInt4Float, llm_matmul_compute_int4_float);
+PartialImplementKernel(
+        MatmulWithHeadStrideFloat, llm_matmul_compute_with_head_stride_float);
+PartialImplementKernel(HeadBatchedMatmulFloat, llm_head_batched_matmul_compute_float);
+
+// 注册工作空间计算函数
+PartialImplementSpace(MatmulInt4Float, llm_matmul_get_workspace_float);
+</code></pre>
+<p>这些宏将内核 ID 与具体的实现函数关联起来，使得框架可以在运行时根据内核 ID 选择合适的实现。</p>
+<h2 id="2-kernelcpp-文件分析">2. kernel.cpp 文件分析</h2>
+<p>kernel.cpp 文件实现了 kernel.h 中声明的各种计算函数。</p>
+<h3 id="21-头文件包含">2.1 头文件包含</h3>
+<pre><code class="language-cpp">#include &lt;assert.h&gt;
+#include &quot;math.h&quot;
+#include &quot;string.h&quot;
+#include &quot;utils.h&quot;
+
+#include &quot;core/tensor.h&quot;
+#include &quot;kernel.h&quot;
+#include &quot;optimized.h&quot;
+#include &quot;quantize.h&quot;
+</code></pre>
+<p>这里包含了必要的头文件，其中 &quot;optimized.h&quot; 包含了基础向量运算函数，&quot;quantize.h&quot; 包含了量化和反量化操作。</p>
+<h3 id="22-嵌入层计算">2.2 嵌入层计算</h3>
+<pre><code class="language-cpp">TaskSet llm_embedding_get_int4_float(
+        const void* weights, const uint32_t* index, float* dst, uint32_t len_seq,
+        uint32_t embd) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t i = id.start; i &lt; id.end; ++i) {
+            const int row = index[i];
+            const int weight_stride =
+                    embd * dtype_in_byte(DType::Int4) / dtype_block_size(DType::Int4);
+            dequantize_row_q4_0(
+                    (static_cast&lt;const char*&gt;(weights) + row * weight_stride),
+                    dst + i * embd, embd);
+        }
+    };
+    return TaskSet{{task, len_seq}};
+}
+</code></pre>
+<p>这个函数实现了嵌入层的计算，将4位整数量化的权重反量化为浮点数。每个任务处理一个或多个序列位置，通过 <code>dequantize_row_q4_0</code> 函数将量化权重反量化为浮点数。</p>
+<h3 id="23-元素级计算">2.3 元素级计算</h3>
+<pre><code class="language-cpp">TaskSet llm_elemwise_compute_float(
+        InData&lt;float&gt; srcs, float* dst, size_t length, ElemMode mode) {
+    MultiThreadingTask task;
+    switch (mode) {
+        case ElemMode::Add: {
+            task = [=](const TaskId&amp; id) {
+                uint32_t offset = id.start;
+                uint32_t len = id.end - id.start;
+                elemwise_vector_add(
+                        len, srcs[0] + offset, srcs[1] + offset, dst + offset);
+            };
+            break;
+        }
+        case ElemMode::Mul: {
+            task = [=](const TaskId&amp; id) {
+                uint32_t offset = id.start;
+                uint32_t len = id.end - id.start;
+                elemwise_vector_mul(
+                        len, srcs[0] + offset, srcs[1] + offset, dst + offset);
+            };
+            break;
+        }
+        case ElemMode::Silu: {
+            task = [=](const TaskId&amp; id) {
+                uint32_t offset = id.start;
+                uint32_t len = id.end - id.start;
+                return elemwise_vector_silu(len, srcs[0] + offset, dst + offset);
+            };
+            break;
+        }
+        case ElemMode::Gelu: {
+            task = [=](const TaskId&amp; id) {
+                uint32_t offset = id.start;
+                uint32_t len = id.end - id.start;
+                return elemwise_vector_gelu(len, srcs[0] + offset, dst + offset);
+            };
+            break;
+        }
+        default:
+            INFER_ASSERT(0, &quot;Not supported.&quot;);
+    }
+    return TaskSet{{task, length}};
+}
+</code></pre>
+<p>这个函数实现了元素级计算，支持加法、乘法、SiLU 激活函数和 GELU 激活函数。每个任务处理一段连续的数据，通过 <code>elemwise_vector_add</code>、<code>elemwise_vector_mul</code>、<code>elemwise_vector_silu</code> 和 <code>elemwise_vector_gelu</code> 函数实现具体的计算。</p>
+<h3 id="24-广播计算">2.4 广播计算</h3>
+<pre><code class="language-cpp">TaskSet llm_elemwise_broadcast_dim0_src1_compute_float(
+        const float* src0, const float* src1, float* dst, uint32_t len0, uint32_t len1,
+        ElemMode mode) {
+    MultiThreadingTask task;
+    switch (mode) {
+        case ElemMode::Add: {
+            task = [=](const TaskId&amp; id) {
+                for (size_t i = id.start; i &lt; id.end; i++) {
+                    const float* p_src = src0 + i * len1;
+                    float* p_dst = dst + i * len1;
+                    elemwise_vector_add(len1, p_src, src1, p_dst);
+                }
+            };
+            break;
+        }
+        case ElemMode::Mul: {
+            task = [=](const TaskId&amp; id) {
+                for (size_t i = id.start; i &lt; id.end; i++) {
+                    auto p_src = src0 + i * len1;
+                    auto p_dst = dst + i * len1;
+                    elemwise_vector_mul(len1, p_src, src1, p_dst);
+                }
+            };
+            break;
+        }
+        default:
+            INFER_ASSERT(0, &quot;Not supported.&quot;);
+    }
+    return TaskSet{{task, len0}};
+}
+</code></pre>
+<p>这个函数实现了广播计算，将 <code>src1</code> 广播到 <code>src0</code> 的第0维，然后进行元素级计算。每个任务处理 <code>src0</code> 的一个或多个行，通过 <code>elemwise_vector_add</code> 和 <code>elemwise_vector_mul</code> 函数实现具体的计算。</p>
+<h3 id="25-rms-归一化">2.5 RMS 归一化</h3>
+<pre><code class="language-cpp">TaskSet llm_rms_norm_compute_float(
+        const float* src, float* dst, uint32_t seq_len, uint32_t embd, float eps) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t i = id.start; i &lt; id.end; i++) {
+            const float* row = src + i * embd;
+            float* out = dst + i * embd;
+            float mean = reduce_square_sum(embd, row) / embd;
+            const float scale = 1.0 / sqrt(mean + eps);
+            elemwise_vec_scale(embd, row, scale, out);
+        }
+    };
+    return TaskSet{{task, seq_len}};
+}
+</code></pre>
+<p>这个函数实现了 RMS 归一化，每个任务处理一个或多个序列位置。首先计算平方和的均值，然后计算缩放因子，最后将输入向量乘以缩放因子得到归一化结果。</p>
+<h3 id="26-softmax-计算">2.6 Softmax 计算</h3>
+<pre><code class="language-cpp">TaskSet llm_softmax_compute_float(
+        const float* src, float* dst, uint32_t len_row, uint32_t col) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t row = id.start; row &lt; id.end; row++) {
+            const float* psrc = src + row * col;
+            float* pdst = dst + row * col;
+
+            float max = reduce_max(col, psrc);
+            float sum = select_sub_max_and_reduce_sum(col, psrc, pdst, max);
+            sum = 1.0 / sum;
+            elemwise_vec_scale(col, pdst, sum, pdst);
+        }
+    };
+    return TaskSet{{task, len_row}};
+}
+</code></pre>
+<p>这个函数实现了 Softmax 计算，每个任务处理一个或多个行。首先找到最大值，然后减去最大值并计算指数和，最后将每个元素除以指数和得到 Softmax 结果。</p>
+<h3 id="27-量化矩阵乘法">2.7 量化矩阵乘法</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size) {
+    // src0 是量化权重，每32个数据为一个块，一个块共享相同的缩放因子
+    // src1 是特征图，src0 布局为 {N, K}，src1 布局为 {M, K}，dst 布局为 {M, N}
+    INFER_ASSERT(sizeof(float) * K &lt;= size, &quot;workspace is not enough.&quot;);
+    uint32_t weight_q40_stride =
+            K * dtype_in_byte(DType::Int4) / dtype_block_size(DType::Int4);
+    uint32_t weight_q80_stride =
+            K * dtype_in_byte(DType::Int8) / dtype_block_size(DType::Int8);
+    
+    // 第一阶段：量化输入，并存储在工作空间中
+    // 因为输入比权重小，量化输入可以减少内存流量
+    auto task1 = [=](const TaskId&amp; id) {
+        for (uint32_t m = id.start; m &lt; id.end; m++) {
+            BlockQ80* q_src1 = (BlockQ80*)(static_cast&lt;uint8_t*&gt;(workspace) +
+                                           m * weight_q80_stride);
+            quantize_row_q8_0(src1 + m * K, q_src1, K);
+        }
+    };
+    
+    // 第二阶段：计算矩阵乘法
+    int8_t* q_src = static_cast&lt;int8_t*&gt;(workspace);
+    auto task2 = [=](const TaskId&amp; id) {
+        uint32_t N_len = id.end - id.start;
+        uint32_t n_block_4 = N_len / 4;
+        uint32_t n_block_4_left = N_len - n_block_4 * 4;
+        
+        // 处理4列一组的部分
+        for (uint32_t block4 = 0; block4 &lt; n_block_4; block4++) {
+            uint32_t n = block4 * 4 + id.start;
+            float b0 = bias ? bias[n] : 0;
+            float b1 = bias ? bias[n + 1] : 0;
+            float b2 = bias ? bias[n + 2] : 0;
+            float b3 = bias ? bias[n + 3] : 0;
+            
+            // 加载权重
+            const void* q_weight0 = static_cast&lt;const char*&gt;(src0) + n * weight_q40_stride;
+            const void* q_weight1 = static_cast&lt;const char*&gt;(src0) + (n + 1) * weight_q40_stride;
+            const void* q_weight2 = static_cast&lt;const char*&gt;(src0) + (n + 2) * weight_q40_stride;
+            const void* q_weight3 = static_cast&lt;const char*&gt;(src0) + (n + 3) * weight_q40_stride;
+            
+            // 计算矩阵乘法
+            for (uint32_t m = 0; m &lt; M; m++) {
+                int8_t* src = q_src + m * weight_q80_stride;
+                dst[m * N + n] = vec_vec_dot_q40_with_q80(K, q_weight0, src) + b0;
+                dst[m * N + n + 1] = vec_vec_dot_q40_with_q80(K, q_weight1, src) + b1;
+                dst[m * N + n + 2] = vec_vec_dot_q40_with_q80(K, q_weight2, src) + b2;
+                dst[m * N + n + 3] = vec_vec_dot_q40_with_q80(K, q_weight3, src) + b3;
+            }
+        }
+        
+        // 处理剩余列
+        for (uint32_t left = 0; left &lt; n_block_4_left; left++) {
+            uint32_t n = n_block_4 * 4 + left + id.start;
+            float b0 = bias ? bias[n] : 0;
+            const void* q_weight = static_cast&lt;const char*&gt;(src0) + n * weight_q40_stride;
+            
+            for (uint32_t m = 0; m &lt; M; m++) {
+                int8_t* src = q_src + m * weight_q80_stride;
+                dst[m * N + n] = vec_vec_dot_q40_with_q80(K, q_weight, src) + b0;
+            }
+        }
+    };
+    
+    return TaskSet{{task1, M}, {task2, N}};
+}
+</code></pre>
+<p>这个函数实现了4位整数权重与浮点数激活值的矩阵乘法。它分为两个阶段：第一阶段将输入量化为8位整数，第二阶段计算矩阵乘法。每个阶段都使用多线程并行计算，第一阶段按行分解，第二阶段按列分解。</p>
+<h3 id="28-打包的量化矩阵乘法">2.8 打包的量化矩阵乘法</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float_packed(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size) {
+    // 与 llm_matmul_compute_int4_float 类似，但针对打包的权重进行了优化
+    // 打包的权重是指将多个权重矩阵打包在一起，以提高缓存命中率
+    // ... 实现细节 ...
+}
+</code></pre>
+<p>这个函数实现了打包的量化矩阵乘法，针对打包的权重进行了优化，以提高缓存命中率。</p>
+<h3 id="29-获取矩阵乘法所需的工作空间大小">2.9 获取矩阵乘法所需的工作空间大小</h3>
+<pre><code class="language-cpp">size_t llm_matmul_get_workspace_float(
+        uint32_t nr_thread, uint32_t M, uint32_t N, uint32_t K) {
+    // 计算矩阵乘法所需的工作空间大小
+    // 工作空间用于存储量化的输入
+    uint32_t weight_q80_stride =
+            K * dtype_in_byte(DType::Int8) / dtype_block_size(DType::Int8);
+    return weight_q80_stride * M;
+}
+</code></pre>
+<p>这个函数计算矩阵乘法所需的工作空间大小，工作空间用于存储量化的输入。</p>
+<h3 id="210-多头注意力计算">2.10 多头注意力计算</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_with_head_stride_float(
+        float* dst, const float* srck, const float* srcq, uint32_t seqlen,
+        uint32_t embd, uint32_t head, uint32_t nr_past) {
+    uint32_t sub_embd = embd / head;
+    uint32_t length = nr_past + seqlen;
+    uint32_t line_stride = embd;
+
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t h = id.start; h &lt; id.end; h++) {
+            auto dst_head = dst + h * seqlen * (nr_past + seqlen);
+            auto srck_head = srck + h * sub_embd;
+            auto srcq_head = srcq + h * sub_embd;
+            compute_src_offset_embd_matmul(
+                    srcq_head, embd, srck_head, embd, dst_head, seqlen, length,
+                    sub_embd);
+        }
+    };
+    return TaskSet{{task, head}};
+}
+
+TaskSet llm_head_batched_matmul_compute_float(
+        float* dst, const float* v, const float* qk, uint32_t seqlen, uint32_t embd,
+        uint32_t head, uint32_t nr_past) {
+    uint32_t sub_embd = embd / head;
+    uint32_t length = nr_past + seqlen;
+    uint32_t line_stride = embd;
+
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t h = id.start; h &lt; id.end; h++) {
+            float* dst_head = dst + h * sub_embd;
+            const float* v_head = v + h * sub_embd;
+            const float* qk_head = qk + h * seqlen * length;
+            comput_matmul_with_dst_uncontinue(
+                    dst_head, embd, v_head, embd, qk_head, seqlen, length, sub_embd);
+        }
+    };
+    return TaskSet{{task, head}};
+}
+</code></pre>
+<p>这两个函数实现了多头注意力计算中的矩阵乘法。<code>llm_matmul_compute_with_head_stride_float</code> 计算 Q 和 K 的矩阵乘法，<code>llm_head_batched_matmul_compute_float</code> 计算 QK 和 V 的矩阵乘法。每个任务处理一个注意力头，通过 <code>compute_src_offset_embd_matmul</code> 和 <code>comput_matmul_with_dst_uncontinue</code> 函数实现具体的计算。</p>
+<h2 id="3-内核注册机制分析">3. 内核注册机制分析</h2>
+<p>InferLLM 框架使用内核注册机制，将函数与内核 ID 关联起来。在 kernel.h 文件中，使用 PartialImplementKernel 和 PartialImplementSpace 宏注册内核：</p>
+<pre><code class="language-cpp">PartialImplementKernel(ElemwiseFloat, llm_elemwise_compute_float);
+PartialImplementKernel(
+        ElemwiseBroadcastDim0Src1Float, llm_elemwise_broadcast_dim0_src1_compute_float);
+PartialImplementKernel(RmsNormFloat, llm_rms_norm_compute_float);
+PartialImplementKernel(EmbeddingGetInt4Float, llm_embedding_get_int4_float);
+PartialImplementKernel(MatmulInt4Float, llm_matmul_compute_int4_float);
+PartialImplementKernel(
+        MatmulWithHeadStrideFloat, llm_matmul_compute_with_head_stride_float);
+PartialImplementKernel(HeadBatchedMatmulFloat, llm_head_batched_matmul_compute_float);
+
+PartialImplementSpace(MatmulInt4Float, llm_matmul_get_workspace_float);
+</code></pre>
+<p>这些宏的定义可能在其他头文件中，它们的作用是将内核 ID 与具体的实现函数关联起来，使得框架可以在运行时根据内核 ID 选择合适的实现。</p>
+<p>与 ImplementKernel 和 ImplementSpace 宏不同，PartialImplementKernel 和 PartialImplementSpace 宏可能表示这些实现是部分实现，可能只支持某些特定的参数组合或者只在某些特定的条件下可用。</p>
+<h2 id="4-多线程并行策略分析">4. 多线程并行策略分析</h2>
+<p>InferLLM 框架使用 TaskSet 实现多线程并行，每个计算函数都返回一个 TaskSet，包含一个或多个任务及其子任务数量：</p>
+<pre><code class="language-cpp">TaskSet llm_rms_norm_compute_float(
+        const float* src, float* dst, uint32_t seq_len, uint32_t embd, float eps) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t i = id.start; i &lt; id.end; i++) {
+            // ... 计算逻辑 ...
+        }
+    };
+    return TaskSet{{task, seq_len}};
+}
+</code></pre>
+<p>不同的计算函数使用不同的任务分解策略：</p>
+<ol>
+<li><strong>按序列长度分解</strong>：如 <code>llm_rms_norm_compute_float</code>，每个任务处理一个或多个序列位置</li>
+<li><strong>按头数分解</strong>：如 <code>llm_matmul_compute_with_head_stride_float</code>，每个任务处理一个或多个注意力头</li>
+<li><strong>按矩阵行列分解</strong>：如 <code>llm_matmul_compute_int4_float</code>，使用两个任务集，一个按行分解，一个按列分解</li>
+</ol>
+<p>这种设计使得计算任务可以在多线程环境中高效执行，通过将大型计算任务分解为多个子任务，并分配给不同的线程处理。</p>
+<h2 id="5-优化策略分析">5. 优化策略分析</h2>
+<h3 id="51-neon-指令集优化">5.1 NEON 指令集优化</h3>
+<p>ARM 优化模块使用 NEON 指令集进行向量化计算，提高计算效率。这些优化主要在 optimized.h 和 quantize.h 文件中实现，kernel.cpp 文件中的函数调用这些优化的基础向量运算函数。</p>
+<h3 id="52-分块处理策略">5.2 分块处理策略</h3>
+<p>ARM 优化模块使用分块处理策略，将数据分成多个块进行处理：</p>
+<pre><code class="language-cpp">// 矩阵乘法中的分块处理
+auto task2 = [=](const TaskId&amp; id) {
+    uint32_t N_len = id.end - id.start;
+    uint32_t n_block_4 = N_len / 4;
+    uint32_t n_block_4_left = N_len - n_block_4 * 4;
+    
+    // 处理4列一组的部分
+    for (uint32_t block4 = 0; block4 &lt; n_block_4; block4++) {
+        // ... 处理4列 ...
+    }
+    
+    // 处理剩余列
+    for (uint32_t left = 0; left &lt; n_block_4_left; left++) {
+        // ... 处理1列 ...
+    }
+};
+</code></pre>
+<p>这种策略可以最大化利用 NEON 指令集的并行性，同时处理所有数据。</p>
+<h3 id="53-量化计算优化">5.3 量化计算优化</h3>
+<p>ARM 优化模块使用量化计算减少内存占用和计算量：</p>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size) {
+    // 第一阶段：量化输入
+    auto task1 = [=](const TaskId&amp; id) {
+        for (uint32_t m = id.start; m &lt; id.end; m++) {
+            BlockQ80* q_src1 = (BlockQ80*)(static_cast&lt;uint8_t*&gt;(workspace) +
+                                           m * weight_q80_stride);
+            quantize_row_q8_0(src1 + m * K, q_src1, K);
+        }
+    };
+    
+    // 第二阶段：使用量化数据计算
+    auto task2 = [=](const TaskId&amp; id) {
+        // ... 使用 vec_vec_dot_q40_with_q80 计算点积 ...
+    };
+    
+    return TaskSet{{task1, M}, {task2, N}};
+}
+</code></pre>
+<p>这种设计减少了内存占用和内存带宽需求，提高了计算效率。特别是对于大型矩阵乘法，量化计算可以显著提高性能。</p>
+<h3 id="54-内存访问优化">5.4 内存访问优化</h3>
+<p>ARM 优化模块优化了内存访问模式，减少内存访问开销：</p>
+<pre><code class="language-cpp">// 矩阵乘法中的内存访问优化
+for (uint32_t block4 = 0; block4 &lt; n_block_4; block4++) {
+    uint32_t n = block4 * 4 + id.start;
+    // ... 加载偏置和权重 ...
+    
+    // 计算矩阵乘法
+    for (uint32_t m = 0; m &lt; M; m++) {
+        int8_t* src = q_src + m * weight_q80_stride;
+        dst[m * N + n] = vec_vec_dot_q40_with_q80(K, q_weight0, src) + b0;
+        dst[m * N + n + 1] = vec_vec_dot_q40_with_q80(K, q_weight1, src) + b1;
+        dst[m * N + n + 2] = vec_vec_dot_q40_with_q80(K, q_weight2, src) + b2;
+        dst[m * N + n + 3] = vec_vec_dot_q40_with_q80(K, q_weight3, src) + b3;
+    }
+}
+</code></pre>
+<p>这种设计提高了缓存命中率，减少了内存访问开销。通过一次加载输入数据，然后计算多个输出元素，可以减少内存带宽需求。</p>
+<h2 id="6-与-naive-实现的比较">6. 与 naive 实现的比较</h2>
+<p>ARM 优化模块与 naive 模块的主要区别：</p>
+<ol>
+<li><strong>向量化实现</strong>：ARM 优化模块使用 NEON 指令集进行向量化计算，naive 模块使用标量实现</li>
+<li><strong>分块处理</strong>：ARM 优化模块使用分块处理策略，naive 模块使用简单的循环</li>
+<li><strong>量化计算</strong>：ARM 优化模块使用量化计算减少内存占用和计算量，naive 模块使用浮点计算</li>
+<li><strong>多线程并行</strong>：ARM 优化模块使用 TaskSet 实现多线程并行，naive 模块也使用 TaskSet，但任务分解策略不同</li>
+</ol>
+<p>在实际应用中，ARM 优化模块的性能明显优于 naive 模块，特别是在支持 NEON 指令集的 ARM 处理器上。</p>
+<h2 id="7-内核注册机制的实现">7. 内核注册机制的实现</h2>
+<p>InferLLM 框架使用 PartialImplementKernel 和 PartialImplementSpace 宏注册内核。这些宏的定义可能如下：</p>
+<pre><code class="language-cpp">#define PartialImplementKernel(kernel_id, fun)                          \
+    template &lt;&gt;                                                          \
+    struct PartialComp&lt;KernelID::kernel_id, KernelPlatform::Optimized&gt; { \
+        template &lt;typename... Args&gt;                                      \
+        static TaskSet exec(Args... args) {                              \
+            return fun(std::forward&lt;Args&gt;(args)...);                     \
+        }                                                                \
+    };
+
+#define PartialImplementSpace(kernel_id, fun)                           \
+    template &lt;&gt;                                                          \
+    struct PartialSpace&lt;KernelID::kernel_id, KernelPlatform::Optimized&gt; { \
+        template &lt;typename... Args&gt;                                      \
+        static size_t get(Args... args) {                                \
+            return fun(std::forward&lt;Args&gt;(args)...);                     \
+        }                                                                \
+    };
+</code></pre>
+<p>这些宏将内核 ID 与具体的实现函数关联起来，使得框架可以在运行时根据内核 ID 选择合适的实现。与 ImplementKernel 和 ImplementSpace 宏不同，PartialImplementKernel 和 PartialImplementSpace 宏表示这些实现是部分实现，可能只支持某些特定的参数组合或者只在某些特定的条件下可用。</p>
+<p>在运行时，框架会首先检查是否有完整实现，如果没有，则检查是否有部分实现，如果都没有，则使用 naive 实现作为回退方案。</p>
+<h2 id="8-taskset-的实现">8. TaskSet 的实现</h2>
+<p>TaskSet 是 InferLLM 框架中的一个重要概念，用于多线程并行计算。它的定义可能如下：</p>
+<pre><code class="language-cpp">struct TaskId {
+    uint32_t start;
+    uint32_t end;
+};
+
+using MultiThreadingTask = std::function&lt;void(const TaskId&amp;)&gt;;
+
+struct TaskItem {
+    MultiThreadingTask task;
+    uint32_t nr_task;
+};
+
+using TaskSet = std::vector&lt;TaskItem&gt;;
+</code></pre>
+<p>每个 TaskSet 包含一个或多个 TaskItem，每个 TaskItem 包含一个任务函数和子任务数量。在运行时，框架会将每个 TaskItem 分解为多个子任务，并分配给不同的线程处理。</p>
+<h2 id="9-未来优化方向">9. 未来优化方向</h2>
+<p>基于当前实现，可以考虑以下优化方向：</p>
+<h3 id="91-更多-arm-指令集支持">9.1 更多 ARM 指令集支持</h3>
+<ul>
+<li>支持 ARMv8.2-A 的 FP16 指令，使用半精度浮点数进行计算</li>
+<li>支持 ARMv8.2-A 的 DotProd 指令，加速点积计算</li>
+<li>支持 ARMv8.6-A 的 BFloat16 指令，使用 BFloat16 进行计算</li>
+</ul>
+<h3 id="92-更高效的算法">9.2 更高效的算法</h3>
+<ul>
+<li>使用 Winograd 算法优化矩阵乘法</li>
+<li>使用 Flash Attention 算法优化注意力计算</li>
+<li>使用混合精度计算提高性能</li>
+</ul>
+<h3 id="93-更多量化方法">9.3 更多量化方法</h3>
+<ul>
+<li>支持 3 位、2 位甚至 1 位量化</li>
+<li>支持非对称量化</li>
+<li>支持组量化</li>
+</ul>
+<h3 id="94-更高级的并行策略">9.4 更高级的并行策略</h3>
+<ul>
+<li>使用流水线并行减少内存占用</li>
+<li>使用张量并行和模型并行处理大型模型</li>
+<li>使用异步计算提高计算效率</li>
+</ul>
+<h2 id="总结">总结</h2>
+<p>InferLLM 框架中的 ARM 优化模块通过 kernel.h 和 kernel.cpp 文件实现了针对 ARM 架构的优化计算函数。这些函数使用 NEON 指令集进行向量化计算，使用分块处理策略和量化计算减少内存占用和计算量，使用 TaskSet 实现多线程并行，提高大语言模型推理的性能。</p>
+<p>与 naive 模块相比，ARM 优化模块的性能明显更高，特别是在支持 NEON 指令集的 ARM 处理器上。未来可以考虑支持更多 ARM 指令集、使用更高效的算法、支持更多量化方法和使用更高级的并行策略等方向进行优化，进一步提高大语言模型在 ARM 平台上的推理性能。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](25)kern中ARM优化模块整体分析(src/kern/optimized/arm)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-25/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-25/">
+        </link>
+        <updated>2025-05-02T06:38:28.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm-框架中-arm-优化模块分析">InferLLM 框架中 ARM 优化模块分析</h1>
+<p>InferLLM 框架中的 ARM 优化模块是针对 ARM 架构处理器的优化实现，主要利用 ARM NEON 指令集进行向量化计算，提高大语言模型推理的性能。</p>
+<h2 id="1-目录结构">1. 目录结构</h2>
+<p>ARM 优化模块包含以下文件：</p>
+<pre><code>optimized/arm/
+├── kernel.cpp   # 实现各种计算函数
+├── kernel.h     # 声明计算函数和注册内核
+├── optimized.h  # 实现基础向量运算
+└── quantize.h   # 实现量化和反量化操作
+</code></pre>
+<h2 id="2-核心功能模块">2. 核心功能模块</h2>
+<h3 id="21-基础向量运算-optimizedh">2.1 基础向量运算 (optimized.h)</h3>
+<p><code>optimized.h</code> 文件实现了一系列基础向量运算函数：</p>
+<h4 id="211-元素级操作">2.1.1 元素级操作</h4>
+<pre><code class="language-cpp">// 向量加法
+inline void elemwise_vector_add(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    for (int i = 0; i &lt; n; i++) {
+        z[i] = x[i] + y[i];
+    }
+}
+
+// 向量乘法
+inline void elemwise_vector_mul(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    for (int i = 0; i &lt; n; i++) {
+        z[i] = x[i] * y[i];
+    }
+}
+</code></pre>
+<h4 id="212-激活函数">2.1.2 激活函数</h4>
+<pre><code class="language-cpp">// SiLU 激活函数 (x * sigmoid(x))
+inline void elemwise_vector_silu(
+        const int n, const float* __restrict x, float* __restrict z) {
+    for (int i = 0; i &lt; n; i++) {
+        z[i] = x[i] / (1 + exp(-x[i]));
+    }
+}
+
+// GELU 激活函数
+inline void elemwise_vector_gelu(
+        const int n, const float* __restrict x, float* __restrict z) {
+    for (int i = 0; i &lt; n; i++) {
+        float src = x[i];
+        z[i] = 0.5 * src * (1 + tanh(sqrt(2.0 / PI) * (src + PGELU * src * src * src)));
+    }
+}
+</code></pre>
+<h4 id="213-归约操作">2.1.3 归约操作</h4>
+<pre><code class="language-cpp">// 求最大值
+inline float reduce_max(const int n, const float* __restrict x) {
+    float max = -INFINITY;
+    for (int i = 0; i &lt; n; i++) {
+        max = std::max(max, x[i]);
+    }
+    return max;
+}
+
+// 求平方和
+inline float reduce_square_sum(const int n, const float* __restrict x) {
+    float sum = 0.0f;
+    for (int i = 0; i &lt; n; i++) {
+        sum += x[i] * x[i];
+    }
+    return sum;
+}
+</code></pre>
+<h4 id="214-矩阵运算">2.1.4 矩阵运算</h4>
+<pre><code class="language-cpp">// 带偏移的矩阵乘法（用于注意力计算）
+inline void compute_src_offset_embd_matmul(
+        const float* __restrict srcq_head, int offsetq,
+        const float* __restrict srck_head, int offsetk, float* dst_head, int seqlen,
+        int length, int sub_embd) {
+    for (uint32_t row = 0; row &lt; seqlen; row++) {
+        auto p_srcq = srcq_head + row * offsetq;
+        uint32_t len = 0;
+        for (; len + 3 &lt; length; len += 4) {
+            // 每次处理4列，提高计算效率
+            auto p_dst = dst_head + row * length + len;
+            auto p_srck0 = srck_head + len * offsetk;
+            auto p_srck1 = srck_head + (len + 1) * offsetk;
+            auto p_srck2 = srck_head + (len + 2) * offsetk;
+            auto p_srck3 = srck_head + (len + 3) * offsetk;
+            float sum0 = 0, sum1 = 0, sum2 = 0, sum3 = 0;
+            
+            for (uint32_t k = 0; k &lt; sub_embd; k++) {
+                sum0 += p_srck0[k] * p_srcq[k];
+                sum1 += p_srck1[k] * p_srcq[k];
+                sum2 += p_srck2[k] * p_srcq[k];
+                sum3 += p_srck3[k] * p_srcq[k];
+            }
+            
+            p_dst[0] = sum0;
+            p_dst[1] = sum1;
+            p_dst[2] = sum2;
+            p_dst[3] = sum3;
+        }
+        
+        // 处理剩余列
+        for (; len &lt; length; len++) {
+            auto p_dst = dst_head + row * length + len;
+            auto p_srck = srck_head + len * offsetk;
+            float sum = 0;
+            for (uint32_t k = 0; k &lt; sub_embd; k++) {
+                sum += p_srck[k] * p_srcq[k];
+            }
+            *p_dst = sum;
+        }
+    }
+}
+</code></pre>
+<h3 id="22-量化计算-quantizeh">2.2 量化计算 (quantize.h)</h3>
+<p><code>quantize.h</code> 文件实现了量化和反量化操作：</p>
+<h4 id="221-4位整数量化">2.2.1 4位整数量化</h4>
+<pre><code class="language-cpp">inline void quantize_row_q4_0(const float* __restrict x, void* __restrict vy, int k) {
+    const int nb = k / QK40;
+
+    BlockQ40* __restrict y = static_cast&lt;BlockQ40*&gt;(vy);
+    for (int i = 0; i &lt; nb; i++) {
+        float32x4_t srcv[8];
+        float32x4_t asrcv[8];
+        float32x4_t amaxv[8];
+
+        // 加载数据
+        for (int l = 0; l &lt; 8; l++)
+            srcv[l] = vld1q_f32(x + i * 32 + 4 * l);
+        
+        // 计算绝对值
+        for (int l = 0; l &lt; 8; l++)
+            asrcv[l] = vabsq_f32(srcv[l]);
+        
+        // 计算最大值
+        for (int l = 0; l &lt; 4; l++)
+            amaxv[2 * l] = vmaxq_f32(asrcv[2 * l], asrcv[2 * l + 1]);
+        for (int l = 0; l &lt; 2; l++)
+            amaxv[4 * l] = vmaxq_f32(amaxv[4 * l], amaxv[4 * l + 2]);
+        for (int l = 0; l &lt; 1; l++)
+            amaxv[8 * l] = vmaxq_f32(amaxv[8 * l], amaxv[8 * l + 4]);
+
+        const float amax = vmaxvq_f32(amaxv[0]);
+
+        // 计算量化参数
+        const float d = amax / ((1 &lt;&lt; 3) - 1);
+        const float id = d ? 1.0f / d : 0.0f;
+
+        y[i].d = d;
+
+        // 量化数据
+        for (int l = 0; l &lt; 8; l++) {
+            const float32x4_t v = vmulq_n_f32(srcv[l], id);
+            const float32x4_t vf = vaddq_f32(v, vdupq_n_f32(8.5f));
+            const int32x4_t vi = vcvtq_s32_f32(vf);
+
+            // 将4个int32压缩为2个uint8（每个uint8存储2个4位整数）
+            y[i].qs[2 * l + 0] = vgetq_lane_s32(vi, 0) | (vgetq_lane_s32(vi, 1) &lt;&lt; 4);
+            y[i].qs[2 * l + 1] = vgetq_lane_s32(vi, 2) | (vgetq_lane_s32(vi, 3) &lt;&lt; 4);
+        }
+    }
+}
+</code></pre>
+<h4 id="222-4位整数反量化">2.2.2 4位整数反量化</h4>
+<pre><code class="language-cpp">inline void dequantize_row_q4_0(const void* __restrict vx, float* __restrict y, int k) {
+    assert(k % QK40 == 0);
+    const int nb = k / QK40;
+
+    const BlockQ40* __restrict x = static_cast&lt;const BlockQ40*&gt;(vx);
+    for (int i = 0; i &lt; nb; i++) {
+        const float32x4_t vd = vdupq_n_f32(x[i].d);
+        const uint8_t* __restrict pp = x[i].qs;
+
+        for (int l = 0; l &lt; QK40; l += 16) {
+            // 加载8个uint8（每个uint8存储2个4位整数）
+            const uint8x8_t v8 = vld1_u8(pp + l / 2);
+
+            // 提取4位整数
+            const uint8x8_t v0 = vand_u8(v8, vdup_n_u8(0x0f));  // 低4位
+            const uint8x8_t v1 = vshr_n_u8(v8, 4);              // 高4位
+
+            // 转换为有符号整数
+            const int8x8_t vs_0 = vreinterpret_s8_u8(v0);
+            const int8x8_t vs_1 = vreinterpret_s8_u8(v1);
+
+            // 减去偏移值8
+            const int8x8_t vb_0 = vsub_s8(vs_0, vdup_n_s8(8));
+            const int8x8_t vb_1 = vsub_s8(vs_1, vdup_n_s8(8));
+
+            // 交错排列
+            const int8x8_t vx_0 = vzip1_s8(vb_0, vb_1);
+            const int8x8_t vx_1 = vzip2_s8(vb_0, vb_1);
+
+            const int8x16_t vq = vcombine_s8(vx_0, vx_1);
+
+            // 转换为int16
+            const int16x8_t vi_0 = vmovl_s8(vget_low_s8(vq));
+            const int16x8_t vi_1 = vmovl_s8(vget_high_s8(vq));
+
+            // 转换为float32
+            const float32x4_t vf_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(vi_0)));
+            const float32x4_t vf_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(vi_0)));
+            const float32x4_t vf_2 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(vi_1)));
+            const float32x4_t vf_3 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(vi_1)));
+
+            // 乘以量化参数
+            const float32x4_t r0 = vmulq_f32(vf_0, vd);
+            const float32x4_t r1 = vmulq_f32(vf_1, vd);
+            const float32x4_t r2 = vmulq_f32(vf_2, vd);
+            const float32x4_t r3 = vmulq_f32(vf_3, vd);
+
+            // 存储结果
+            vst1q_f32(y + i * QK40 + l + 0, r0);
+            vst1q_f32(y + i * QK40 + l + 4, r1);
+            vst1q_f32(y + i * QK40 + l + 8, r2);
+            vst1q_f32(y + i * QK40 + l + 12, r3);
+        }
+    }
+}
+</code></pre>
+<h4 id="223-量化点积计算">2.2.3 量化点积计算</h4>
+<p>量化点积计算是 ARM 优化模块中的关键优化技术之一，主要用于加速矩阵乘法计算。在 <code>quantize.h</code> 文件中，<code>vec_vec_dot_q40_with_q80</code> 函数实现了 4 位整数量化与 8 位整数量化的点积计算：</p>
+<pre><code class="language-cpp">inline float vec_vec_dot_q40_with_q80(
+        const int n, const void* __restrict vx, const void* __restrict vy) {
+    const int nb = n / QK80;
+
+    assert(n % QK80 == 0);
+    assert(nb % 2 == 0);
+
+    const BlockQ40* __restrict x = (BlockQ40*)vx;
+    const BlockQ80* __restrict y = (BlockQ80*)vy;
+
+    float32x4_t sumv0 = vdupq_n_f32(0.0f);
+    float32x4_t sumv1 = vdupq_n_f32(0.0f);
+
+    for (int i = 0; i &lt; nb; i += 2) {
+        // 加载数据
+        const BlockQ40* __restrict x0 = &amp;x[i + 0];
+        const BlockQ40* __restrict x1 = &amp;x[i + 1];
+        const BlockQ80* __restrict y0 = &amp;y[i + 0];
+        const BlockQ80* __restrict y1 = &amp;y[i + 1];
+
+        // 处理4位整数量化数据
+        const uint8x16_t m4b = vdupq_n_u8(0x0F);
+        const int8x16_t s8b = vdupq_n_s8(0x8);
+
+        const uint8x16_t v0_0 = vld1q_u8(x0-&gt;qs);
+        const uint8x16_t v0_1 = vld1q_u8(x1-&gt;qs);
+
+        // 提取4位整数
+        const int8x16_t v0_0l = vreinterpretq_s8_u8(vandq_u8(v0_0, m4b));
+        const int8x16_t v0_0h = vreinterpretq_s8_u8(vshrq_n_u8(v0_0, 4));
+        const int8x16_t v0_1l = vreinterpretq_s8_u8(vandq_u8(v0_1, m4b));
+        const int8x16_t v0_1h = vreinterpretq_s8_u8(vshrq_n_u8(v0_1, 4));
+
+        // 减去偏移值8
+        const int8x16_t v0_0ls = vsubq_s8(v0_0l, s8b);
+        const int8x16_t v0_0hs = vsubq_s8(v0_0h, s8b);
+        const int8x16_t v0_1ls = vsubq_s8(v0_1l, s8b);
+        const int8x16_t v0_1hs = vsubq_s8(v0_1h, s8b);
+
+        // 加载8位整数量化数据
+        const int8x16_t v1_0 = vld1q_s8(y0-&gt;qs);
+        const int8x16_t v1_1 = vld1q_s8(y1-&gt;qs);
+
+        // 计算点积
+        // 使用 SDOT 指令（如果支持）或模拟实现
+#if defined(__ARM_FEATURE_DOTPROD)
+        // 使用 SDOT 指令计算点积
+        int32x4_t p0_0 = vdupq_n_s32(0);
+        int32x4_t p0_1 = vdupq_n_s32(0);
+        int32x4_t p0_2 = vdupq_n_s32(0);
+        int32x4_t p0_3 = vdupq_n_s32(0);
+
+        p0_0 = vdotq_s32(p0_0, v0_0ls, v1_0);
+        p0_1 = vdotq_s32(p0_1, v0_0hs, v1_0);
+        p0_2 = vdotq_s32(p0_2, v0_1ls, v1_1);
+        p0_3 = vdotq_s32(p0_3, v0_1hs, v1_1);
+#else
+        // 模拟 SDOT 指令
+        // 将 int8x16_t 转换为 int16x8_t
+        int16x8_t pl0_0 = vmull_s8(vget_low_s8(v0_0ls), vget_low_s8(v1_0));
+        int16x8_t ph0_0 = vmull_s8(vget_high_s8(v0_0ls), vget_high_s8(v1_0));
+        int16x8_t pl0_1 = vmull_s8(vget_low_s8(v0_0hs), vget_low_s8(v1_0));
+        int16x8_t ph0_1 = vmull_s8(vget_high_s8(v0_0hs), vget_high_s8(v1_0));
+        int16x8_t pl0_2 = vmull_s8(vget_low_s8(v0_1ls), vget_low_s8(v1_1));
+        int16x8_t ph0_2 = vmull_s8(vget_high_s8(v0_1ls), vget_high_s8(v1_1));
+        int16x8_t pl0_3 = vmull_s8(vget_low_s8(v0_1hs), vget_low_s8(v1_1));
+        int16x8_t ph0_3 = vmull_s8(vget_high_s8(v0_1hs), vget_high_s8(v1_1));
+
+        // 水平求和
+        int32x4_t p0_0 = vpaddlq_s16(pl0_0);
+        p0_0 = vpadalq_s16(p0_0, ph0_0);
+        int32x4_t p0_1 = vpaddlq_s16(pl0_1);
+        p0_1 = vpadalq_s16(p0_1, ph0_1);
+        int32x4_t p0_2 = vpaddlq_s16(pl0_2);
+        p0_2 = vpadalq_s16(p0_2, ph0_2);
+        int32x4_t p0_3 = vpaddlq_s16(pl0_3);
+        p0_3 = vpadalq_s16(p0_3, ph0_3);
+#endif
+
+        // 转换为浮点数并乘以量化参数
+        const float d0_0 = x0-&gt;d * y0-&gt;d;
+        const float d0_1 = x0-&gt;d * y0-&gt;d;
+        const float d0_2 = x1-&gt;d * y1-&gt;d;
+        const float d0_3 = x1-&gt;d * y1-&gt;d;
+
+        const float32x4_t d0_0v = vdupq_n_f32(d0_0);
+        const float32x4_t d0_1v = vdupq_n_f32(d0_1);
+        const float32x4_t d0_2v = vdupq_n_f32(d0_2);
+        const float32x4_t d0_3v = vdupq_n_f32(d0_3);
+
+        const float32x4_t p0_0f = vcvtq_f32_s32(p0_0);
+        const float32x4_t p0_1f = vcvtq_f32_s32(p0_1);
+        const float32x4_t p0_2f = vcvtq_f32_s32(p0_2);
+        const float32x4_t p0_3f = vcvtq_f32_s32(p0_3);
+
+        // 累加结果
+        sumv0 = vmlaq_f32(sumv0, p0_0f, d0_0v);
+        sumv0 = vmlaq_f32(sumv0, p0_1f, d0_1v);
+        sumv1 = vmlaq_f32(sumv1, p0_2f, d0_2v);
+        sumv1 = vmlaq_f32(sumv1, p0_3f, d0_3v);
+    }
+
+    // 水平求和
+    sumv0 = vaddq_f32(sumv0, sumv1);
+    float32x2_t sum = vadd_f32(vget_low_f32(sumv0), vget_high_f32(sumv0));
+    sum = vpadd_f32(sum, sum);
+
+    return vget_lane_f32(sum, 0);
+}
+</code></pre>
+<p>这个函数的主要优化点包括：</p>
+<ol>
+<li><strong>NEON 指令集优化</strong>：使用 NEON 指令集进行向量化计算，每次处理多个数据元素</li>
+<li><strong>条件编译</strong>：根据 ARM 处理器是否支持 SDOT 指令（ARMv8.2-A 及以上），使用不同的实现</li>
+<li><strong>分块处理</strong>：每次处理两个块，减少循环开销</li>
+<li><strong>并行计算</strong>：使用多个向量寄存器并行计算，提高指令级并行性</li>
+<li><strong>内存访问优化</strong>：使用连续的内存访问模式，提高缓存命中率</li>
+</ol>
+<p>这个函数是矩阵乘法中的核心计算部分，通过优化点积计算，可以显著提高矩阵乘法的性能。在 <code>llm_matmul_compute_int4_float</code> 函数中，使用这个函数计算矩阵乘法：</p>
+<pre><code class="language-cpp">dst[m * N + n] = vec_vec_dot_q40_with_q80(K, q_weight0, src) + b0;
+dst[m * N + n + 1] = vec_vec_dot_q40_with_q80(K, q_weight1, src) + b1;
+dst[m * N + n + 2] = vec_vec_dot_q40_with_q80(K, q_weight2, src) + b2;
+dst[m * N + n + 3] = vec_vec_dot_q40_with_q80(K, q_weight3, src) + b3;
+</code></pre>
+<p>通过使用量化点积计算，可以减少内存占用和内存带宽需求，提高计算效率，特别是对于大型矩阵乘法，这种优化可以显著提高性能。</p>
+<h6 id="与其他平台的量化点积计算比较">与其他平台的量化点积计算比较</h6>
+<p>与 x86 平台相比，ARM 平台的量化点积计算有以下特点：</p>
+<ol>
+<li><strong>指令集差异</strong>：ARM 使用 NEON 和 SDOT 指令，x86 使用 SSE/AVX/AVX2 和 VNNI 指令</li>
+<li><strong>向量宽度</strong>：ARM NEON 的向量宽度为 128 位，x86 AVX/AVX2 的向量宽度为 256 位</li>
+<li><strong>专用指令</strong>：ARMv8.2-A 引入了 SDOT 指令，专门用于加速点积计算；x86 引入了 VNNI 指令，也是专门用于加速点积计算</li>
+</ol>
+<p>总体而言，ARM 平台的量化点积计算实现充分利用了 NEON 指令集的特性，在支持 SDOT 指令的处理器上可以获得更好的性能。</p>
+<h2 id="3-计算函数实现-kernelcpp">3. 计算函数实现 (kernel.cpp)</h2>
+<p><code>kernel.cpp</code> 文件实现了各种计算函数，这些函数使用 TaskSet 实现多线程并行计算。</p>
+<h3 id="31-嵌入层计算">3.1 嵌入层计算</h3>
+<pre><code class="language-cpp">TaskSet llm_embedding_get_int4_float(
+        const void* weights, const uint32_t* index, float* dst, uint32_t len_seq,
+        uint32_t embd) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t i = id.start; i &lt; id.end; ++i) {
+            const int row = index[i];
+            const int weight_stride =
+                    embd * dtype_in_byte(DType::Int4) / dtype_block_size(DType::Int4);
+            dequantize_row_q4_0(
+                    (static_cast&lt;const char*&gt;(weights) + row * weight_stride),
+                    dst + i * embd, embd);
+        }
+    };
+    return TaskSet{{task, len_seq}};
+}
+</code></pre>
+<p>这个函数实现了嵌入层的计算，将4位整数量化的权重反量化为浮点数。每个任务处理一个或多个序列位置，通过 <code>dequantize_row_q4_0</code> 函数将量化权重反量化为浮点数。</p>
+<h3 id="32-元素级计算">3.2 元素级计算</h3>
+<pre><code class="language-cpp">TaskSet llm_elemwise_compute_float(
+        InData&lt;float&gt; srcs, float* dst, size_t length, ElemMode mode) {
+    MultiThreadingTask task;
+    switch (mode) {
+        case ElemMode::Add: {
+            task = [=](const TaskId&amp; id) {
+                uint32_t offset = id.start;
+                uint32_t len = id.end - id.start;
+                elemwise_vector_add(
+                        len, srcs[0] + offset, srcs[1] + offset, dst + offset);
+            };
+            break;
+        }
+        case ElemMode::Mul: {
+            task = [=](const TaskId&amp; id) {
+                uint32_t offset = id.start;
+                uint32_t len = id.end - id.start;
+                elemwise_vector_mul(
+                        len, srcs[0] + offset, srcs[1] + offset, dst + offset);
+            };
+            break;
+        }
+        case ElemMode::Silu: {
+            task = [=](const TaskId&amp; id) {
+                uint32_t offset = id.start;
+                uint32_t len = id.end - id.start;
+                return elemwise_vector_silu(len, srcs[0] + offset, dst + offset);
+            };
+            break;
+        }
+        case ElemMode::Gelu: {
+            task = [=](const TaskId&amp; id) {
+                uint32_t offset = id.start;
+                uint32_t len = id.end - id.start;
+                return elemwise_vector_gelu(len, srcs[0] + offset, dst + offset);
+            };
+            break;
+        }
+        default:
+            INFER_ASSERT(0, &quot;Not supported.&quot;);
+    }
+    return TaskSet{{task, length}};
+}
+</code></pre>
+<p>这个函数实现了元素级计算，支持加法、乘法、SiLU 激活函数和 GELU 激活函数。每个任务处理一段连续的数据，通过 <code>elemwise_vector_add</code>、<code>elemwise_vector_mul</code>、<code>elemwise_vector_silu</code> 和 <code>elemwise_vector_gelu</code> 函数实现具体的计算。</p>
+<h3 id="33-广播计算">3.3 广播计算</h3>
+<pre><code class="language-cpp">TaskSet llm_elemwise_broadcast_dim0_src1_compute_float(
+        const float* src0, const float* src1, float* dst, uint32_t len0, uint32_t len1,
+        ElemMode mode) {
+    MultiThreadingTask task;
+    switch (mode) {
+        case ElemMode::Add: {
+            task = [=](const TaskId&amp; id) {
+                for (size_t i = id.start; i &lt; id.end; i++) {
+                    const float* p_src = src0 + i * len1;
+                    float* p_dst = dst + i * len1;
+                    elemwise_vector_add(len1, p_src, src1, p_dst);
+                }
+            };
+            break;
+        }
+        case ElemMode::Mul: {
+            task = [=](const TaskId&amp; id) {
+                for (size_t i = id.start; i &lt; id.end; i++) {
+                    auto p_src = src0 + i * len1;
+                    auto p_dst = dst + i * len1;
+                    elemwise_vector_mul(len1, p_src, src1, p_dst);
+                }
+            };
+            break;
+        }
+        default:
+            INFER_ASSERT(0, &quot;Not supported.&quot;);
+    }
+    return TaskSet{{task, len0}};
+}
+</code></pre>
+<p>这个函数实现了广播计算，将 <code>src1</code> 广播到 <code>src0</code> 的第0维，然后进行元素级计算。每个任务处理 <code>src0</code> 的一个或多个行，通过 <code>elemwise_vector_add</code> 和 <code>elemwise_vector_mul</code> 函数实现具体的计算。</p>
+<h3 id="34-rms-归一化">3.4 RMS 归一化</h3>
+<pre><code class="language-cpp">TaskSet llm_rms_norm_compute_float(
+        const float* src, float* dst, uint32_t seq_len, uint32_t embd, float eps) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t i = id.start; i &lt; id.end; i++) {
+            const float* row = src + i * embd;
+            float* out = dst + i * embd;
+            float mean = reduce_square_sum(embd, row) / embd;
+            const float scale = 1.0 / sqrt(mean + eps);
+            elemwise_vec_scale(embd, row, scale, out);
+        }
+    };
+    return TaskSet{{task, seq_len}};
+}
+</code></pre>
+<p>这个函数实现了 RMS 归一化，每个任务处理一个或多个序列位置。首先计算平方和的均值，然后计算缩放因子，最后将输入向量乘以缩放因子得到归一化结果。</p>
+<h3 id="35-softmax-计算">3.5 Softmax 计算</h3>
+<pre><code class="language-cpp">TaskSet llm_softmax_compute_float(
+        const float* src, float* dst, uint32_t len_row, uint32_t col) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t row = id.start; row &lt; id.end; row++) {
+            const float* psrc = src + row * col;
+            float* pdst = dst + row * col;
+
+            float max = reduce_max(col, psrc);
+            float sum = select_sub_max_and_reduce_sum(col, psrc, pdst, max);
+            sum = 1.0 / sum;
+            elemwise_vec_scale(col, pdst, sum, pdst);
+        }
+    };
+    return TaskSet{{task, len_row}};
+}
+</code></pre>
+<p>这个函数实现了 Softmax 计算，每个任务处理一个或多个行。首先找到最大值，然后减去最大值并计算指数和，最后将每个元素除以指数和得到 Softmax 结果。</p>
+<h3 id="36-量化矩阵乘法">3.6 量化矩阵乘法</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size) {
+    // ... 参数检查和计算步长 ...
+    
+    // 第一阶段：量化输入
+    auto task1 = [=](const TaskId&amp; id) {
+        for (uint32_t m = id.start; m &lt; id.end; m++) {
+            BlockQ80* q_src1 = (BlockQ80*)(static_cast&lt;uint8_t*&gt;(workspace) +
+                                           m * weight_q80_stride);
+            quantize_row_q8_0(src1 + m * K, q_src1, K);
+        }
+    };
+    
+    // 第二阶段：计算矩阵乘法
+    int8_t* q_src = static_cast&lt;int8_t*&gt;(workspace);
+    auto task2 = [=](const TaskId&amp; id) {
+        // 每次处理4列，提高计算效率
+        uint32_t N_len = id.end - id.start;
+        uint32_t n_block_4 = N_len / 4;
+        uint32_t n_block_4_left = N_len - n_block_4 * 4;
+        
+        // 处理4列一组的部分
+        for (uint32_t block4 = 0; block4 &lt; n_block_4; block4++) {
+            uint32_t n = block4 * 4 + id.start;
+            // ... 加载偏置和权重 ...
+            
+            // 计算矩阵乘法
+            for (uint32_t m = 0; m &lt; M; m++) {
+                int8_t* src = q_src + m * weight_q80_stride;
+                dst[m * N + n] = vec_vec_dot_q40_with_q80(K, q_weight0, src) + b0;
+                dst[m * N + n + 1] = vec_vec_dot_q40_with_q80(K, q_weight1, src) + b1;
+                dst[m * N + n + 2] = vec_vec_dot_q40_with_q80(K, q_weight2, src) + b2;
+                dst[m * N + n + 3] = vec_vec_dot_q40_with_q80(K, q_weight3, src) + b3;
+            }
+        }
+        
+        // 处理剩余列
+        for (uint32_t left = 0; left &lt; n_block_4_left; left++) {
+            uint32_t n = n_block_4 * 4 + left + id.start;
+            // ... 加载偏置和权重 ...
+            
+            // 计算矩阵乘法
+            for (uint32_t m = 0; m &lt; M; m++) {
+                int8_t* src = q_src + m * weight_q80_stride;
+                dst[m * N + n] = vec_vec_dot_q40_with_q80(K, q_weight, src) + b0;
+            }
+        }
+    };
+    
+    return TaskSet{{task1, M}, {task2, N}};
+}
+</code></pre>
+<p>这个函数实现了4位整数权重与浮点数激活值的矩阵乘法。它分为两个阶段：第一阶段将输入量化为8位整数，第二阶段计算矩阵乘法。每个阶段都使用多线程并行计算，第一阶段按行分解，第二阶段按列分解。</p>
+<h3 id="37-多头注意力计算">3.7 多头注意力计算</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_with_head_stride_float(
+        float* dst, const float* srck, const float* srcq, uint32_t seqlen,
+        uint32_t embd, uint32_t head, uint32_t nr_past) {
+    uint32_t sub_embd = embd / head;
+    uint32_t length = nr_past + seqlen;
+    uint32_t line_stride = embd;
+
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t h = id.start; h &lt; id.end; h++) {
+            auto dst_head = dst + h * seqlen * (nr_past + seqlen);
+            auto srck_head = srck + h * sub_embd;
+            auto srcq_head = srcq + h * sub_embd;
+            compute_src_offset_embd_matmul(
+                    srcq_head, embd, srck_head, embd, dst_head, seqlen, length,
+                    sub_embd);
+        }
+    };
+    return TaskSet{{task, head}};
+}
+
+TaskSet llm_head_batched_matmul_compute_float(
+        float* dst, const float* v, const float* qk, uint32_t seqlen, uint32_t embd,
+        uint32_t head, uint32_t nr_past) {
+    uint32_t sub_embd = embd / head;
+    uint32_t length = nr_past + seqlen;
+    uint32_t line_stride = embd;
+
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t h = id.start; h &lt; id.end; h++) {
+            float* dst_head = dst + h * sub_embd;
+            const float* v_head = v + h * sub_embd;
+            const float* qk_head = qk + h * seqlen * length;
+            comput_matmul_with_dst_uncontinue(
+                    dst_head, embd, v_head, embd, qk_head, seqlen, length, sub_embd);
+        }
+    };
+    return TaskSet{{task, head}};
+}
+</code></pre>
+<p>这两个函数实现了多头注意力计算中的矩阵乘法。<code>llm_matmul_compute_with_head_stride_float</code> 计算 Q 和 K 的矩阵乘法，<code>llm_head_batched_matmul_compute_float</code> 计算 QK 和 V 的矩阵乘法。每个任务处理一个注意力头，通过 <code>compute_src_offset_embd_matmul</code> 和 <code>comput_matmul_with_dst_uncontinue</code> 函数实现具体的计算。</p>
+<h2 id="4-优化策略分析">4. 优化策略分析</h2>
+<h3 id="41-neon-指令集优化">4.1 NEON 指令集优化</h3>
+<p>ARM 优化模块使用 NEON 指令集进行向量化计算，提高计算效率：</p>
+<pre><code class="language-cpp">// 使用 NEON 指令集优化的向量加法
+inline void elemwise_vector_add(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    int i = 0;
+#if defined(__ARM_NEON)
+    for (; i + 15 &lt; n; i += 16) {
+        float32x4_t vx0 = vld1q_f32(x + i);
+        float32x4_t vy0 = vld1q_f32(y + i);
+        float32x4_t vx1 = vld1q_f32(x + i + 4);
+        float32x4_t vy1 = vld1q_f32(y + i + 4);
+        float32x4_t vx2 = vld1q_f32(x + i + 8);
+        float32x4_t vy2 = vld1q_f32(y + i + 8);
+        float32x4_t vx3 = vld1q_f32(x + i + 12);
+        float32x4_t vy3 = vld1q_f32(y + i + 12);
+        float32x4_t vz0 = vaddq_f32(vx0, vy0);
+        float32x4_t vz1 = vaddq_f32(vx1, vy1);
+        float32x4_t vz2 = vaddq_f32(vx2, vy2);
+        float32x4_t vz3 = vaddq_f32(vx3, vy3);
+        vst1q_f32(z + i, vz0);
+        vst1q_f32(z + i + 4, vz1);
+        vst1q_f32(z + i + 8, vz2);
+        vst1q_f32(z + i + 12, vz3);
+    }
+#endif
+    // 标量回退实现
+    for (; i &lt; n; i++) {
+        z[i] = x[i] + y[i];
+    }
+}
+</code></pre>
+<p>NEON 指令集允许同时处理多个数据元素，大大提高了计算效率。上面的代码每次处理 16 个浮点数，使用 4 个 float32x4_t 寄存器，每个寄存器可以同时处理 4 个浮点数。</p>
+<h3 id="42-分块处理策略">4.2 分块处理策略</h3>
+<p>ARM 优化模块使用分块处理策略，将数据分成多个块进行处理：</p>
+<pre><code class="language-cpp">// 矩阵乘法中的分块处理
+auto task2 = [=](const TaskId&amp; id) {
+    uint32_t N_len = id.end - id.start;
+    uint32_t n_block_4 = N_len / 4;
+    uint32_t n_block_4_left = N_len - n_block_4 * 4;
+    
+    // 处理4列一组的部分
+    for (uint32_t block4 = 0; block4 &lt; n_block_4; block4++) {
+        // ... 处理4列 ...
+    }
+    
+    // 处理剩余列
+    for (uint32_t left = 0; left &lt; n_block_4_left; left++) {
+        // ... 处理1列 ...
+    }
+};
+</code></pre>
+<p>这种策略可以最大化利用 NEON 指令集的并行性，同时处理所有数据。</p>
+<h3 id="43-多线程并行策略">4.3 多线程并行策略</h3>
+<p>ARM 优化模块使用 TaskSet 实现多线程并行，每个计算函数都返回一个 TaskSet，包含一个或多个任务及其子任务数量：</p>
+<pre><code class="language-cpp">TaskSet llm_rms_norm_compute_float(
+        const float* src, float* dst, uint32_t seq_len, uint32_t embd, float eps) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t i = id.start; i &lt; id.end; i++) {
+            // ... 计算逻辑 ...
+        }
+    };
+    return TaskSet{{task, seq_len}};
+}
+</code></pre>
+<p>不同的计算函数使用不同的任务分解策略：</p>
+<ol>
+<li><strong>按序列长度分解</strong>：如 <code>llm_rms_norm_compute_float</code>，每个任务处理一个或多个序列位置</li>
+<li><strong>按头数分解</strong>：如 <code>llm_matmul_compute_with_head_stride_float</code>，每个任务处理一个或多个注意力头</li>
+<li><strong>按矩阵行列分解</strong>：如 <code>llm_matmul_compute_int4_float</code>，使用两个任务集，一个按行分解，一个按列分解</li>
+</ol>
+<h3 id="44-量化计算优化">4.4 量化计算优化</h3>
+<p>ARM 优化模块使用量化计算减少内存占用和计算量：</p>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size) {
+    // 第一阶段：量化输入
+    auto task1 = [=](const TaskId&amp; id) {
+        for (uint32_t m = id.start; m &lt; id.end; m++) {
+            BlockQ80* q_src1 = (BlockQ80*)(static_cast&lt;uint8_t*&gt;(workspace) +
+                                           m * weight_q80_stride);
+            quantize_row_q8_0(src1 + m * K, q_src1, K);
+        }
+    };
+    
+    // 第二阶段：使用量化数据计算
+    auto task2 = [=](const TaskId&amp; id) {
+        // ... 使用 vec_vec_dot_q40_with_q80 计算点积 ...
+    };
+    
+    return TaskSet{{task1, M}, {task2, N}};
+}
+</code></pre>
+<p>这种设计减少了内存占用和内存带宽需求，提高了计算效率。特别是对于大型矩阵乘法，量化计算可以显著提高性能。</p>
+<h2 id="5-内核注册机制">5. 内核注册机制</h2>
+<p>ARM 优化模块使用内核注册机制，将函数与内核 ID 关联起来：</p>
+<pre><code class="language-cpp">// kernel.h
+#define ImplementKernel(kernel_id, fun)                                \
+    template &lt;&gt;                                                         \
+    struct Comp&lt;KernelID::kernel_id, KernelPlatform::Optimized&gt; {      \
+        template &lt;typename... Args&gt;                                     \
+        static TaskSet exec(Args... args) {                             \
+            return fun(std::forward&lt;Args&gt;(args)...);                    \
+        }                                                               \
+    };
+
+#define ImplementSpace(kernel_id, fun)                                 \
+    template &lt;&gt;                                                         \
+    struct Space&lt;KernelID::kernel_id, KernelPlatform::Optimized&gt; {      \
+        template &lt;typename... Args&gt;                                     \
+        static size_t get(Args... args) {                               \
+            return fun(std::forward&lt;Args&gt;(args)...);                    \
+        }                                                               \
+    };
+
+// 注册内核
+ImplementKernel(ElemwiseFloat, llm_elemwise_compute_float);
+ImplementKernel(ElemwiseBroadcastDim0Src1Float, llm_elemwise_broadcast_dim0_src1_compute_float);
+ImplementKernel(NormFloat, llm_norm_compute_float);
+ImplementKernel(RmsNormFloat, llm_rms_norm_compute_float);
+ImplementKernel(EmbeddingGetInt4Float, llm_embedding_get_int4_float);
+ImplementKernel(SoftmaxFloat, llm_softmax_compute_float);
+ImplementKernel(MatmulInt4Float, llm_matmul_compute_int4_float);
+ImplementKernel(MatmulWithHeadStrideFloat, llm_matmul_compute_with_head_stride_float);
+ImplementKernel(HeadBatchedMatmulFloat, llm_head_batched_matmul_compute_float);
+
+// 注册工作空间计算函数
+ImplementSpace(MatmulInt4Float, llm_matmul_get_workspace_float);
+</code></pre>
+<p>这些宏和注册语句将内核 ID 与具体的实现函数关联起来，使得框架可以在运行时根据内核 ID 选择合适的实现。</p>
+<h2 id="6-与-naive-实现的比较">6. 与 naive 实现的比较</h2>
+<p>ARM 优化模块与 naive 模块的主要区别：</p>
+<ol>
+<li><strong>向量化实现</strong>：ARM 优化模块使用 NEON 指令集进行向量化计算，naive 模块使用标量实现</li>
+<li><strong>分块处理</strong>：ARM 优化模块使用分块处理策略，naive 模块使用简单的循环</li>
+<li><strong>量化计算</strong>：ARM 优化模块使用量化计算减少内存占用和计算量，naive 模块使用浮点计算</li>
+<li><strong>多线程并行</strong>：ARM 优化模块使用 TaskSet 实现多线程并行，naive 模块也使用 TaskSet，但任务分解策略不同</li>
+</ol>
+<p>在实际应用中，ARM 优化模块的性能明显优于 naive 模块，特别是在支持 NEON 指令集的 ARM 处理器上。</p>
+<h2 id="7-与-x86-和-rvv-优化的比较">7. 与 x86 和 RVV 优化的比较</h2>
+<p>ARM 优化模块与 x86 和 RVV 优化模块的主要区别：</p>
+<ol>
+<li><strong>指令集</strong>：ARM 优化模块使用 NEON 指令集，x86 优化模块使用 SSE/AVX/AVX2 指令集，RVV 优化模块使用 RISC-V 向量扩展指令集</li>
+<li><strong>向量宽度</strong>：NEON 指令集的向量宽度为 128 位，可以同时处理 4 个单精度浮点数；AVX/AVX2 指令集的向量宽度为 256 位，可以同时处理 8 个单精度浮点数；RVV 指令集的向量宽度可变，取决于硬件实现</li>
+<li><strong>优化程度</strong>：x86 优化模块的优化程度最高，实现了更多的优化技术；ARM 优化模块次之；RVV 优化模块的优化程度最低，主要依赖 RVV 指令集的基本向量操作</li>
+</ol>
+<h2 id="8-未来优化方向">8. 未来优化方向</h2>
+<p>基于当前实现，可以考虑以下优化方向：</p>
+<h3 id="81-更多-arm-指令集支持">8.1 更多 ARM 指令集支持</h3>
+<ul>
+<li>支持 ARMv8.2-A 的 FP16 指令，使用半精度浮点数进行计算</li>
+<li>支持 ARMv8.2-A 的 DotProd 指令，加速点积计算</li>
+<li>支持 ARMv8.6-A 的 BFloat16 指令，使用 BFloat16 进行计算</li>
+</ul>
+<h3 id="82-更高效的算法">8.2 更高效的算法</h3>
+<ul>
+<li>使用 Winograd 算法优化矩阵乘法</li>
+<li>使用 Flash Attention 算法优化注意力计算</li>
+<li>使用混合精度计算提高性能</li>
+</ul>
+<h3 id="83-更多量化方法">8.3 更多量化方法</h3>
+<ul>
+<li>支持 3 位、2 位甚至 1 位量化</li>
+<li>支持非对称量化</li>
+<li>支持组量化</li>
+</ul>
+<h3 id="84-更高级的并行策略">8.4 更高级的并行策略</h3>
+<ul>
+<li>使用流水线并行减少内存占用</li>
+<li>使用张量并行和模型并行处理大型模型</li>
+<li>使用异步计算提高计算效率</li>
+</ul>
+<h2 id="总结">总结</h2>
+<p>InferLLM 框架中的 ARM 优化模块提供了针对 ARM 架构处理器的优化实现，主要利用 NEON 指令集进行向量化计算，提高大语言模型推理的性能。通过使用 NEON 指令集、分块处理策略、多线程并行和量化计算等技术，ARM 优化模块实现了高效的计算。</p>
+<p>与 naive 模块相比，ARM 优化模块的性能明显更高，特别是在支持 NEON 指令集的 ARM 处理器上。与 x86 和 RVV 优化模块相比，ARM 优化模块使用了不同的指令集和优化技术，适用于不同的硬件平台。</p>
+<p>未来可以考虑支持更多 ARM 指令集、使用更高效的算法、支持更多量化方法和使用更高级的并行策略等方向进行优化，进一步提高大语言模型在 ARM 平台上的推理性能。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](24)kern中optimized模块整体分析(src/kern/optimized)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-24/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-24/">
+        </link>
+        <updated>2025-04-30T06:11:58.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm-框架中-optimized-模块分析">InferLLM 框架中 optimized 模块分析</h1>
+<p>InferLLM 框架中的 optimized 模块是针对不同硬件平台的优化实现，主要包括 ARM、RISC-V 向量扩展(RVV)和 x86 平台的优化。这些优化实现利用了各平台特有的指令集和特性，提高了大语言模型推理的性能。</p>
+<h2 id="1-目录结构">1. 目录结构</h2>
+<p>optimized 模块按照硬件平台分为三个子目录：</p>
+<pre><code>optimized/
+├── arm/       # ARM 平台优化
+│   ├── kernel.cpp
+│   ├── kernel.h
+│   ├── optimized.h
+│   └── quantize.h
+├── rvv/       # RISC-V 向量扩展优化
+│   ├── common.cpp
+│   ├── common.h
+│   ├── kernel.cpp
+│   ├── kernel.h
+│   ├── optimized.h
+│   └── quantize.h
+└── x86/       # x86 平台优化
+    ├── common.h
+    ├── kernel.cpp
+    ├── kernel.h
+    ├── optimized.h
+    └── quantize.h
+</code></pre>
+<h2 id="2-核心功能模块">2. 核心功能模块</h2>
+<h3 id="21-基础向量运算">2.1 基础向量运算</h3>
+<p>每个平台都实现了一系列基础向量运算函数，这些函数是高级操作的基础：</p>
+<h4 id="211-元素级操作">2.1.1 元素级操作</h4>
+<pre><code class="language-cpp">// 向量加法
+inline void elemwise_vector_add(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z);
+
+// 向量乘法
+inline void elemwise_vector_mul(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z);
+
+// 向量缩放
+inline void elemwise_vec_scale(
+        const int n, const float* __restrict x, float scale, float* __restrict z);
+</code></pre>
+<h4 id="212-激活函数">2.1.2 激活函数</h4>
+<pre><code class="language-cpp">// SiLU 激活函数 (x * sigmoid(x))
+inline void elemwise_vector_silu(
+        const int n, const float* __restrict x, float* __restrict z);
+
+// GELU 激活函数
+inline void elemwise_vector_gelu(
+        const int n, const float* __restrict x, float* __restrict z);
+</code></pre>
+<h4 id="213-归约操作">2.1.3 归约操作</h4>
+<pre><code class="language-cpp">// 求最大值
+inline float reduce_max(const int n, const float* __restrict x);
+
+// 求平方和
+inline float reduce_square_sum(const int n, const float* __restrict x);
+
+// 减去最大值后求指数和（用于 softmax）
+inline float select_sub_max_and_reduce_sum(
+        const int n, const float* __restrict x, float* __restrict y, const float max);
+</code></pre>
+<h3 id="22-量化计算">2.2 量化计算</h3>
+<p>每个平台都实现了量化和反量化操作，以及量化数据之间的点积计算：</p>
+<pre><code class="language-cpp">// 4位整数量化的反量化
+inline void dequantize_row_q4_0(const void* x, float* y, int k);
+
+// 8位整数量化的反量化
+inline void dequantize_row_q8_0(const void* x, float* y, int k);
+
+// 4位整数量化与8位整数量化的点积
+inline float vec_vec_dot_q40_with_q80(const int n, const void* vx, const void* vy);
+</code></pre>
+<h3 id="23-矩阵运算">2.3 矩阵运算</h3>
+<p>实现了矩阵乘法和注意力计算所需的特殊矩阵运算：</p>
+<pre><code class="language-cpp">// 带偏移的矩阵乘法（用于注意力计算）
+inline void compute_src_offset_embd_matmul(
+        const float* __restrict srcq, uint32_t srcq_stride, const float* __restrict srck,
+        uint32_t srck_stride, float* __restrict dst, uint32_t dst_rows,
+        uint32_t dst_cols, uint32_t embd);
+
+// 带不连续目标的矩阵乘法（用于注意力计算）
+inline void comput_matmul_with_dst_uncontinue(
+        float* __restrict dst, uint32_t dst_stride, const float* __restrict src0,
+        uint32_t src0_stride, const float* __restrict src1, uint32_t src1_rows,
+        uint32_t src1_cols, uint32_t embd);
+</code></pre>
+<h2 id="3-平台特定优化">3. 平台特定优化</h2>
+<h3 id="31-arm-平台优化">3.1 ARM 平台优化</h3>
+<p>ARM 平台的优化主要利用 NEON 指令集进行向量化计算：</p>
+<pre><code class="language-cpp">// ARM NEON 优化的向量加法
+inline void elemwise_vector_add(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    int i = 0;
+#if defined(__ARM_NEON)
+    for (; i + 15 &lt; n; i += 16) {
+        float32x4_t vx0 = vld1q_f32(x + i);
+        float32x4_t vy0 = vld1q_f32(y + i);
+        float32x4_t vx1 = vld1q_f32(x + i + 4);
+        float32x4_t vy1 = vld1q_f32(y + i + 4);
+        float32x4_t vx2 = vld1q_f32(x + i + 8);
+        float32x4_t vy2 = vld1q_f32(y + i + 8);
+        float32x4_t vx3 = vld1q_f32(x + i + 12);
+        float32x4_t vy3 = vld1q_f32(y + i + 12);
+        float32x4_t vz0 = vaddq_f32(vx0, vy0);
+        float32x4_t vz1 = vaddq_f32(vx1, vy1);
+        float32x4_t vz2 = vaddq_f32(vx2, vy2);
+        float32x4_t vz3 = vaddq_f32(vx3, vy3);
+        vst1q_f32(z + i, vz0);
+        vst1q_f32(z + i + 4, vz1);
+        vst1q_f32(z + i + 8, vz2);
+        vst1q_f32(z + i + 12, vz3);
+    }
+    for (; i + 3 &lt; n; i += 4) {
+        float32x4_t vx = vld1q_f32(x + i);
+        float32x4_t vy = vld1q_f32(y + i);
+        float32x4_t vz = vaddq_f32(vx, vy);
+        vst1q_f32(z + i, vz);
+    }
+#endif
+    for (; i &lt; n; i++) {
+        z[i] = x[i] + y[i];
+    }
+}
+</code></pre>
+<h3 id="32-risc-v-向量扩展优化">3.2 RISC-V 向量扩展优化</h3>
+<p>RISC-V 向量扩展(RVV)的优化利用了 RVV 指令集进行向量化计算：</p>
+<pre><code class="language-cpp">// RVV 优化的向量加法
+inline void elemwise_vector_add(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    vadd(n, x, y, z);
+}
+
+// RVV 优化的向量乘法
+inline void elemwise_vector_mul(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    vmul(n, x, y, z);
+}
+</code></pre>
+<p>RVV 模块还包含了一些辅助函数，如 <code>vadd</code>、<code>vmul</code>、<code>vmax</code> 等，这些函数封装了 RVV 指令集的使用。</p>
+<h3 id="33-x86-平台优化">3.3 x86 平台优化</h3>
+<p>x86 平台的优化主要利用 SSE、AVX 和 AVX2 指令集进行向量化计算：</p>
+<pre><code class="language-cpp">// x86 AVX 优化的向量乘法
+inline void elemwise_vector_mul(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    const int nb32 = n / 32;
+    const int nb8 = (n - nb32 * 32) / 8;
+    const int left = n - nb32 * 32 - nb8 * 8;
+    for (int b32 = 0; b32 &lt; nb32; b32++) {
+        const float* __restrict x32 = (const float*)x + b32 * 32;
+        const float* __restrict y32 = (const float*)y + b32 * 32;
+        float* __restrict z32 = z + b32 * 32;
+        __m256 vx0 = _mm256_loadu_ps(x32 + 0);
+        __m256 vx1 = _mm256_loadu_ps(x32 + 8);
+        __m256 vx2 = _mm256_loadu_ps(x32 + 16);
+        __m256 vx3 = _mm256_loadu_ps(x32 + 24);
+        __m256 vy0 = _mm256_loadu_ps(y32 + 0);
+        __m256 vy1 = _mm256_loadu_ps(y32 + 8);
+        __m256 vy2 = _mm256_loadu_ps(y32 + 16);
+        __m256 vy3 = _mm256_loadu_ps(y32 + 24);
+
+        __m256 vz0 = _mm256_mul_ps(vx0, vy0);
+        __m256 vz1 = _mm256_mul_ps(vx1, vy1);
+        __m256 vz2 = _mm256_mul_ps(vx2, vy2);
+        __m256 vz3 = _mm256_mul_ps(vx3, vy3);
+
+        _mm256_storeu_ps(z32 + 0, vz0);
+        _mm256_storeu_ps(z32 + 8, vz1);
+        _mm256_storeu_ps(z32 + 16, vz2);
+        _mm256_storeu_ps(z32 + 24, vz3);
+    }
+    // ... 处理剩余元素 ...
+}
+</code></pre>
+<p>x86 模块还包含了一些辅助函数，如 <code>exp256_ps</code> 等，这些函数实现了数学函数的向量化版本。</p>
+<h2 id="4-实现策略分析">4. 实现策略分析</h2>
+<h3 id="41-分块处理">4.1 分块处理</h3>
+<p>所有平台的优化实现都采用了分块处理策略，将数据分成多个块进行处理：</p>
+<ol>
+<li>大块：使用最宽的向量指令处理（如 x86 上的 32 个元素一块）</li>
+<li>中块：使用较窄的向量指令处理（如 x86 上的 8 个元素一块）</li>
+<li>剩余元素：使用标量指令处理</li>
+</ol>
+<p>这种策略可以最大化利用向量指令的并行性，同时处理所有数据。</p>
+<h3 id="42-内存访问优化">4.2 内存访问优化</h3>
+<p>优化实现注重内存访问模式，尽量使用连续的内存访问：</p>
+<pre><code class="language-cpp">// 连续加载和存储
+__m256 vx0 = _mm256_loadu_ps(x32 + 0);
+__m256 vx1 = _mm256_loadu_ps(x32 + 8);
+// ...
+_mm256_storeu_ps(z32 + 0, vz0);
+_mm256_storeu_ps(z32 + 8, vz1);
+</code></pre>
+<h3 id="43-计算优化">4.3 计算优化</h3>
+<p>优化实现使用了各种计算优化技术：</p>
+<ol>
+<li>向量化：使用 SIMD 指令并行处理多个数据</li>
+<li>指令级并行：安排指令顺序，减少依赖</li>
+<li>数学函数优化：使用近似计算或查表法加速数学函数</li>
+</ol>
+<h3 id="44-回退机制">4.4 回退机制</h3>
+<p>所有优化实现都包含回退机制，当特定平台的指令集不可用时，使用标量实现：</p>
+<pre><code class="language-cpp">inline void elemwise_vector_add(
+        const int n, const float* __restrict x, const float* __restrict y,
+        float* __restrict z) {
+    int i = 0;
+#if defined(__ARM_NEON)
+    // NEON 优化实现
+    // ...
+#endif
+    // 标量回退实现
+    for (; i &lt; n; i++) {
+        z[i] = x[i] + y[i];
+    }
+}
+</code></pre>
+<h2 id="5-性能优化分析">5. 性能优化分析</h2>
+<h3 id="51-arm-平台性能优化">5.1 ARM 平台性能优化</h3>
+<p>ARM 平台的性能优化主要体现在：</p>
+<ol>
+<li>使用 NEON 指令集进行向量化计算</li>
+<li>每次处理 16 个元素（4个 float32x4_t 寄存器）</li>
+<li>针对不同数据大小使用不同的处理策略</li>
+</ol>
+<p>ARM 平台的优化相对简单，主要依赖 NEON 指令集的基本向量操作。</p>
+<h3 id="52-risc-v-向量扩展性能优化">5.2 RISC-V 向量扩展性能优化</h3>
+<p>RISC-V 向量扩展的性能优化主要体现在：</p>
+<ol>
+<li>使用 RVV 指令集进行向量化计算</li>
+<li>利用 RVV 的可变长度向量特性，适应不同硬件实现</li>
+<li>封装底层 RVV 指令，提供简洁的接口</li>
+</ol>
+<p>RVV 的优化利用了 RISC-V 向量扩展的灵活性，可以适应不同的硬件实现。</p>
+<h3 id="53-x86-平台性能优化">5.3 x86 平台性能优化</h3>
+<p>x86 平台的性能优化最为复杂和全面：</p>
+<ol>
+<li>使用 AVX/AVX2 指令集进行向量化计算</li>
+<li>每次处理 32 个元素（4个 __m256 寄存器）</li>
+<li>实现了复杂数学函数的向量化版本（如 exp256_ps）</li>
+<li>针对不同操作使用不同的优化策略</li>
+</ol>
+<p>x86 平台的优化利用了 x86 丰富的 SIMD 指令集和寄存器资源，实现了最全面的优化。</p>
+<h2 id="6-与-naive-实现的比较">6. 与 naive 实现的比较</h2>
+<p>optimized 模块与 naive 模块的主要区别：</p>
+<ol>
+<li>naive 模块使用标量实现，optimized 模块使用向量化实现</li>
+<li>naive 模块适用于所有平台，optimized 模块针对特定平台优化</li>
+<li>naive 模块实现简单直观，optimized 模块实现复杂但性能更高</li>
+<li>naive 模块作为参考实现和后备方案，optimized 模块作为主要实现</li>
+</ol>
+<p>在实际应用中，系统会优先使用 optimized 模块的实现，当特定平台的优化实现不可用时，会回退到 naive 模块的实现。</p>
+<h2 id="7-多线程并行策略">7. 多线程并行策略</h2>
+<p>optimized 模块使用 TaskSet 实现多线程并行，每个计算函数都返回一个 TaskSet，包含一个或多个任务及其子任务数量：</p>
+<pre><code class="language-cpp">TaskSet llm_rms_norm_compute_float(
+        const float* src, float* dst, uint32_t seq_len, uint32_t embd, float eps) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t i = id.start; i &lt; id.end; i++) {
+            // 计算逻辑
+        }
+    };
+    return TaskSet{{task, seq_len}};
+}
+</code></pre>
+<p>这种设计使得计算任务可以在多线程环境中高效执行，通过将大型计算任务分解为多个子任务，并分配给不同的线程处理。</p>
+<h3 id="71-任务分解策略">7.1 任务分解策略</h3>
+<p>不同的计算函数使用不同的任务分解策略：</p>
+<ol>
+<li><strong>按序列长度分解</strong>：如 <code>llm_rms_norm_compute_float</code>，每个任务处理一个或多个序列位置</li>
+<li><strong>按头数分解</strong>：如 <code>llm_matmul_compute_with_head_stride_float</code>，每个任务处理一个或多个注意力头</li>
+<li><strong>按矩阵行列分解</strong>：如 <code>llm_matmul_compute_int4_float</code>，使用两个任务集，一个按行分解，一个按列分解</li>
+</ol>
+<h3 id="72-多阶段任务">7.2 多阶段任务</h3>
+<p>某些计算函数使用多阶段任务，如 <code>llm_matmul_compute_int4_float</code>：</p>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size) {
+    // 第一阶段：量化输入
+    auto task1 = [=](const TaskId&amp; id) {
+        // 量化逻辑
+    };
+    // 第二阶段：计算矩阵乘法
+    auto task2 = [=](const TaskId&amp; id) {
+        // 矩阵乘法逻辑
+    };
+    return TaskSet{{task1, M}, {task2, N}};
+}
+</code></pre>
+<p>这种设计使得不同阶段的任务可以并行执行，提高计算效率。</p>
+<h2 id="8-内存优化策略">8. 内存优化策略</h2>
+<h3 id="81-工作空间管理">8.1 工作空间管理</h3>
+<p>optimized 模块使用工作空间进行临时计算，减少内存分配和释放的开销：</p>
+<pre><code class="language-cpp">size_t llm_matmul_get_workspace_float(uint32_t, uint32_t M, uint32_t N, uint32_t K) {
+    return sizeof(float) * K * M;
+}
+</code></pre>
+<p>工作空间由调用者分配和管理，计算函数只负责使用。</p>
+<h3 id="82-量化计算">8.2 量化计算</h3>
+<p>optimized 模块使用量化计算减少内存占用和计算量：</p>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size) {
+    // 量化输入
+    auto task1 = [=](const TaskId&amp; id) {
+        for (uint32_t m = id.start; m &lt; id.end; m++) {
+            BlockQ80* q_src1 = (BlockQ80*)(static_cast&lt;uint8_t*&gt;(workspace) +
+                                           m * weight_q80_stride);
+            quantize_row_q8_0(src1 + m * K, q_src1, K);
+        }
+    };
+    // 使用量化数据计算
+    auto task2 = [=](const TaskId&amp; id) {
+        // 使用 vec_vec_dot_q40_with_q80 计算点积
+    };
+    return TaskSet{{task1, M}, {task2, N}};
+}
+</code></pre>
+<p>这种设计减少了内存占用和内存带宽需求，提高了计算效率。</p>
+<h3 id="83-内存访问模式">8.3 内存访问模式</h3>
+<p>optimized 模块优化了内存访问模式，减少内存访问开销：</p>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size) {
+    // 按块处理，每次处理 4 列
+    auto task2 = [=](const TaskId&amp; id) {
+        uint32_t N_len = id.end - id.start;
+        uint32_t n_block_4 = N_len / 4;
+        uint32_t n_block_4_left = N_len - n_block_4 * 4;
+        for (uint32_t block4 = 0; block4 &lt; n_block_4; block4++) {
+            uint32_t n = block4 * 4 + id.start;
+            // 处理 4 列
+            for (uint32_t m = 0; m &lt; M; m++) {
+                int8_t* src = q_src + m * weight_q80_stride;
+                dst[m * N + n] = vec_vec_dot_q40_with_q80(K, q_weight0, src) + b0;
+                dst[m * N + n + 1] = vec_vec_dot_q40_with_q80(K, q_weight1, src) + b1;
+                dst[m * N + n + 2] = vec_vec_dot_q40_with_q80(K, q_weight2, src) + b2;
+                dst[m * N + n + 3] = vec_vec_dot_q40_with_q80(K, q_weight3, src) + b3;
+            }
+        }
+        // 处理剩余列
+    };
+}
+</code></pre>
+<p>这种设计提高了缓存命中率，减少了内存访问开销。</p>
+<h2 id="9-注意力计算优化">9. 注意力计算优化</h2>
+<p>optimized 模块对注意力计算进行了特殊优化：</p>
+<h3 id="91-多头注意力">9.1 多头注意力</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_with_head_stride_float(
+        float* dst, const float* srck, const float* srcq, uint32_t seqlen,
+        uint32_t embd, uint32_t head, uint32_t nr_past) {
+    uint32_t sub_embd = embd / head;
+    uint32_t length = nr_past + seqlen;
+    uint32_t line_stride = embd;
+
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t h = id.start; h &lt; id.end; h++) {
+            auto dst_head = dst + h * seqlen * (nr_past + seqlen);
+            auto srck_head = srck + h * sub_embd;
+            auto srcq_head = srcq + h * sub_embd;
+            compute_src_offset_embd_matmul(
+                    srcq_head, embd, srck_head, embd, dst_head, seqlen, length,
+                    sub_embd);
+        }
+    };
+    return TaskSet{{task, head}};
+}
+</code></pre>
+<p>这个函数实现了多头注意力中的 Q 和 K 的矩阵乘法，每个任务处理一个注意力头。</p>
+<h3 id="92-注意力输出计算">9.2 注意力输出计算</h3>
+<pre><code class="language-cpp">TaskSet llm_head_batched_matmul_compute_float(
+        float* dst, const float* v, const float* qk, uint32_t seqlen, uint32_t embd,
+        uint32_t head, uint32_t nr_past) {
+    uint32_t sub_embd = embd / head;
+    uint32_t length = nr_past + seqlen;
+    uint32_t line_stride = embd;
+
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t h = id.start; h &lt; id.end; h++) {
+            float* dst_head = dst + h * sub_embd;
+            const float* v_head = v + h * sub_embd;
+            const float* qk_head = qk + h * seqlen * length;
+            comput_matmul_with_dst_uncontinue(
+                    dst_head, embd, v_head, embd, qk_head, seqlen, length, sub_embd);
+        }
+    };
+    return TaskSet{{task, head}};
+}
+</code></pre>
+<p>这个函数实现了多头注意力中的 QK 和 V 的矩阵乘法，每个任务处理一个注意力头。</p>
+<h2 id="10-矩阵乘法优化">10. 矩阵乘法优化</h2>
+<p>矩阵乘法是大语言模型中最耗时的操作，optimized 模块对矩阵乘法进行了特殊优化：</p>
+<h3 id="101-量化矩阵乘法">10.1 量化矩阵乘法</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size) {
+    // 量化输入
+    auto task1 = [=](const TaskId&amp; id) {
+        for (uint32_t m = id.start; m &lt; id.end; m++) {
+            BlockQ80* q_src1 = (BlockQ80*)(static_cast&lt;uint8_t*&gt;(workspace) +
+                                           m * weight_q80_stride);
+            quantize_row_q8_0(src1 + m * K, q_src1, K);
+        }
+    };
+    // 使用量化数据计算
+    auto task2 = [=](const TaskId&amp; id) {
+        // 按块处理，每次处理 4 列
+        uint32_t N_len = id.end - id.start;
+        uint32_t n_block_4 = N_len / 4;
+        uint32_t n_block_4_left = N_len - n_block_4 * 4;
+        for (uint32_t block4 = 0; block4 &lt; n_block_4; block4++) {
+            // 处理 4 列
+        }
+        // 处理剩余列
+    };
+    return TaskSet{{task1, M}, {task2, N}};
+}
+</code></pre>
+<p>这个函数实现了 4 位整数权重与浮点数激活值的矩阵乘法，使用量化计算减少内存占用和计算量。</p>
+<h3 id="102-特殊矩阵乘法">10.2 特殊矩阵乘法</h3>
+<pre><code class="language-cpp">void compute_src_offset_embd_matmul(
+        const float* __restrict srcq, uint32_t srcq_stride, const float* __restrict srck,
+        uint32_t srck_stride, float* __restrict dst, uint32_t dst_rows,
+        uint32_t dst_cols, uint32_t embd);
+
+void comput_matmul_with_dst_uncontinue(
+        float* __restrict dst, uint32_t dst_stride, const float* __restrict src0,
+        uint32_t src0_stride, const float* __restrict src1, uint32_t src1_rows,
+        uint32_t src1_cols, uint32_t embd);
+</code></pre>
+<p>这些函数实现了特殊的矩阵乘法，用于注意力计算中的特殊需求。</p>
+<h2 id="11-未来优化方向">11. 未来优化方向</h2>
+<p>基于当前实现，可以考虑以下优化方向：</p>
+<h3 id="111-更多硬件平台支持">11.1 更多硬件平台支持</h3>
+<ul>
+<li>支持更多 ARM 架构（如 ARMv8.2-A 的 SVE 指令集）</li>
+<li>支持更多 RISC-V 扩展（如 RISC-V P 扩展）</li>
+<li>支持更多 x86 指令集（如 AVX-512）</li>
+</ul>
+<h3 id="112-更高效的算法">11.2 更高效的算法</h3>
+<ul>
+<li>使用 Winograd 算法优化矩阵乘法</li>
+<li>使用 Flash Attention 算法优化注意力计算</li>
+<li>使用混合精度计算提高性能</li>
+</ul>
+<h3 id="113-更多量化方法">11.3 更多量化方法</h3>
+<ul>
+<li>支持 3 位、2 位甚至 1 位量化</li>
+<li>支持非对称量化</li>
+<li>支持组量化</li>
+</ul>
+<h3 id="114-更高级的并行策略">11.4 更高级的并行策略</h3>
+<ul>
+<li>使用流水线并行减少内存占用</li>
+<li>使用张量并行和模型并行处理大型模型</li>
+<li>使用异步计算提高计算效率</li>
+</ul>
+<h2 id="总结">总结</h2>
+<p>InferLLM 框架中的 optimized 模块提供了针对不同硬件平台的优化实现，包括 ARM、RISC-V 向量扩展和 x86 平台。这些优化实现利用了各平台特有的指令集和特性，提高了大语言模型推理的性能。</p>
+<p>optimized 模块使用多线程并行、量化计算、内存优化和特殊算法等技术，实现了高效的计算。与 naive 模块相比，optimized 模块的实现更复杂，但性能更高。在实际应用中，系统会优先使用 optimized 模块的实现，当特定平台的优化实现不可用时，会回退到 naive 模块的实现。</p>
+<p>未来可以考虑支持更多硬件平台、使用更高效的算法、支持更多量化方法和使用更高级的并行策略等方向进行优化，进一步提高大语言模型推理的性能。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](23)kern模块中GPU内核的实现(src/kern/naive/gpu/kernel_gpu.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-23/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-23/">
+        </link>
+        <updated>2025-04-28T05:44:18.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm-框架中-gpu-内核实现分析">InferLLM 框架中 GPU 内核实现分析</h1>
+<p>InferLLM 框架中的 GPU 内核实现主要由 <code>kernel_gpu.h</code> 和 <code>kernel_gpu.cu</code> 两个文件组成，它们提供了大语言模型在 GPU 上运行所需的各种计算操作的实现。</p>
+<h2 id="1-整体架构">1. 整体架构</h2>
+<h3 id="11-文件结构">1.1 文件结构</h3>
+<ul>
+<li><code>kernel_gpu.h</code>：声明 GPU 内核函数和注册内核</li>
+<li><code>kernel_gpu.cu</code>：实现 GPU 内核函数</li>
+</ul>
+<h3 id="12-核心组件">1.2 核心组件</h3>
+<ol>
+<li>
+<p><strong>cudaHandle 结构体</strong>：管理 CUDA 资源</p>
+<pre><code class="language-cpp">struct cudaHandle {
+    cudaStream_t stream{nullptr};
+    cublasHandle_t cublas_handle{nullptr};
+};
+</code></pre>
+</li>
+<li>
+<p><strong>内核函数</strong>：实现各种计算操作</p>
+<ul>
+<li>嵌入查找</li>
+<li>元素级操作</li>
+<li>归一化</li>
+<li>Softmax</li>
+<li>矩阵乘法</li>
+<li>注意力计算</li>
+<li>位置编码</li>
+<li>掩码操作</li>
+</ul>
+</li>
+<li>
+<p><strong>内核注册机制</strong>：使用宏注册内核函数</p>
+<pre><code class="language-cpp">#define PartialImplementKernel(kernel_id, fun)               \
+    template &lt;typename... Args&gt;                              \
+    struct Comp&lt;KernelID::kernel_id, Args...&gt; {              \
+        static void exec(Args... args, cudaHandle* handle) { \
+            return fun(std::forward&lt;Args&gt;(args)..., handle); \
+        }                                                    \
+    };
+</code></pre>
+</li>
+</ol>
+<h2 id="2-主要功能模块分析">2. 主要功能模块分析</h2>
+<h3 id="21-嵌入查找embedding-lookup">2.1 嵌入查找（Embedding Lookup）</h3>
+<pre><code class="language-cpp">void llm_embedding_get_int4_float(
+        const void* weights, const uint32_t* index, float* dst, uint32_t len_seq,
+        uint32_t embd, cudaHandle* handle);
+void llm_embedding_get_float_float(
+        const float* weights, const uint32_t* index, float* dst, uint32_t len_seq,
+        uint32_t embd, cudaHandle* handle);
+</code></pre>
+<p>这些函数在 GPU 上实现嵌入查找操作：</p>
+<ul>
+<li><code>llm_embedding_get_int4_float</code>：从 4 位整数量化的嵌入表中查找</li>
+<li><code>llm_embedding_get_float_float</code>：从浮点数嵌入表中查找</li>
+</ul>
+<p>实现中使用 CUDA 内核函数并行处理多个序列位置：</p>
+<pre><code class="language-cpp">__global__ void llm_embedding_get_int4_float_gpu(
+        const void* weights, const uint32_t* index, float* dst, uint32_t len_seq,
+        uint32_t embd, const int weight_stride) {
+    int seq_id = blockIdx.y;
+    int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
+    if (thread_id &lt; embd / 2) {
+        uint32_t row = index[seq_id];
+        dst = dst + seq_id * embd;
+        const void* src = (static_cast&lt;const char*&gt;(weights) + row * weight_stride);
+        int q40_block_id = thread_id * 2 / QK40;
+        int block_offset = thread_id % (QK40 / 2);
+        BlockQ40* q40_block = (BlockQ40*)src + q40_block_id;
+        float scale = q40_block-&gt;d;
+        uint8_t value = q40_block-&gt;qs[block_offset];
+        const int8_t v1 = value &amp; 0xf;
+        const int8_t v2 = value &gt;&gt; 4;
+        dst[thread_id * 2] = (v1 - 8) * scale;
+        dst[thread_id * 2 + 1] = (v2 - 8) * scale;
+    }
+}
+</code></pre>
+<h3 id="22-元素级操作elementwise-operations">2.2 元素级操作（Elementwise Operations）</h3>
+<pre><code class="language-cpp">void llm_elemwise_compute_float(
+        InData&lt;float&gt; srcs, float* dst, size_t len, ElemMode mode, cudaHandle* handle);
+void llm_elemwise_compute_float_scale(
+        float* src, float* dst, size_t len, float scale, cudaHandle* handle);
+void llm_elemwise_broadcast_dim0_src1_compute_float(
+        const float* src0, const float* src1, float* dst, uint32_t len0, uint32_t len1,
+        ElemMode mode, cudaHandle* handle);
+</code></pre>
+<p>这些函数实现了各种元素级操作：</p>
+<ul>
+<li>加法、乘法</li>
+<li>Silu、Gelu 激活函数</li>
+<li>缩放操作</li>
+<li>广播操作</li>
+</ul>
+<p>实现中使用函数对象（Functor）和模板元编程简化代码：</p>
+<pre><code class="language-cpp">struct SiluFunctor {
+    __device__ float operator()(uint32_t i, const float* input) const {
+        float src = input[i];
+        return src / (1.0 + exp(-src));
+    }
+};
+
+struct GeluFunctor {
+    __device__ float operator()(uint32_t i, const float* input) const {
+        float src = input[i];
+        return 0.5 * src * (1 + tanh(sqrt(2.0 / PI) * (src + PGELU * src * src * src)));
+    }
+};
+
+template &lt;typename Function, typename... Args&gt;
+__global__ void ApplyFunction(Function functor, int64_t n, float* ret, Args... args) {
+    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid &lt; n) {
+        ret[tid] = functor(tid, args...);
+    }
+}
+</code></pre>
+<h3 id="23-归一化normalization">2.3 归一化（Normalization）</h3>
+<pre><code class="language-cpp">void llm_norm_compute_float(
+        const float* src, float* dst, uint32_t seq_len, uint32_t embd, float eps,
+        cudaHandle* handle);
+void llm_rms_norm_compute_float(
+        const float* src, float* dst, uint32_t seq_len, uint32_t embd, float eps,
+        cudaHandle* handle);
+</code></pre>
+<p>这些函数实现了层归一化和 RMS 归一化：</p>
+<ul>
+<li><code>llm_norm_compute_float</code>：层归一化，计算均值和方差</li>
+<li><code>llm_rms_norm_compute_float</code>：RMS 归一化，只计算均方根</li>
+</ul>
+<p>实现中使用 warp-level 归约优化性能：</p>
+<pre><code class="language-cpp">__global__ void rms_norm_f32(const float* x, float* dst, const int ncols, float eps) {
+    const int row = blockIdx.x;
+    const int tid = threadIdx.x;
+    const int WARP_SIZE = blockDim.x;
+
+    float tmp = 0.0f;  // partial sum for thread in warp
+    for (int i = 0; i &lt; ncols; i += WARP_SIZE) {
+        const int col = i + tid;
+        const float xi = x[row * ncols + col];
+        tmp += xi * xi;
+    }
+
+    // sum up partial sums
+    __syncthreads();
+#pragma unroll
+    for (int mask = 16; mask &gt; 0; mask &gt;&gt;= 1) {
+        tmp += __shfl_xor_sync(0xffffffff, tmp, mask, 32);
+    }
+
+    const float mean = tmp / ncols;
+    const float scale = 1.0f / sqrtf(mean + eps);
+
+    for (int i = 0; i &lt; ncols; i += WARP_SIZE) {
+        const int col = i + tid;
+        dst[row * ncols + col] = scale * x[row * ncols + col];
+    }
+}
+</code></pre>
+<h3 id="24-softmax">2.4 Softmax</h3>
+<pre><code class="language-cpp">void llm_softmax_compute_float(
+        const float* src, float* dst, uint32_t len_row, uint32_t col,
+        cudaHandle* handle);
+</code></pre>
+<p>实现 Softmax 函数，使用 warp-level 归约优化性能：</p>
+<pre><code class="language-cpp">__global__ void softmax_f32_cuda(const float* x, float* dst, const int cols) {
+    const int row = blockDim.y * blockIdx.y + threadIdx.y;
+    const int block_size = blockDim.x;
+    const int tid = threadIdx.x;
+    const float* src = x + row * cols;
+    dst = dst + row * cols;
+
+    float max = -INFINITY;
+    for (int col = tid; col &lt; cols; col += block_size) {
+        const float val = src[col];
+        max = val &gt; max ? val : max;
+    }
+
+    // sum up partial sums
+    __syncthreads();
+#pragma unroll
+    for (int mask = 16; mask &gt; 0; mask &gt;&gt;= 1) {
+        float temp = __shfl_xor_sync(0xffffffff, max, mask);
+        max = max &gt; temp ? max : temp;
+    }
+
+    float sum = 0.0;
+    for (int col = tid; col &lt; cols; col += block_size) {
+        const float val = expf(src[col] - max);
+        sum += val;
+        dst[col] = val;
+    }
+
+    // sum up partial sums
+    __syncthreads();
+#pragma unroll
+    for (int mask = 16; mask &gt; 0; mask &gt;&gt;= 1) {
+        sum += __shfl_xor_sync(0xffffffff, sum, mask, 32);
+    }
+
+    for (int col = tid; col &lt; cols; col += block_size) {
+        dst[col] /= sum;
+    }
+}
+</code></pre>
+<h3 id="25-矩阵乘法matrix-multiplication">2.5 矩阵乘法（Matrix Multiplication）</h3>
+<pre><code class="language-cpp">void llm_matmul_compute_int4_float(
+        float* dst, const void* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size, cudaHandle* handle);
+void llm_matmul_compute_float_float(
+        float* dst, const float* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size, cudaHandle* handle);
+</code></pre>
+<p>这些函数实现了不同精度的矩阵乘法：</p>
+<ul>
+<li><code>llm_matmul_compute_int4_float</code>：4 位整数权重与浮点数激活值的矩阵乘法</li>
+<li><code>llm_matmul_compute_float_float</code>：浮点数矩阵乘法</li>
+</ul>
+<p>浮点数矩阵乘法使用 cuBLAS 库优化性能：</p>
+<pre><code class="language-cpp">void llm_matmul_compute_float_float(
+        float* dst, const float* src0, const float* bias, const float* src1, uint32_t M,
+        uint32_t N, uint32_t K, void* workspace, uint32_t size, cudaHandle* handle) {
+    cudaStream_t stream = handle-&gt;stream;
+    cublasHandle_t cublas_handle = handle-&gt;cublas_handle;
+    float alpha = 1.f;
+    float beta = 0.f;
+    CUBLAS_CHECK(cublasSetStream(cublas_handle, stream));
+    CUBLAS_CHECK(cublasSgemm(
+            cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, N, M, K,
+            &amp;alpha, src0, K, src1, K, &amp;beta, dst, N));
+    if (bias != nullptr) {
+        llm_elemwise_broadcast_dim0_src1_compute_float(
+                dst, bias, dst, M, N, ElemMode::Add, handle);
+    }
+}
+</code></pre>
+<h3 id="26-注意力计算attention-computation">2.6 注意力计算（Attention Computation）</h3>
+<pre><code class="language-cpp">void llm_matmul_compute_with_head_stride_float(
+        float* dst, const float* srck, const float* srcq, uint32_t seqlen,
+        uint32_t embd, uint32_t head, uint32_t nr_past, cudaHandle* handle);
+void llm_matmul_compute_with_head_strideq_broadcastk_float(
+        float* dst, const float* srck, const float* srcq, uint32_t seqlen,
+        uint32_t embd, uint32_t head, uint32_t query_group_num, uint32_t nr_past,
+        cudaHandle* handle);
+void llm_head_batched_matmul_compute_float(
+        float* dst, const float* v, const float* qk, uint32_t seqlen, uint32_t embd,
+        uint32_t head, uint32_t nr_past, cudaHandle* handle);
+void llm_head_batched_matmul_broadcastv_float(
+        float* dst, const float* v, const float* qk, uint32_t seqlen, uint32_t embd,
+        uint32_t head, uint32_t query_group_num, uint32_t nr_past, cudaHandle* handle);
+</code></pre>
+<p>这些函数实现了自注意力机制所需的矩阵运算：</p>
+<ul>
+<li>多头注意力</li>
+<li>多查询注意力（MQA）</li>
+</ul>
+<p>实现中使用 cuBLAS 的批处理矩阵乘法优化性能：</p>
+<pre><code class="language-cpp">void llm_matmul_compute_with_head_stride_float(
+        float* dst, const float* srck, const float* srcq, uint32_t seqlen,
+        uint32_t embd, uint32_t head, uint32_t nr_past, cudaHandle* handle) {
+    uint32_t head_embd = embd / head;
+    uint32_t M = seqlen;
+    uint32_t N = seqlen + nr_past;
+    uint32_t K = head_embd;
+    cudaStream_t stream = handle-&gt;stream;
+    cublasHandle_t cublas_handle = handle-&gt;cublas_handle;
+    float alpha = 1.f;
+    float beta = 0.f;
+    CUBLAS_CHECK(cublasSetStream(cublas_handle, stream));
+    CUBLAS_CHECK(cublasSgemmStridedBatched(
+            cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, N, M, K, &amp;alpha, srck, embd,
+            head_embd, srcq, embd, head_embd, &amp;beta, dst, N, M * N, head));
+}
+</code></pre>
+<h2 id="27-位置编码position-encoding">2.7 位置编码（Position Encoding）</h2>
+<pre><code class="language-cpp">void llm_rope_compute_float(
+        float* dst, const float* src0, uint32_t n_past, uint32_t n_rot, RotMode m,
+        uint32_t N, uint32_t head, uint32_t embd, cudaHandle* handle);
+void llm_glm_rope_compute_float(
+        float* dst, const float* src0, uint32_t n_past, uint32_t gmask_positon,
+        uint32_t seqlen, uint32_t head, uint32_t embd, cudaHandle* handle);
+</code></pre>
+<p>这些函数实现了旋转位置编码（RoPE）和 GLM 模型特定的旋转位置编码：</p>
+<pre><code class="language-cpp">template &lt;bool halfmode&gt;
+__global__ void rope_compute_float(
+        float* dst, const float* src, float theta_scale, int position_offset,
+        int n_rot, int seqlen, int head, int head_embd) {
+    const int seq = blockIdx.y;
+    const int h = blockIdx.x;
+    int p = threadIdx.x;
+
+    if (seq &gt;= seqlen || h &gt;= head || p &gt;= head_embd / 2)
+        return;
+
+    const int position = seq + position_offset;
+    const int half_embd = head_embd / 2;
+    const int offset = h * head_embd + seq * head * head_embd;
+
+    if (p &lt; n_rot) {
+        const float theta = powf(theta_scale, p);
+        const float sin_theta = sinf(position * theta);
+        const float cos_theta = cosf(position * theta);
+
+        if (halfmode) {
+            const float x0 = src[offset + p];
+            const float x1 = src[offset + p + half_embd];
+            dst[offset + p] = x0 * cos_theta - x1 * sin_theta;
+            dst[offset + p + half_embd] = x0 * sin_theta + x1 * cos_theta;
+        } else {
+            const float x0 = src[offset + 2 * p];
+            const float x1 = src[offset + 2 * p + 1];
+            dst[offset + 2 * p] = x0 * cos_theta - x1 * sin_theta;
+            dst[offset + 2 * p + 1] = x0 * sin_theta + x1 * cos_theta;
+        }
+    } else {
+        if (halfmode) {
+            dst[offset + p] = src[offset + p];
+            dst[offset + p + half_embd] = src[offset + p + half_embd];
+        } else {
+            dst[offset + 2 * p] = src[offset + 2 * p];
+            dst[offset + 2 * p + 1] = src[offset + 2 * p + 1];
+        }
+    }
+}
+</code></pre>
+<p>GLM 模型的位置编码实现了特殊的位置计算逻辑：</p>
+<pre><code class="language-cpp">__global__ void glm_rope_compute_float(
+        float* dst, const float* src, int32_t n_past, int32_t gmask_positon,
+        int32_t seqlen, int32_t head, int32_t embd) {
+    const int seq = blockIdx.y;
+    const int h = blockIdx.x;
+    int p = threadIdx.x;
+
+    if (seq &gt;= seqlen || h &gt;= head || p &gt;= embd / 2)
+        return;
+
+    int quart_embd = embd / 4;
+    int half_embd = embd / 2;
+
+    int position_id = MIN(seq + n_past, gmask_positon);
+    int block_position_id = MAX((n_past + seq) - gmask_positon, 0);
+
+    bool is_second_half = p &gt;= quart_embd;
+
+    position_id = is_second_half ? block_position_id : position_id;
+
+    p = is_second_half ? p - quart_embd : p;
+
+    const float theta = powf(10000.0f, -2.0f * p / quart_embd);
+    const float sin_theta = sinf(position_id * theta);
+    const float cos_theta = cosf(position_id * theta);
+
+    const int offset = h * embd + seq * head * embd;
+    const int rot_offset = is_second_half ? quart_embd : 0;
+
+    const float x0 = src[offset + rot_offset + p];
+    const float x1 = src[offset + rot_offset + p + half_embd];
+    dst[offset + rot_offset + p] = x0 * cos_theta - x1 * sin_theta;
+    dst[offset + rot_offset + p + half_embd] = x0 * sin_theta + x1 * cos_theta;
+}
+</code></pre>
+<h3 id="28-掩码操作masking-operations">2.8 掩码操作（Masking Operations）</h3>
+<pre><code class="language-cpp">void llm_diag_mask_inf_float(
+        float* dst, const float* src0, uint32_t n_past, uint32_t N, uint32_t head,
+        cudaHandle* handle);
+void llm_glm_gmask_inf_float(
+        float* dst, uint32_t n_past, uint32_t seqlen, uint32_t head,
+        cudaHandle* handle);
+void llm_scale_diag_mask_inf_float(
+        float* dst, const float* src0, float scale, uint32_t n_past, uint32_t seqlen,
+        uint32_t head, cudaHandle* handle);
+</code></pre>
+<p>这些函数实现了注意力掩码操作：</p>
+<ul>
+<li><code>llm_diag_mask_inf_float</code>：自回归掩码，将上三角部分设为负无穷</li>
+<li><code>llm_glm_gmask_inf_float</code>：GLM 模型特定的掩码</li>
+<li><code>llm_scale_diag_mask_inf_float</code>：先缩放再掩码</li>
+</ul>
+<pre><code class="language-cpp">__global__ void diag_mask_inf_f32(
+        const float* src, float* dst, const int past, const int len,
+        const int head_dim) {
+    const int head = blockIdx.z;
+    const int row = blockIdx.y * blockDim.y + threadIdx.y;
+    const int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (row &gt;= len || col &gt;= past + len || head &gt;= head_dim)
+        return;
+
+    const int offset = head * len * (past + len) + row * (past + len) + col;
+    if (col &gt;= past &amp;&amp; col - past &gt; row) {
+        dst[offset] = -INFINITY;
+    } else {
+        dst[offset] = src[offset];
+    }
+}
+</code></pre>
+<p>GLM 模型的掩码实现了特殊的掩码逻辑：</p>
+<pre><code class="language-cpp">__global__ void glm_gmask_inf_f32(
+        float* dst, const int past, const int seqlen, const int head) {
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+    const int head_id = index / seqlen;
+    const int row_id = index % seqlen;
+
+    // the laxt row not set -inf
+    if (row_id &gt;= seqlen - 1 || head_id &gt;= head)
+        return;
+
+    int total_seq = seqlen + past;
+    int offset = head_id * seqlen * total_seq + row_id * total_seq + total_seq - 1;
+    dst[offset] = -INFINITY;
+}
+</code></pre>
+<h2 id="3-内核注册机制">3. 内核注册机制</h2>
+<p>GPU 内核使用模板和宏实现内核注册机制，将函数与内核 ID 关联起来：</p>
+<pre><code class="language-cpp">#define PartialImplementKernel(kernel_id, fun)               \
+    template &lt;typename... Args&gt;                              \
+    struct Comp&lt;KernelID::kernel_id, Args...&gt; {              \
+        static void exec(Args... args, cudaHandle* handle) { \
+            return fun(std::forward&lt;Args&gt;(args)..., handle); \
+        }                                                    \
+    };
+
+#define PartialImplementSpace(kernel_id, fun)        \
+    template &lt;typename... Args&gt;                      \
+    struct Space&lt;KernelID::kernel_id, Args...&gt; {     \
+        static size_t get(Args... args) {            \
+            return fun(std::forward&lt;Args&gt;(args)...); \
+        }                                            \
+    };
+
+#define NOImplementKernel(kernel_id)                         \
+    template &lt;typename... Args&gt;                              \
+    struct Comp&lt;KernelID::kernel_id, Args...&gt; {              \
+        static void exec(Args... args, cudaHandle* handle) { \
+            INFER_ASSERT(0, &quot;kernel not implement&quot;);         \
+        }                                                    \
+    };
+</code></pre>
+<p>这些宏用于注册已实现的内核和标记未实现的内核：</p>
+<pre><code class="language-cpp">PartialImplementKernel(ElemwiseFloat, llm_elemwise_compute_float);
+PartialImplementKernel(ElemwiseFloatScale, llm_elemwise_compute_float_scale);
+// ... 其他已实现的内核
+
+NOImplementKernel(MatmulInt4FloatPacked);
+NOImplementKernel(MatmulInt4WeightReorder);
+NOImplementKernel(MatmulInt8Float);
+NOImplementKernel(EmbeddingGetInt8Float);
+</code></pre>
+<h2 id="4-cuda-优化技术">4. CUDA 优化技术</h2>
+<h3 id="41-线程块和网格配置">4.1 线程块和网格配置</h3>
+<p>代码中根据不同的计算需求，使用不同的线程块和网格配置：</p>
+<pre><code class="language-cpp">// 一维网格和线程块
+const dim3 block_dims(CUDA_NUM_THREADS, 1, 1);
+const dim3 block_nums((len + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS, 1, 1);
+
+// 二维网格
+const dim3 block_dims(512, 1, 1);
+const dim3 block_nums((ncols + 511) / 512, rows, 1);
+
+// 三维网格
+const dim3 block_dims(kBlockSize, kBlockSize, 1);
+const dim3 block_nums(block_x, block_y, head);
+</code></pre>
+<h3 id="42-warp-level-归约">4.2 Warp-level 归约</h3>
+<p>代码中使用 warp-level 归约优化归一化和 Softmax 等操作：</p>
+<pre><code class="language-cpp">// 使用 __shfl_xor_sync 进行 warp 内归约
+#pragma unroll
+for (int mask = 16; mask &gt; 0; mask &gt;&gt;= 1) {
+    tmp += __shfl_xor_sync(0xffffffff, tmp, mask, 32);
+}
+</code></pre>
+<h3 id="43-内存访问优化">4.3 内存访问优化</h3>
+<p>代码中使用合适的内存访问模式，减少内存访问开销：</p>
+<pre><code class="language-cpp">// 连续访问内存
+for (int i = 0; i &lt; ncols; i += WARP_SIZE) {
+    const int col = i + tid;
+    const float xi = x[row * ncols + col];
+    tmp += xi * xi;
+}
+</code></pre>
+<h3 id="44-使用-cublas-库">4.4 使用 cuBLAS 库</h3>
+<p>代码中使用 cuBLAS 库优化矩阵乘法和批处理矩阵乘法：</p>
+<pre><code class="language-cpp">CUBLAS_CHECK(cublasSgemm(
+        cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, N, M, K,
+        &amp;alpha, src0, K, src1, K, &amp;beta, dst, N));
+
+CUBLAS_CHECK(cublasSgemmStridedBatched(
+        cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, N, M, K, &amp;alpha, srck, embd,
+        head_embd, srcq, embd, head_embd, &amp;beta, dst, N, M * N, head));
+</code></pre>
+<h2 id="5-与-cpu-实现的比较">5. 与 CPU 实现的比较</h2>
+<p>GPU 实现与 CPU 实现（naive 模块）的主要区别：</p>
+<h3 id="51-并行度">5.1 并行度</h3>
+<ul>
+<li>CPU 实现：使用 TaskSet 和多线程并行</li>
+<li>GPU 实现：使用 CUDA 内核函数和数千个线程并行</li>
+</ul>
+<h3 id="52-内存管理">5.2 内存管理</h3>
+<ul>
+<li>CPU 实现：直接访问主内存</li>
+<li>GPU 实现：需要在 GPU 内存和主内存之间传输数据</li>
+</ul>
+<h3 id="53-优化方法">5.3 优化方法</h3>
+<ul>
+<li>CPU 实现：使用 SIMD 指令和缓存优化</li>
+<li>GPU 实现：使用 CUDA 内核函数、warp-level 归约和 cuBLAS 库</li>
+</ul>
+<h3 id="54-功能覆盖">5.4 功能覆盖</h3>
+<ul>
+<li>CPU 实现：完整实现所有功能</li>
+<li>GPU 实现：部分功能未实现（如 <code>MatmulInt4FloatPacked</code>、<code>MatmulInt8Float</code> 等）</li>
+</ul>
+<h2 id="6-性能考虑">6. 性能考虑</h2>
+<h3 id="61-内存传输开销">6.1 内存传输开销</h3>
+<p>GPU 计算需要在 CPU 和 GPU 之间传输数据，这可能成为性能瓶颈。代码中使用 CUDA 流和异步操作减少这种开销：</p>
+<pre><code class="language-cpp">cudaStream_t stream = handle-&gt;stream;
+</code></pre>
+<h3 id="62-内核启动开销">6.2 内核启动开销</h3>
+<p>CUDA 内核启动有一定开销，代码中尽量减少内核启动次数，将多个小操作合并为一个大操作：</p>
+<pre><code class="language-cpp">// 一次内核启动处理多个元素
+__global__ void llm_elemwise_compute_float_scale_gpu(
+        float* src, float* dst, size_t len, float scale) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index &lt; len) {
+        dst[index] = src[index] * scale;
+    }
+}
+</code></pre>
+<h3 id="63-线程分配和负载均衡">6.3 线程分配和负载均衡</h3>
+<p>代码中根据计算需求，合理分配线程和线程块，确保负载均衡：</p>
+<pre><code class="language-cpp">// 根据计算需求调整线程块大小
+const dim3 block_dims(kBlockSize, kBlockSize, 1);
+const dim3 block_nums(block_x, block_y, head);
+</code></pre>
+<h3 id="64-内存访问模式">6.4 内存访问模式</h3>
+<p>代码中优化内存访问模式，减少内存访问开销：</p>
+<pre><code class="language-cpp">// 连续访问内存
+for (int col = tid; col &lt; cols; col += block_size) {
+    const float val = src[col];
+    max = val &gt; max ? val : max;
+}
+</code></pre>
+<h2 id="7-未实现的功能">7. 未实现的功能</h2>
+<p>代码中使用 <code>NOImplementKernel</code> 宏标记了未实现的功能：</p>
+<pre><code class="language-cpp">NOImplementKernel(MatmulInt4FloatPacked);
+NOImplementKernel(MatmulInt4WeightReorder);
+NOImplementKernel(MatmulInt8Float);
+NOImplementKernel(EmbeddingGetInt8Float);
+</code></pre>
+<p>这些功能在 CPU 实现中已经实现，但在 GPU 实现中尚未实现。这可能是因为：</p>
+<ol>
+<li>这些功能在 GPU 上实现复杂度高</li>
+<li>这些功能在 GPU 上性能提升有限</li>
+<li>开发资源有限，优先实现更重要</li>
+</ol>
+<h2 id="8-内核注册与调用机制">8. 内核注册与调用机制</h2>
+<p>GPU 内核的注册与调用机制是通过模板特化和宏定义实现的，这种设计使得框架可以在运行时根据内核 ID 选择合适的实现。</p>
+<h3 id="81-内核注册宏">8.1 内核注册宏</h3>
+<pre><code class="language-cpp">#define PartialImplementKernel(kernel_id, fun)               \
+    template &lt;typename... Args&gt;                              \
+    struct Comp&lt;KernelID::kernel_id, Args...&gt; {              \
+        static void exec(Args... args, cudaHandle* handle) { \
+            return fun(std::forward&lt;Args&gt;(args)..., handle); \
+        }                                                    \
+    };
+
+#define PartialImplementSpace(kernel_id, fun)        \
+    template &lt;typename... Args&gt;                      \
+    struct Space&lt;KernelID::kernel_id, Args...&gt; {     \
+        static size_t get(Args... args) {            \
+            return fun(std::forward&lt;Args&gt;(args)...); \
+        }                                            \
+    };
+
+#define NOImplementKernel(kernel_id)                         \
+    template &lt;typename... Args&gt;                              \
+    struct Comp&lt;KernelID::kernel_id, Args...&gt; {              \
+        static void exec(Args... args, cudaHandle* handle) { \
+            INFER_ASSERT(0, &quot;kernel not implement&quot;);         \
+        }                                                    \
+    };
+</code></pre>
+<p>这些宏定义了三种类型的内核注册：</p>
+<ol>
+<li><code>PartialImplementKernel</code>：注册已实现的计算内核</li>
+<li><code>PartialImplementSpace</code>：注册工作空间计算函数</li>
+<li><code>NOImplementKernel</code>：标记未实现的内核</li>
+</ol>
+<h3 id="82-内核注册列表">8.2 内核注册列表</h3>
+<pre><code class="language-cpp">PartialImplementKernel(ElemwiseFloat, llm_elemwise_compute_float);
+PartialImplementKernel(ElemwiseFloatScale, llm_elemwise_compute_float_scale);
+PartialImplementKernel(
+        ElemwiseBroadcastDim0Src1Float, llm_elemwise_broadcast_dim0_src1_compute_float);
+PartialImplementKernel(NormFloat, llm_norm_compute_float);
+PartialImplementKernel(RmsNormFloat, llm_rms_norm_compute_float);
+PartialImplementKernel(EmbeddingGetInt4Float, llm_embedding_get_int4_float);
+PartialImplementKernel(EmbeddingGetFloatFloat, llm_embedding_get_float_float);
+PartialImplementKernel(SoftmaxFloat, llm_softmax_compute_float);
+PartialImplementKernel(MatmulInt4Float, llm_matmul_compute_int4_float);
+PartialImplementKernel(MatmulFloatFloat, llm_matmul_compute_float_float);
+PartialImplementKernel(
+        MatmulWithHeadStrideFloat, llm_matmul_compute_with_head_stride_float);
+PartialImplementKernel(HeadBatchedMatmulFloat, llm_head_batched_matmul_compute_float);
+PartialImplementKernel(DiagMaskFloat, llm_diag_mask_inf_float);
+PartialImplementKernel(RopeFloat, llm_rope_compute_float);
+PartialImplementKernel(GlmRopeFloat, llm_glm_rope_compute_float);
+PartialImplementKernel(ScaleDiagMaskFloat, llm_scale_diag_mask_inf_float);
+PartialImplementKernel(GlmGmask, llm_glm_gmask_inf_float);
+PartialImplementKernel(PermuteFloat, llm_permute_compute_float);
+
+//! multi query attention
+PartialImplementKernel(
+        MatmulWithHeadStrideQBroadCastKFloat,
+        llm_matmul_compute_with_head_strideq_broadcastk_float);
+PartialImplementKernel(
+        HeadBatchedMatmulBroadCastVFloat, llm_head_batched_matmul_broadcastv_float);
+
+PartialImplementSpace(MatmulInt4Float, llm_matmul_get_workspace_float);
+PartialImplementSpace(MatmulFloatFloat, llm_matmul_get_workspace_float_float);
+
+NOImplementKernel(MatmulInt4FloatPacked);
+NOImplementKernel(MatmulInt4WeightReorder);
+NOImplementKernel(MatmulInt8Float);
+NOImplementKernel(EmbeddingGetInt8Float);
+</code></pre>
+<p>这些注册语句将内核 ID 与具体的实现函数关联起来，使得框架可以在运行时根据内核 ID 选择合适的实现。</p>
+<h3 id="83-内核调用机制">8.3 内核调用机制</h3>
+<p>内核调用是通过 <code>Comp</code> 和 <code>Space</code> 模板类实现的：</p>
+<pre><code class="language-cpp">template &lt;KernelID Id, typename... Args&gt;
+struct Comp {
+    static void exec(Args... args, cudaHandle* handle);
+};
+
+template &lt;KernelID Id, typename... Args&gt;
+struct Space {
+    static size_t get(Args... args);
+};
+</code></pre>
+<p>这些模板类提供了统一的接口，而具体实现由模板特化提供。在运行时，框架可以根据内核 ID 选择合适的实现：</p>
+<pre><code class="language-cpp">// 调用示例
+gpu::Comp&lt;KernelID::MatmulFloatFloat&gt;::exec(
+        dst, src0, bias, src1, M, N, K, workspace, size, handle);
+</code></pre>
+<h2 id="9-cuda-资源管理">9. CUDA 资源管理</h2>
+<h3 id="91-cudahandle-结构体">9.1 cudaHandle 结构体</h3>
+<pre><code class="language-cpp">struct cudaHandle {
+    cudaStream_t stream{nullptr};
+    cublasHandle_t cublas_handle{nullptr};
+};
+</code></pre>
+<p><code>cudaHandle</code> 结构体管理 CUDA 资源，包括：</p>
+<ol>
+<li><code>stream</code>：CUDA 流，用于异步执行 CUDA 操作</li>
+<li><code>cublas_handle</code>：cuBLAS 句柄，用于调用 cuBLAS 库函数</li>
+</ol>
+<p>这种设计使得框架可以在多个 CUDA 设备和多个 CUDA 流上并行执行计算，提高计算效率。</p>
+<h3 id="92-cuda-流使用">9.2 CUDA 流使用</h3>
+<p>代码中使用 CUDA 流执行异步操作，减少 CPU 和 GPU 之间的同步开销：</p>
+<pre><code class="language-cpp">cudaStream_t stream = handle-&gt;stream;
+llm_embedding_get_int4_float_gpu&lt;&lt;&lt;grid, DequantizedBlockSize, 0, stream&gt;&gt;&gt;(
+        weights, index, dst, len_seq, embd, weight_stride);
+</code></pre>
+<h3 id="93-cublas-库使用">9.3 cuBLAS 库使用</h3>
+<p>代码中使用 cuBLAS 库优化矩阵乘法和批处理矩阵乘法：</p>
+<pre><code class="language-cpp">cublasHandle_t cublas_handle = handle-&gt;cublas_handle;
+CUBLAS_CHECK(cublasSetStream(cublas_handle, stream));
+CUBLAS_CHECK(cublasSgemm(
+        cublas_handle, CUBLAS_OP_T, CUBLAS_OP_N, N, M, K,
+        &amp;alpha, src0, K, src1, K, &amp;beta, dst, N));
+</code></pre>
+<h2 id="10-条件编译">10. 条件编译</h2>
+<p>代码使用条件编译确保 GPU 代码只在启用 GPU 支持时编译：</p>
+<pre><code class="language-cpp">#if ENABLE_GPU
+// GPU 代码
+#endif
+</code></pre>
+<p>这种设计使得框架可以在不支持 GPU 的平台上编译和运行，只使用 CPU 实现。</p>
+<h2 id="11-错误处理">11. 错误处理</h2>
+<p>代码中使用宏和断言处理错误：</p>
+<pre><code class="language-cpp">#define CUBLAS_CHECK(func)                                                               \
+    do {                                                                                 \
+        cublasStatus_t status = (func);                                                  \
+        if (status != CUBLAS_STATUS_SUCCESS) {                                           \
+            printf(&quot;CUBLAS API failed at line %d with error: %s (%d)\n&quot;, __LINE__,       \
+                   _cudaGetErrorEnum(status), status);                                   \
+            return;                                                                      \
+        }                                                                                \
+    } while (0)
+
+#define CUDA_CHECK(func)                                                              \
+    do {                                                                              \
+        cudaError_t status = (func);                                                  \
+        if (status != cudaSuccess) {                                                  \
+            printf(&quot;CUDA API failed at line %d with error: %s (%d)\n&quot;, __LINE__,      \
+                   cudaGetErrorString(status), status);                               \
+            return;                                                                   \
+        }                                                                             \
+    } while (0)
+</code></pre>
+<p>这些宏检查 CUDA 和 cuBLAS 函数的返回值，如果发生错误，打印错误信息并返回。</p>
+<h2 id="12-与其他模块的集成">12. 与其他模块的集成</h2>
+<p>GPU 内核模块与其他模块的集成主要通过以下方式：</p>
+<h3 id="121-与-kernelh-的集成">12.1 与 kernel.h 的集成</h3>
+<p>kernel.h 定义了内核系统的接口，GPU 内核模块实现了这些接口，提供了 GPU 上的计算实现。</p>
+<h3 id="122-与-tensorh-的集成">12.2 与 tensor.h 的集成</h3>
+<p>tensor.h 定义了张量数据结构，GPU 内核模块使用这些张量作为输入和输出。</p>
+<h3 id="123-与-naive-模块的集成">12.3 与 naive 模块的集成</h3>
+<p>当 GPU 实现不可用时，系统会回退到 naive 模块的 CPU 实现。</p>
+<h2 id="13-性能优化总结">13. 性能优化总结</h2>
+<p>GPU 内核模块使用了多种性能优化技术：</p>
+<h3 id="131-并行计算">13.1 并行计算</h3>
+<ul>
+<li>使用 CUDA 内核函数和数千个线程并行计算</li>
+<li>使用 cuBLAS 库优化矩阵乘法和批处理矩阵乘法</li>
+</ul>
+<h3 id="132-内存优化">13.2 内存优化</h3>
+<ul>
+<li>使用合适的内存访问模式，减少内存访问开销</li>
+<li>使用共享内存和寄存器优化内存访问</li>
+</ul>
+<h3 id="133-算法优化">13.3 算法优化</h3>
+<ul>
+<li>使用 warp-level 归约优化归一化和 Softmax 等操作</li>
+<li>使用批处理矩阵乘法优化注意力计算</li>
+</ul>
+<h3 id="134-资源管理">13.4 资源管理</h3>
+<ul>
+<li>使用 CUDA 流执行异步操作，减少 CPU 和 GPU 之间的同步开销</li>
+<li>使用 cuBLAS 库优化矩阵乘法和批处理矩阵乘法</li>
+</ul>
+<h2 id="14-未来优化方向">14. 未来优化方向</h2>
+<p>基于当前实现，可以考虑以下优化方向：</p>
+<h3 id="141-实现未实现的功能">14.1 实现未实现的功能</h3>
+<p>实现当前标记为 <code>NOImplementKernel</code> 的功能：</p>
+<ul>
+<li><code>MatmulInt4FloatPacked</code></li>
+<li><code>MatmulInt4WeightReorder</code></li>
+<li><code>MatmulInt8Float</code></li>
+<li><code>EmbeddingGetInt8Float</code></li>
+</ul>
+<h3 id="142-使用更高效的-gpu-算法">14.2 使用更高效的 GPU 算法</h3>
+<ul>
+<li>使用 Tensor Core 加速矩阵乘法</li>
+<li>使用 Flash Attention 算法优化注意力计算</li>
+<li>使用混合精度计算提高性能</li>
+</ul>
+<h3 id="143-优化内存使用">14.3 优化内存使用</h3>
+<ul>
+<li>使用内存池减少内存分配和释放的开销</li>
+<li>使用流水线并行减少内存占用</li>
+<li>使用张量并行和模型并行处理大型模型</li>
+</ul>
+<h3 id="144-支持更多-gpu-平台">14.4 支持更多 GPU 平台</h3>
+<ul>
+<li>支持 AMD GPU（使用 HIP）</li>
+<li>支持移动 GPU（使用 OpenCL 或 Vulkan）</li>
+<li>支持多 GPU 并行计算</li>
+</ul>
+<h2 id="总结">总结</h2>
+<p>InferLLM 框架中的 GPU 内核实现提供了大语言模型在 GPU 上运行所需的各种计算操作的实现。通过使用 CUDA 内核函数、warp-level 归约、cuBLAS 库等技术，GPU 内核模块在 GPU 上实现了高效的计算。内核注册与调用机制使得框架可以在运行时根据内核 ID 选择合适的实现，而条件编译确保 GPU 代码只在启用 GPU 支持时编译。</p>
+<p>虽然当前实现已经覆盖了大部分功能，但仍有一些功能未实现，如 <code>MatmulInt4FloatPacked</code>、<code>MatmulInt4WeightReorder</code> 等。未来可以考虑实现这些功能，并使用更高效的 GPU 算法、优化内存使用、支持更多 GPU 平台等方向进行优化。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](22)kern模块中量化的实现(src/kern/naive/quantize.h)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-22/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-22/">
+        </link>
+        <updated>2025-04-25T04:09:48.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm-框架中-quantizeh-的代码结构与功能分析">InferLLM 框架中 quantize.h 的代码结构与功能分析</h1>
+<p><code>quantize.h</code> 是 InferLLM 框架中实现量化和反量化操作的核心头文件，位于 <code>kern/naive</code> 目录下，提供了基础的量化计算实现。这个文件主要实现了模型权重和激活值的量化与反量化操作，以及量化数据之间的点积计算，是实现低精度推理的关键组件。</p>
+<h2 id="1-文件结构概览">1. 文件结构概览</h2>
+<p>文件结构可以分为以下几个部分：</p>
+<ol>
+<li>头文件引入</li>
+<li>反量化函数（dequantize）</li>
+<li>量化函数（quantize）</li>
+<li>量化数据点积计算函数</li>
+</ol>
+<h2 id="2-反量化函数">2. 反量化函数</h2>
+<h3 id="21-4位整数反量化">2.1 4位整数反量化</h3>
+<pre><code class="language-cpp">inline void dequantize_row_q4_0_reference(
+        const void* __restrict x, float* __restrict y, int k) {
+    const int nb = k / QK40;
+    const size_t bs = sizeof(float) + QK40 / 2;
+
+    const uint8_t* __restrict pd = ((const uint8_t*)x + 0 * bs);
+    const uint8_t* __restrict pb = ((const uint8_t*)x + 0 * bs + sizeof(float));
+
+    // scalar
+    for (int i = 0; i &lt; nb; i++) {
+        const float d = *(const float*)(pd + i * bs);
+
+        const uint8_t* __restrict pp = pb + i * bs;
+
+        for (int l = 0; l &lt; QK40; l += 2) {
+            const uint8_t vi = pp[l / 2];
+
+            const int8_t vi0 = vi &amp; 0xf;
+            const int8_t vi1 = vi &gt;&gt; 4;
+
+            const float v0 = (vi0 - 8) * d;
+            const float v1 = (vi1 - 8) * d;
+
+            y[i * QK40 + l + 0] = v0;
+            y[i * QK40 + l + 1] = v1;
+        }
+    }
+}
+</code></pre>
+<p>这个函数将4位整数量化的数据反量化为浮点数：</p>
+<ol>
+<li>将输入数据分为多个块（每块32个元素）</li>
+<li>每个块有一个缩放因子 <code>d</code></li>
+<li>每个字节存储两个4位整数（高4位和低4位）</li>
+<li>将4位整数解码为 -8 到 7 的范围，然后乘以缩放因子得到浮点数</li>
+</ol>
+<h3 id="22-8位整数反量化">2.2 8位整数反量化</h3>
+<pre><code class="language-cpp">inline void dequantize_row_q8_0_reference(
+        const void* __restrict x, float* __restrict y, int k) {
+    const int nb = k / QK80;
+    const size_t bs = sizeof(float) + QK40 / 2;
+
+    const BlockQ80* xx = reinterpret_cast&lt;const BlockQ80*&gt;(x);
+
+    // scalar
+    for (int i = 0; i &lt; nb; i++) {
+        const float d = xx[i].d;
+
+        const int8_t* __restrict pp = xx[i].qs;
+
+        for (int l = 0; l &lt; QK80; l++) {
+            y[i * QK80 + l] = pp[l] * d;
+        }
+    }
+}
+</code></pre>
+<p>这个函数将8位整数量化的数据反量化为浮点数：</p>
+<ol>
+<li>将输入数据分为多个块（每块32个元素）</li>
+<li>每个块有一个缩放因子 <code>d</code></li>
+<li>直接将8位整数乘以缩放因子得到浮点数</li>
+</ol>
+<h2 id="3-量化函数">3. 量化函数</h2>
+<h3 id="31-浮点数量化为4位整数">3.1 浮点数量化为4位整数</h3>
+<pre><code class="language-cpp">inline size_t quantize_row_q4_0_reference(const float* x, BlockQ40* y, int k) {
+    const int nb = k / QK40;
+
+    uint8_t pp[QK40 / 2];
+
+    for (int i = 0; i &lt; nb; i++) {
+        float amax = 0.0f;  // absolute max
+
+        for (int l = 0; l &lt; QK40; l++) {
+            const float v = x[i * QK40 + l];
+            amax = std::max(amax, fabsf(v));
+        }
+
+        const float d = amax / ((1 &lt;&lt; 3) - 1);
+        const float id = d ? 1.0f / d : 0.0f;
+
+        y[i].d = d;
+
+        for (int l = 0; l &lt; QK40; l += 2) {
+            const float v0 = x[i * QK40 + l + 0] * id;
+            const float v1 = x[i * QK40 + l + 1] * id;
+
+            const uint8_t vi0 = (int8_t)roundf(v0) + 8;
+            const uint8_t vi1 = (int8_t)roundf(v1) + 8;
+
+            assert(vi0 &lt; 16);
+            assert(vi1 &lt; 16);
+
+            pp[l / 2] = vi0 | (vi1 &lt;&lt; 4);
+        }
+
+        memcpy(y[i].qs, pp, sizeof(pp));
+    }
+    return nb * sizeof(BlockQ40);
+}
+</code></pre>
+<p>这个函数将浮点数量化为4位整数：</p>
+<ol>
+<li>将输入数据分为多个块（每块32个元素）</li>
+<li>计算每个块中的最大绝对值 <code>amax</code></li>
+<li>计算缩放因子 <code>d = amax / 7</code>（7 = 2^3 - 1）</li>
+<li>将浮点数除以缩放因子，四舍五入后加上偏移量8，得到0到15的整数</li>
+<li>将两个4位整数打包到一个字节中（低4位和高4位）</li>
+</ol>
+<h3 id="32-浮点数量化为8位整数">3.2 浮点数量化为8位整数</h3>
+<pre><code class="language-cpp">inline void quantize_row_q8_0_reference(const float* x, BlockQ80* y, int k) {
+    assert(k % QK80 == 0);
+    const int nb = k / QK80;
+
+    for (int i = 0; i &lt; nb; i++) {
+        float amax = 0.0f;  // absolute max
+
+        for (int l = 0; l &lt; QK80; l++) {
+            const float v = x[i * QK80 + l];
+            amax = std::max(amax, fabsf(v));
+        }
+
+        const float d = amax / ((1 &lt;&lt; 7) - 1);
+        const float id = d ? 1.0f / d : 0.0f;
+
+        y[i].d = d;
+
+        for (int l = 0; l &lt; QK80; ++l) {
+            const float v0 = x[i * QK80 + l] * id;
+
+            y[i].qs[l] = roundf(v0);
+        }
+    }
+}
+</code></pre>
+<p>这个函数将浮点数量化为8位整数：</p>
+<ol>
+<li>将输入数据分为多个块（每块32个元素）</li>
+<li>计算每个块中的最大绝对值 <code>amax</code></li>
+<li>计算缩放因子 <code>d = amax / 127</code>（127 = 2^7 - 1）</li>
+<li>将浮点数除以缩放因子，四舍五入后得到-127到127的整数</li>
+</ol>
+<h2 id="4-量化数据点积计算函数">4. 量化数据点积计算函数</h2>
+<h3 id="41-4位整数与8位整数点积">4.1 4位整数与8位整数点积</h3>
+<pre><code class="language-cpp">inline float vec_vec_dot_q40_with_q80_reference(
+        const int n, const void* vx, const void* vy) {
+    const int nb = n / QK80;
+    assert(n % QK80 == 0);
+    assert(nb % 2 == 0);
+
+    const BlockQ40* __restrict x = (BlockQ40*)(vx);
+    const BlockQ80* __restrict y = (BlockQ80*)(vy);
+
+    float sumf = 0.0;
+    for (int i = 0; i &lt; nb; i++) {
+        const float d0 = x[i].d;
+        const float d1 = y[i].d;
+
+        const uint8_t* __restrict p0 = x[i].qs;
+        const int8_t* __restrict p1 = y[i].qs;
+
+        int sumi = 0;
+        for (int j = 0; j &lt; QK80 / 2; j++) {
+            const uint8_t v0 = p0[j];
+
+            const int i0 = (int8_t)(v0 &amp; 0x0F) - 8;
+            const int i1 = (int8_t)(v0 &gt;&gt; 4) - 8;
+
+            const int i2 = p1[2 * j + 0];
+            const int i3 = p1[2 * j + 1];
+
+            sumi += i0 * i2 + i1 * i3;
+        }
+        sumf += d0 * d1 * sumi;
+    }
+    return sumf;
+}
+</code></pre>
+<p>这个函数计算4位整数向量与8位整数向量的点积：</p>
+<ol>
+<li>将输入数据分为多个块</li>
+<li>对于每个块，解码4位整数和8位整数</li>
+<li>计算整数之间的点积</li>
+<li>乘以两个缩放因子得到最终结果</li>
+</ol>
+<h3 id="42-打包的4位整数与8位整数点积">4.2 打包的4位整数与8位整数点积</h3>
+<pre><code class="language-cpp">inline void vec_vec_dot_q40_with_q80_packed_reference(
+        const int n, const void* vx, const void* vy, float* dst, const float* bias) {
+    const int nb = n / QK80;
+    assert(n % QK80 == 0);
+
+    const BlockQ40X8* __restrict x = (BlockQ40X8*)(vx);
+    const BlockQ80* __restrict y = (BlockQ80*)(vy);
+    float sum0 = 0, sum1 = 0, sum2 = 0, sum3 = 0, sum4 = 0, sum5 = 0, sum6 = 0, sum7 = 0;
+    if (bias) {
+        sum0 = bias[0], sum1 = bias[1], sum2 = bias[2], sum3 = bias[3], sum4 = bias[4],
+        sum5 = bias[5], sum6 = bias[6], sum7 = bias[7];
+    }
+    
+    // ... 计算过程 ...
+    
+    dst[0] = sum0;
+    dst[1] = sum1;
+    dst[2] = sum2;
+    dst[3] = sum3;
+    dst[4] = sum4;
+    dst[5] = sum5;
+    dst[6] = sum6;
+    dst[7] = sum7;
+}
+</code></pre>
+<p>这个函数计算8组打包的4位整数向量与一个8位整数向量的点积：</p>
+<ol>
+<li>将输入数据分为多个块</li>
+<li>对于每个块，解码8组4位整数和1组8位整数</li>
+<li>计算8组点积</li>
+<li>乘以相应的缩放因子得到最终结果</li>
+<li>如果有偏置，加上偏置值</li>
+</ol>
+<h3 id="43-8位整数与8位整数点积">4.3 8位整数与8位整数点积</h3>
+<pre><code class="language-cpp">inline float vec_vec_dot_q80_with_q80_reference(
+        const int n, const void* vx, const void* vy) {
+    const int nb = n / QK80;
+    assert(n % QK80 == 0);
+    assert(nb % 2 == 0);
+
+    const BlockQ80* __restrict x = (BlockQ80*)(vx);
+    const BlockQ80* __restrict y = (BlockQ80*)(vy);
+
+    float sumf = 0.0;
+    for (int i = 0; i &lt; nb; i++) {
+        const float d0 = x[i].d;
+        const float d1 = y[i].d;
+
+        const int8_t* __restrict p0 = x[i].qs;
+        const int8_t* __restrict p1 = y[i].qs;
+
+        int sumi = 0;
+        for (int j = 0; j &lt; QK80; j++) {
+            sumi += p0[j] * p1[j];
+        }
+        sumf += d0 * d1 * sumi;
+    }
+    return sumf;
+}
+</code></pre>
+<p>这个函数计算两个8位整数向量的点积：</p>
+<ol>
+<li>将输入数据分为多个块</li>
+<li>对于每个块，计算8位整数之间的点积</li>
+<li>乘以两个缩放因子得到最终结果</li>
+</ol>
+<h3 id="44-浮点数与浮点数点积">4.4 浮点数与浮点数点积</h3>
+<pre><code class="language-cpp">inline float vec_vec_dot_float_with_float_reference(
+        const int n, const float* x, const float* y) {
+    float sumf = 0.0;
+    for (int i = 0; i &lt; n; i++) {
+        sumf += x[i] * y[i];
+    }
+    return sumf;
+}
+</code></pre>
+<p>这个函数计算两个浮点数向量的点积，直接进行浮点数乘法和累加。</p>
+<h2 id="5-功能分析">5. 功能分析</h2>
+<p>通过分析 <code>quantize.h</code> 文件，可以看出它实现了以下主要功能：</p>
+<h3 id="51-数据量化">5.1 数据量化</h3>
+<p>将浮点数量化为低精度整数（4位或8位），减少内存占用和计算量：</p>
+<ul>
+<li>4位整数量化：每个浮点数用4位表示，每个字节存储两个值</li>
+<li>8位整数量化：每个浮点数用8位表示</li>
+</ul>
+<p>量化过程中使用块量化方法，每个块（通常是32个元素）共享一个缩放因子，这样可以在保持计算精度的同时减少内存占用。</p>
+<h3 id="52-数据反量化">5.2 数据反量化</h3>
+<p>将低精度整数（4位或8位）反量化为浮点数，用于模型的输出或中间结果：</p>
+<ul>
+<li>4位整数反量化：将4位整数解码为-8到7的范围，然后乘以缩放因子</li>
+<li>8位整数反量化：将8位整数乘以缩放因子</li>
+</ul>
+<h3 id="53-量化数据点积计算">5.3 量化数据点积计算</h3>
+<p>实现不同精度数据之间的点积计算，是矩阵乘法的基础操作：</p>
+<ul>
+<li>4位整数与8位整数点积</li>
+<li>打包的4位整数与8位整数点积（一次计算8组）</li>
+<li>8位整数与8位整数点积</li>
+<li>浮点数与浮点数点积</li>
+</ul>
+<p>这些点积计算函数是实现低精度矩阵乘法的核心，通过整数乘法和累加，再乘以缩放因子，可以在保持计算精度的同时提高计算效率。</p>
+<h2 id="6-实现细节分析">6. 实现细节分析</h2>
+<h3 id="61-块量化策略">6.1 块量化策略</h3>
+<p><code>quantize.h</code> 采用块量化策略，将数据分为固定大小的块（通常是32个元素），每个块共享一个缩放因子。这种策略有以下优点：</p>
+<ol>
+<li><strong>减少存储开销</strong>：只需要为每个块存储一个缩放因子，而不是每个元素一个</li>
+<li><strong>保持局部精度</strong>：每个块独立计算缩放因子，可以适应数据的局部分布</li>
+<li><strong>计算效率高</strong>：可以批量处理一个块内的所有元素</li>
+</ol>
+<h3 id="62-对称量化">6.2 对称量化</h3>
+<p>代码中使用的是对称量化方法，具体表现为：</p>
+<ul>
+<li>4位整数量化：值域为 -8 到 7（通过减去偏移量8实现）</li>
+<li>8位整数量化：值域为 -127 到 127</li>
+</ul>
+<p>对称量化相比非对称量化更简单，计算效率更高，但可能在处理非对称分布的数据时精度略低。</p>
+<h3 id="63-内存布局优化">6.3 内存布局优化</h3>
+<p>代码中的内存布局经过优化，以提高访问效率：</p>
+<ul>
+<li><code>BlockQ40</code> 结构：先存储缩放因子，再存储量化值</li>
+<li><code>BlockQ40X8</code> 结构：将8组4位整数量化值连续存储，然后是8个缩放因子</li>
+<li>打包存储：每个字节存储两个4位整数，减少内存占用</li>
+</ul>
+<h3 id="64-simd-友好设计">6.4 SIMD 友好设计</h3>
+<p>虽然 <code>quantize.h</code> 中的实现是标量版本，但其内存布局和计算模式设计考虑了 SIMD 指令集的优化可能：</p>
+<ul>
+<li>固定大小的块（32个元素）适合 SIMD 寄存器宽度</li>
+<li>连续的内存访问模式有利于 SIMD 加载指令</li>
+<li>整数乘法和累加操作适合 SIMD 指令优化</li>
+</ul>
+<h2 id="7-性能优化分析">7. 性能优化分析</h2>
+<h3 id="71-计算复杂度优化">7.1 计算复杂度优化</h3>
+<p>通过量化，将浮点数运算转换为整数运算，显著降低了计算复杂度：</p>
+<ul>
+<li>浮点数乘法 → 整数乘法（更快）</li>
+<li>浮点数加法 → 整数加法（更快）</li>
+<li>最后只需要少量的浮点数乘法（乘以缩放因子）</li>
+</ul>
+<h3 id="72-内存占用优化">7.2 内存占用优化</h3>
+<p>量化显著减少了内存占用：</p>
+<ul>
+<li>4位量化：比32位浮点数减少87.5%的内存占用</li>
+<li>8位量化：比32位浮点数减少75%的内存占用</li>
+</ul>
+<p>减少内存占用不仅节省存储空间，还能提高缓存命中率，进一步提升性能。</p>
+<h3 id="73-批量处理优化">7.3 批量处理优化</h3>
+<p><code>vec_vec_dot_q40_with_q80_packed_reference</code> 函数实现了批量处理优化，一次计算8组点积，减少了函数调用开销和循环控制开销。</p>
+<h3 id="74-编译器优化友好">7.4 编译器优化友好</h3>
+<p>代码中使用了 <code>__restrict</code> 关键字，告诉编译器指针之间没有别名，有助于编译器进行更激进的优化。</p>
+<h2 id="8-与其他优化实现的关系">8. 与其他优化实现的关系</h2>
+<p><code>quantize.h</code> 中的函数都带有 <code>_reference</code> 后缀，表明这些是参考实现，主要用于：</p>
+<ol>
+<li><strong>功能验证</strong>：验证量化和反量化算法的正确性</li>
+<li><strong>后备实现</strong>：当特定平台的优化实现不可用时作为后备</li>
+<li><strong>基准比较</strong>：用于与优化实现进行性能比较</li>
+</ol>
+<p>实际应用中，会根据目标平台选择更高效的实现，如：</p>
+<ul>
+<li>x86平台：使用 AVX/AVX2 指令集优化</li>
+<li>ARM平台：使用 NEON 指令集优化</li>
+<li>GPU平台：使用 CUDA 优化</li>
+</ul>
+<h2 id="9-应用场景分析">9. 应用场景分析</h2>
+<h3 id="91-模型权重量化">9.1 模型权重量化</h3>
+<p>大型语言模型的权重通常占用大量内存，通过量化可以显著减少内存占用：</p>
+<ul>
+<li>原始 LLaMA 7B 模型（FP32）：约28GB</li>
+<li>4位量化后：约3.5GB</li>
+</ul>
+<p>这使得在资源受限的设备上运行大型模型成为可能。</p>
+<h3 id="92-激活值量化">9.2 激活值量化</h3>
+<p>在模型推理过程中，中间激活值也可以量化，减少内存占用和计算量：</p>
+<ul>
+<li>将注意力矩阵量化为8位整数</li>
+<li>将前馈网络的中间结果量化为8位整数</li>
+</ul>
+<h3 id="93-矩阵乘法加速">9.3 矩阵乘法加速</h3>
+<p>矩阵乘法是大型语言模型中最耗时的操作，通过量化可以显著加速：</p>
+<ul>
+<li>权重量化为4位整数</li>
+<li>激活值量化为8位整数</li>
+<li>使用整数矩阵乘法（比浮点数矩阵乘法快）</li>
+</ul>
+<h2 id="10-未来优化方向">10. 未来优化方向</h2>
+<p>基于 <code>quantize.h</code> 的实现，可以考虑以下优化方向：</p>
+<h3 id="101-更高效的量化方法">10.1 更高效的量化方法</h3>
+<ul>
+<li><strong>非对称量化</strong>：处理非对称分布的数据</li>
+<li><strong>组量化</strong>：不同组使用不同的缩放因子，提高精度</li>
+<li><strong>混合精度量化</strong>：重要权重使用更高精度，不重要权重使用更低精度</li>
+</ul>
+<h3 id="102-更多硬件优化">10.2 更多硬件优化</h3>
+<ul>
+<li><strong>ARM SVE</strong>：支持可变长度向量的 ARM 指令集</li>
+<li><strong>RISC-V V 扩展</strong>：RISC-V 的向量扩展</li>
+<li><strong>特定加速器</strong>：针对 NPU、TPU 等专用加速器的优化</li>
+</ul>
+<h3 id="103-算法优化">10.3 算法优化</h3>
+<ul>
+<li><strong>稀疏量化</strong>：结合稀疏性和量化，进一步减少计算量</li>
+<li><strong>量化感知训练</strong>：在训练阶段考虑量化误差，提高量化模型精度</li>
+<li><strong>自适应量化</strong>：根据数据分布动态调整量化参数</li>
+</ul>
+<h2 id="总结">总结</h2>
+<p><code>quantize.h</code> 实现了大语言模型推理中的核心量化操作，包括4位和8位整数量化、反量化以及量化数据之间的点积计算。通过块量化、对称量化、内存布局优化和批量处理等技术，在保持计算精度的同时显著减少了内存占用和计算量。这些实现为 InferLLM 框架提供了高效的低精度推理能力，使得大型语言模型可以在资源受限的设备上运行。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](21)kern模块中naive的实现(src/kern/naive/naive.h+.cpp)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-21/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-21/">
+        </link>
+        <updated>2025-04-24T04:10:48.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm-框架中-naiveh-和-naivecpp-的代码结构与功能分析">InferLLM 框架中 naive.h 和 naive.cpp 的代码结构与功能分析</h1>
+<p><code>naive.h</code> 和 <code>naive.cpp</code> 是 InferLLM 框架中朴素实现的核心文件，提供了大语言模型推理所需的各种计算操作的基础实现。这些实现不依赖特定硬件优化，确保在任何平台上都能正常运行。</p>
+<h2 id="1-文件结构概览">1. 文件结构概览</h2>
+<h3 id="11-naiveh">1.1 naive.h</h3>
+<p><code>naive.h</code> 主要包含以下内容：</p>
+<ol>
+<li>函数声明：声明各种计算函数</li>
+<li>模板类定义：定义 <code>Comp</code> 和 <code>Space</code> 模板类</li>
+<li>内核注册：使用 <code>PartialImplementKernel</code> 和 <code>PartialImplementSpace</code> 宏注册函数</li>
+</ol>
+<h3 id="12-naivecpp">1.2 naive.cpp</h3>
+<p><code>naive.cpp</code> 主要包含各种计算函数的具体实现，每个函数都返回一个 <code>TaskSet</code>，用于多线程执行。</p>
+<h2 id="2-核心功能分类">2. 核心功能分类</h2>
+<p>通过分析代码，可以将 naive 模块的功能分为以下几类：</p>
+<h3 id="21-嵌入查找embedding-lookup">2.1 嵌入查找（Embedding Lookup）</h3>
+<pre><code class="language-cpp">TaskSet llm_embedding_get_int4_float(...);
+TaskSet llm_embedding_get_int8_float(...);
+TaskSet llm_embedding_get_float_float(...);
+</code></pre>
+<p>这些函数从嵌入表中查找 token 的嵌入向量，支持不同的数据类型（int4、int8、float）。实现过程：</p>
+<ol>
+<li>根据索引找到对应的行</li>
+<li>计算权重的步长</li>
+<li>对于量化数据，调用反量化函数</li>
+<li>对于浮点数据，直接复制</li>
+</ol>
+<h3 id="22-元素级操作elementwise-operations">2.2 元素级操作（Elementwise Operations）</h3>
+<pre><code class="language-cpp">TaskSet llm_elemwise_compute_float(...);
+TaskSet llm_elemwise_compute_float_scale(...);
+TaskSet llm_elemwise_broadcast_dim0_src1_compute_float(...);
+</code></pre>
+<p>这些函数实现了元素级操作，如加法、乘法、Silu 和 Gelu 激活函数，以及带有广播的元素级操作。实现过程：</p>
+<ol>
+<li>根据操作模式选择不同的 lambda 函数</li>
+<li>对每个元素执行相应的操作</li>
+<li>对于广播操作，处理不同维度的广播逻辑</li>
+</ol>
+<h3 id="23-归一化normalization">2.3 归一化（Normalization）</h3>
+<pre><code class="language-cpp">TaskSet llm_norm_compute_float(...);
+TaskSet llm_rms_norm_compute_float(...);
+</code></pre>
+<p>这些函数实现了层归一化和 RMS 归一化，用于稳定网络训练和推理。实现过程：</p>
+<ol>
+<li>计算均值（对于层归一化）或均方根（对于 RMS 归一化）</li>
+<li>计算缩放因子</li>
+<li>应用归一化</li>
+</ol>
+<h3 id="24-softmax">2.4 Softmax</h3>
+<pre><code class="language-cpp">TaskSet llm_softmax_compute_float(...);
+</code></pre>
+<p>实现了 Softmax 函数，用于将输出转换为概率分布。实现过程：</p>
+<ol>
+<li>找到每行的最大值</li>
+<li>减去最大值并计算指数</li>
+<li>计算和并归一化</li>
+</ol>
+<h3 id="25-矩阵乘法matrix-multiplication">2.5 矩阵乘法（Matrix Multiplication）</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(...);
+TaskSet llm_matmul_compute_int4_float_packed(...);
+TaskSet llm_matmul_compute_int8_float(...);
+TaskSet llm_matmul_compute_float_float(...);
+</code></pre>
+<p>这些函数实现了不同精度的矩阵乘法，支持 int4、int8 和 float 数据类型，以及带有打包优化的版本。实现过程：</p>
+<ol>
+<li>对于量化版本，先将输入量化为 int8</li>
+<li>计算矩阵乘法（点积）</li>
+<li>加上偏置（如果有）</li>
+</ol>
+<h3 id="26-注意力计算attention-computation">2.6 注意力计算（Attention Computation）</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_with_head_stride_float(...);
+TaskSet llm_matmul_compute_with_head_strideq_broadcastk_float(...);
+TaskSet llm_head_batched_matmul_compute_float(...);
+TaskSet llm_head_batched_matmul_broadcastv_float(...);
+</code></pre>
+<p>这些函数实现了自注意力机制所需的矩阵运算，包括多头注意力和多查询注意力。实现过程：</p>
+<ol>
+<li>计算 Q 和 K 的点积</li>
+<li>对于多查询注意力，处理广播逻辑</li>
+<li>计算注意力权重和 V 的加权和</li>
+</ol>
+<h3 id="27-位置编码position-encoding">2.7 位置编码（Position Encoding）</h3>
+<pre><code class="language-cpp">TaskSet llm_rope_compute_float(...);
+TaskSet llm_glm_rope_compute_float(...);
+</code></pre>
+<p>这些函数实现了旋转位置编码（RoPE）和 GLM 模型特定的旋转位置编码。实现过程：</p>
+<ol>
+<li>计算旋转角度</li>
+<li>应用旋转变换</li>
+<li>对于 GLM，处理特殊的位置编码逻辑</li>
+</ol>
+<h3 id="28-掩码操作masking-operations">2.8 掩码操作（Masking Operations）</h3>
+<pre><code class="language-cpp">TaskSet llm_diag_mask_inf_float(...);
+TaskSet llm_glm_gmask_inf_float(...);
+TaskSet llm_scale_diag_mask_inf_float(...);
+</code></pre>
+<p>这些函数实现了注意力掩码操作，用于控制注意力的范围。实现过程：</p>
+<ol>
+<li>对于自回归掩码，将上三角部分设为负无穷</li>
+<li>对于 GLM 掩码，处理特殊的掩码逻辑</li>
+<li>对于缩放掩码，先缩放再掩码</li>
+</ol>
+<h3 id="29-排列操作permutation">2.9 排列操作（Permutation）</h3>
+<pre><code class="language-cpp">TaskSet llm_permute_compute_float(...);
+</code></pre>
+<p>实现了张量的维度排列操作。实现过程：</p>
+<ol>
+<li>根据排列参数重新排列维度</li>
+<li>复制数据到新的位置</li>
+</ol>
+<h3 id="210-权重重排weight-reordering">2.10 权重重排（Weight Reordering）</h3>
+<pre><code class="language-cpp">TaskSet llm_int4_matmul_weight_reorder(...);
+</code></pre>
+<p>实现了 int4 权重的重排操作，用于优化矩阵乘法。实现过程：</p>
+<ol>
+<li>将权重按照特定的布局重新排列</li>
+<li>优化内存访问模式</li>
+</ol>
+<h2 id="3-实现细节分析">3. 实现细节分析</h2>
+<h3 id="31-任务分解与多线程">3.1 任务分解与多线程</h3>
+<p>每个计算函数都返回一个 <code>TaskSet</code>，包含一个或多个任务及其子任务数量。每个任务都是一个 lambda 函数，接受一个 <code>TaskId</code> 参数，包含任务的起始索引、结束索引和线程 ID。</p>
+<pre><code class="language-cpp">auto task = [=](const TaskId&amp; id) {
+    for (uint32_t i = id.start; i &lt; id.end; i++) {
+        // 计算逻辑
+    }
+};
+return TaskSet{{task, len}};
+</code></pre>
+<p>这种设计使得计算任务可以在多线程环境中高效执行，通过将大型计算任务分解为多个子任务，并分配给不同的线程处理。</p>
+<h3 id="32-量化计算">3.2 量化计算</h3>
+<p>naive 模块支持 int4 和 int8 量化计算，通过 <code>quantize.h</code> 中定义的函数进行量化和反量化操作：</p>
+<pre><code class="language-cpp">// 量化操作
+quantize_row_q8_0_reference(src1 + m * K, q_src1, K);
+
+// 反量化操作
+dequantize_row_q4_0_reference(
+        (static_cast&lt;const char*&gt;(weights) + row * weight_stride),
+        dst + i * embd, embd);
+</code></pre>
+<p>量化计算可以减少内存占用和计算量，同时保持计算精度。</p>
+<h3 id="33-内存布局优化">3.3 内存布局优化</h3>
+<p>代码中的内存布局经过优化，以提高访问效率：</p>
+<ul>
+<li>对于矩阵乘法，使用行主序存储</li>
+<li>对于注意力计算，使用特定的步长访问内存</li>
+<li>对于位置编码，使用特定的内存布局</li>
+</ul>
+<h3 id="34-数学函数优化">3.4 数学函数优化</h3>
+<p>代码中使用了各种数学函数，如 exp、tanh、sqrt 等，这些函数在不同平台上可能有不同的实现，但 naive 模块使用标准库函数，确保在任何平台上都能正常运行。</p>
+<h2 id="4-内核注册机制">4. 内核注册机制</h2>
+<p>naive.h 中使用 <code>PartialImplementKernel</code> 和 <code>PartialImplementSpace</code> 宏注册函数，这些宏定义在 <code>kernel_define.h</code> 中，用于将函数注册到内核系统中：</p>
+<pre><code class="language-cpp">PartialImplementKernel(ElemwiseFloat, llm_elemwise_compute_float);
+PartialImplementKernel(RmsNormFloat, llm_rms_norm_compute_float);
+// ... 其他内核注册
+
+PartialImplementSpace(MatmulInt4Float, llm_matmul_get_workspace_float);
+// ... 其他工作空间注册
+</code></pre>
+<p>这种设计使得不同平台的优化实现可以共享相同的接口，而具体实现由不同平台的优化代码提供。</p>
+<h2 id="5-回退机制">5. 回退机制</h2>
+<p>naive 模块还提供了回退机制，当特定平台的优化实现不可用时，会回退到 naive 实现：</p>
+<pre><code class="language-cpp">namespace opt {
+template &lt;KernelID Id, typename... Args&gt;
+struct Comp {
+    static TaskSet get_all_task(Args... args) {
+        //! if arm not implement, fallback to naive
+        return naive::Comp&lt;Id, Args...&gt;::get_all_task(std::forward&lt;Args&gt;(args)...);
+    }
+};
+
+template &lt;KernelID Id, typename... Args&gt;
+struct Space {
+    //! if arm not implement, fallback to naive
+    static size_t get(Args... args) {
+        return naive::Space&lt;Id, Args...&gt;::get(std::forward&lt;Args&gt;(args)...);
+    }
+};
+}  // namespace opt
+</code></pre>
+<p>这种设计确保在任何平台上都能正常运行，即使特定平台的优化实现不可用。</p>
+<h2 id="6-性能考虑">6. 性能考虑</h2>
+<p>虽然 naive 模块没有使用特定硬件的优化指令，但它仍然考虑了性能优化：</p>
+<h3 id="61-多线程并行">6.1 多线程并行</h3>
+<p>通过任务分解和 <code>TaskSet</code>，支持多线程并行计算，提高计算效率。</p>
+<h3 id="62-量化计算">6.2 量化计算</h3>
+<p>支持 int4 和 int8 量化，减少内存占用和计算量，提高计算效率。</p>
+<h3 id="63-内存布局优化">6.3 内存布局优化</h3>
+<p>使用合适的内存布局，减少内存访问开销，提高缓存命中率。</p>
+<h3 id="64-算法优化">6.4 算法优化</h3>
+<p>使用优化的算法实现各种计算操作，如矩阵乘法、注意力计算等。</p>
+<h2 id="7-与其他模块的关系">7. 与其他模块的关系</h2>
+<p>naive 模块是 InferLLM 框架中的基础实现，与其他模块的关系如下：</p>
+<h3 id="71-与-kernelh-的关系">7.1 与 kernel.h 的关系</h3>
+<p>kernel.h 定义了内核系统的接口，naive 模块实现了这些接口，提供了基础的计算实现。</p>
+<h3 id="72-与-quantizeh-的关系">7.2 与 quantize.h 的关系</h3>
+<p>quantize.h 定义了量化和反量化函数，naive 模块使用这些函数进行量化计算。</p>
+<h3 id="73-与优化实现的关系">7.3 与优化实现的关系</h3>
+<p>naive 模块是优化实现的基础和后备方案，当特定平台的优化实现不可用时，会回退到 naive 实现。</p>
+<h2 id="8-应用场景">8. 应用场景</h2>
+<p>naive 模块适用于以下场景：</p>
+<h3 id="81-跨平台推理">8.1 跨平台推理</h3>
+<p>由于不依赖特定硬件优化，naive 模块可以在任何平台上运行，适用于跨平台推理。</p>
+<h3 id="82-功能验证">8.2 功能验证</h3>
+<p>naive 模块提供了参考实现，可以用于验证优化实现的正确性。</p>
+<h3 id="83-后备方案">8.3 后备方案</h3>
+<p>当特定平台的优化实现不可用时，naive 模块可以作为后备方案，确保系统正常运行。</p>
+<h2 id="9-设计模式分析">9. 设计模式分析</h2>
+<p>naive 模块采用了多种设计模式：</p>
+<h3 id="91-策略模式">9.1 策略模式</h3>
+<p>通过 <code>Comp</code> 和 <code>Space</code> 模板类，可以根据内核 ID 选择不同的计算策略。</p>
+<h3 id="92-模板方法模式">9.2 模板方法模式</h3>
+<p>通过 <code>PartialImplementKernel</code> 和 <code>PartialImplementSpace</code> 宏定义的模板类，提供了统一的接口，而具体实现由不同的函数提供。</p>
+<h3 id="93-命令模式">9.3 命令模式</h3>
+<p>通过 lambda 函数和 <code>TaskSet</code>，将计算任务封装为命令对象，由线程池执行。</p>
+<h3 id="94-回退模式">9.4 回退模式</h3>
+<p>通过 <code>opt</code> 命名空间中的模板类，如果没有优化实现则回退到 naive 实现，确保在任何平台上都能正常运行。</p>
+<h2 id="总结">总结</h2>
+<p>naive.h 和 naive.cpp 是 InferLLM 框架中的基础计算实现，提供了大语言模型推理所需的各种计算操作的朴素实现。这些实现不依赖特定硬件优化，确保在任何平台上都能正常运行。通过任务分解和多线程、量化计算、内存布局优化和算法优化等技术，naive 模块在不依赖特定硬件优化的情况下，仍然能够提供相对高效的计算性能。同时，它作为其他优化实现的基础和后备方案，确保在任何平台上都能正常运行。</p>
+<p>naive 模块的设计体现了 InferLLM 框架的可移植性和可扩展性，通过提供统一的接口和基础实现，使得框架可以在不同平台上运行，并且可以根据需要添加特定平台的优化实现。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](20)kern中naive模块的概述(src/kern/naive)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-20/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-20/">
+        </link>
+        <updated>2025-04-23T03:54:31.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="inferllm-框架中-naive-模块的代码结构与功能分析">InferLLM 框架中 naive 模块的代码结构与功能分析</h1>
+<p><code>naive</code> 模块是 InferLLM 框架中的基础计算实现，提供了不依赖特定硬件优化的计算内核。这个模块作为其他优化实现的基础和后备方案，确保在任何平台上都能正常运行。</p>
+<h2 id="1-目录结构">1. 目录结构</h2>
+<p><code>naive</code> 模块包含以下文件：</p>
+<pre><code>kern/naive/
+├── naive.cpp
+├── naive.h
+└── quantize.h
+</code></pre>
+<ul>
+<li><code>naive.h</code>：声明各种计算函数和注册内核</li>
+<li><code>naive.cpp</code>：实现各种计算函数</li>
+<li><code>quantize.h</code>：实现量化和反量化相关的函数</li>
+</ul>
+<h2 id="2-核心文件分析">2. 核心文件分析</h2>
+<h3 id="21-naiveh">2.1 naive.h</h3>
+<p><code>naive.h</code> 文件定义了各种计算函数的声明，并使用 <code>PartialImplementKernel</code> 和 <code>PartialImplementSpace</code> 宏注册这些函数到内核系统中：</p>
+<pre><code class="language-cpp">namespace inferllm {
+namespace naive {
+
+// 函数声明
+TaskSet llm_embedding_get_int4_float(...);
+TaskSet llm_elemwise_compute_float(...);
+// ... 其他函数声明
+
+// 模板类定义
+template &lt;KernelID Id, typename... Args&gt;
+struct Comp {
+    static TaskSet get_all_task(Args... args);
+};
+
+template &lt;KernelID Id, typename... Args&gt;
+struct Space {
+    static size_t get(Args... args);
+};
+
+// 注册内核
+PartialImplementKernel(ElemwiseFloat, llm_elemwise_compute_float);
+PartialImplementKernel(RmsNormFloat, llm_rms_norm_compute_float);
+// ... 其他内核注册
+
+// 注册工作空间计算函数
+PartialImplementSpace(MatmulInt4Float, llm_matmul_get_workspace_float);
+// ... 其他工作空间注册
+
+}  // namespace naive
+
+namespace opt {
+// 优化实现的模板类，如果没有优化实现则回退到 naive 实现
+template &lt;KernelID Id, typename... Args&gt;
+struct Comp {
+    static TaskSet get_all_task(Args... args) {
+        return naive::Comp&lt;Id, Args...&gt;::get_all_task(std::forward&lt;Args&gt;(args)...);
+    }
+};
+
+template &lt;KernelID Id, typename... Args&gt;
+struct Space {
+    static size_t get(Args... args) {
+        return naive::Space&lt;Id, Args...&gt;::get(std::forward&lt;Args&gt;(args)...);
+    }
+};
+}  // namespace opt
+
+}  // namespace inferllm
+</code></pre>
+<h3 id="22-naivecpp">2.2 naive.cpp</h3>
+<p><code>naive.cpp</code> 文件实现了各种计算函数，每个函数都返回一个 <code>TaskSet</code>，用于多线程执行：</p>
+<pre><code class="language-cpp">namespace inferllm {
+namespace naive {
+
+// 嵌入查找
+TaskSet llm_embedding_get_int4_float(
+        const void* weights, const uint32_t* index, float* dst, uint32_t len_seq,
+        uint32_t embd) {
+    auto task = [=](const TaskId&amp; id) {
+        for (uint32_t i = id.start; i &lt; id.end; ++i) {
+            const int row = index[i];
+            const int weight_stride =
+                    embd * dtype_in_byte(DType::Int4) / dtype_block_size(DType::Int4);
+            dequantize_row_q4_0_reference(
+                    (static_cast&lt;const char*&gt;(weights) + row * weight_stride),
+                    dst + i * embd, embd);
+        }
+    };
+    return TaskSet{{task, len_seq}};
+}
+
+// ... 其他函数实现
+}  // namespace naive
+}  // namespace inferllm
+</code></pre>
+<h2 id="3-功能分析">3. 功能分析</h2>
+<p>通过分析代码，可以看出 <code>naive</code> 模块实现了以下主要功能：</p>
+<h3 id="31-嵌入查找">3.1 嵌入查找</h3>
+<pre><code class="language-cpp">TaskSet llm_embedding_get_int4_float(...);
+TaskSet llm_embedding_get_int8_float(...);
+TaskSet llm_embedding_get_float_float(...);
+</code></pre>
+<p>这些函数从嵌入表中查找 token 的嵌入向量，支持不同的数据类型（int4、int8、float）。</p>
+<h3 id="32-元素级操作">3.2 元素级操作</h3>
+<pre><code class="language-cpp">TaskSet llm_elemwise_compute_float(...);
+TaskSet llm_elemwise_compute_float_scale(...);
+TaskSet llm_elemwise_broadcast_dim0_src1_compute_float(...);
+</code></pre>
+<p>这些函数实现了元素级操作，如加法、乘法、Silu 和 Gelu 激活函数，以及带有广播的元素级操作。</p>
+<h3 id="33-归一化">3.3 归一化</h3>
+<pre><code class="language-cpp">TaskSet llm_norm_compute_float(...);
+TaskSet llm_rms_norm_compute_float(...);
+</code></pre>
+<p>这些函数实现了层归一化和 RMS 归一化，用于稳定网络训练和推理。</p>
+<h3 id="34-softmax">3.4 Softmax</h3>
+<pre><code class="language-cpp">TaskSet llm_softmax_compute_float(...);
+</code></pre>
+<p>实现了 Softmax 函数，用于将输出转换为概率分布。</p>
+<h3 id="35-矩阵乘法">3.5 矩阵乘法</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_int4_float(...);
+TaskSet llm_matmul_compute_int4_float_packed(...);
+TaskSet llm_matmul_compute_int8_float(...);
+TaskSet llm_matmul_compute_float_float(...);
+</code></pre>
+<p>这些函数实现了不同精度的矩阵乘法，支持 int4、int8 和 float 数据类型，以及带有打包优化的版本。</p>
+<h3 id="36-注意力计算">3.6 注意力计算</h3>
+<pre><code class="language-cpp">TaskSet llm_matmul_compute_with_head_stride_float(...);
+TaskSet llm_matmul_compute_with_head_strideq_broadcastk_float(...);
+TaskSet llm_head_batched_matmul_compute_float(...);
+TaskSet llm_head_batched_matmul_broadcastv_float(...);
+</code></pre>
+<p>这些函数实现了自注意力机制所需的矩阵运算，包括多头注意力和多查询注意力。</p>
+<h3 id="37-位置编码">3.7 位置编码</h3>
+<pre><code class="language-cpp">TaskSet llm_rope_compute_float(...);
+TaskSet llm_glm_rope_compute_float(...);
+</code></pre>
+<p>这些函数实现了旋转位置编码（RoPE）和 GLM 模型特定的旋转位置编码。</p>
+<h3 id="38-掩码操作">3.8 掩码操作</h3>
+<pre><code class="language-cpp">TaskSet llm_diag_mask_inf_float(...);
+TaskSet llm_glm_gmask_inf_float(...);
+TaskSet llm_scale_diag_mask_inf_float(...);
+</code></pre>
+<p>这些函数实现了注意力掩码操作，用于控制注意力的范围。</p>
+<h3 id="39-排列操作">3.9 排列操作</h3>
+<pre><code class="language-cpp">TaskSet llm_permute_compute_float(...);
+</code></pre>
+<p>实现了张量的维度排列操作。</p>
+<h3 id="310-权重重排">3.10 权重重排</h3>
+<pre><code class="language-cpp">TaskSet llm_int4_matmul_weight_reorder(...);
+</code></pre>
+<p>实现了 int4 权重的重排操作，用于优化矩阵乘法。</p>
+<h2 id="4-实现细节分析">4. 实现细节分析</h2>
+<h3 id="41-任务分解与多线程">4.1 任务分解与多线程</h3>
+<p>每个计算函数都返回一个 <code>TaskSet</code>，包含一个或多个任务及其子任务数量。每个任务都是一个 lambda 函数，接受一个 <code>TaskId</code> 参数，包含任务的起始索引、结束索引和线程 ID。</p>
+<pre><code class="language-cpp">auto task = [=](const TaskId&amp; id) {
+    for (uint32_t i = id.start; i &lt; id.end; i++) {
+        // 计算逻辑
+    }
+};
+return TaskSet{{task, len}};
+</code></pre>
+<p>这种设计使得计算任务可以在多线程环境中高效执行，通过将大型计算任务分解为多个子任务，并分配给不同的线程处理。</p>
+<h3 id="42-量化计算">4.2 量化计算</h3>
+<p><code>naive</code> 模块支持 int4 和 int8 量化计算，通过 <code>quantize.h</code> 中定义的函数进行量化和反量化操作：</p>
+<pre><code class="language-cpp">// 量化操作
+quantize_row_q8_0_reference(src1 + m * K, q_src1, K);
+
+// 反量化操作
+dequantize_row_q4_0_reference(
+        (static_cast&lt;const char*&gt;(weights) + row * weight_stride),
+        dst + i * embd, embd);
+</code></pre>
+<p>量化计算可以减少内存占用和计算量，同时保持计算精度。</p>
+<h3 id="43-矩阵乘法优化">4.3 矩阵乘法优化</h3>
+<p>矩阵乘法是深度学习中最耗时的操作之一，<code>naive</code> 模块通过以下方式优化矩阵乘法：</p>
+<ol>
+<li><strong>量化计算</strong>：使用 int4 和 int8 量化减少内存占用和计算量</li>
+<li><strong>打包优化</strong>：<code>llm_matmul_compute_int4_float_packed</code> 函数实现了打包优化，一次处理多个权重</li>
+<li><strong>工作空间优化</strong>：使用工作空间进行中间计算，减少内存分配和释放的开销</li>
+</ol>
+<h3 id="44-注意力计算优化">4.4 注意力计算优化</h3>
+<p>注意力计算是 Transformer 模型的核心，<code>naive</code> 模块通过以下方式优化注意力计算：</p>
+<ol>
+<li><strong>多头并行</strong>：将不同的注意力头分配给不同的线程处理</li>
+<li><strong>内存布局优化</strong>：使用合适的内存布局减少内存访问开销</li>
+<li><strong>广播优化</strong>：对于多查询注意力，使用广播优化减少内存占用和计算量</li>
+</ol>
+<h2 id="5-设计模式分析">5. 设计模式分析</h2>
+<p><code>naive</code> 模块采用了多种设计模式：</p>
+<h3 id="51-策略模式">5.1 策略模式</h3>
+<p>通过 <code>Comp</code> 和 <code>Space</code> 模板类，可以根据内核 ID 选择不同的计算策略。</p>
+<h3 id="52-模板方法模式">5.2 模板方法模式</h3>
+<p>通过 <code>PartialImplementKernel</code> 和 <code>PartialImplementSpace</code> 宏定义的模板类，提供了统一的接口，而具体实现由不同的函数提供。</p>
+<h3 id="53-命令模式">5.3 命令模式</h3>
+<p>通过 lambda 函数和 <code>TaskSet</code>，将计算任务封装为命令对象，由线程池执行。</p>
+<h3 id="54-回退模式">5.4 回退模式</h3>
+<p>通过 <code>opt</code> 命名空间中的模板类，如果没有优化实现则回退到 <code>naive</code> 实现，确保在任何平台上都能正常运行。</p>
+<h2 id="6-性能考虑">6. 性能考虑</h2>
+<p>虽然 <code>naive</code> 模块没有使用特定硬件的优化指令，但它仍然考虑了性能优化：</p>
+<ol>
+<li><strong>多线程并行</strong>：通过任务分解和 <code>TaskSet</code>，支持多线程并行计算</li>
+<li><strong>量化计算</strong>：支持 int4 和 int8 量化，减少内存占用和计算量</li>
+<li><strong>内存布局优化</strong>：使用合适的内存布局减少内存访问开销</li>
+<li><strong>算法优化</strong>：使用优化的算法实现各种计算操作</li>
+</ol>
+<h2 id="总结">总结</h2>
+<p><code>naive</code> 模块是 InferLLM 框架中的基础计算实现，提供了不依赖特定硬件优化的计算内核。它实现了大语言模型推理所需的各种计算操作，包括嵌入查找、元素级操作、归一化、Softmax、矩阵乘法、注意力计算、位置编码、掩码操作、排列操作和权重重排等。</p>
+<p>通过任务分解和多线程、量化计算、矩阵乘法优化和注意力计算优化等技术，<code>naive</code> 模块在不依赖特定硬件优化的情况下，仍然能够提供相对高效的计算性能。同时，它作为其他优化实现的基础和后备方案，确保在任何平台上都能正常运行。</p>
+<p><code>naive</code> 模块的设计体现了 InferLLM 框架的可移植性和可扩展性，通过提供统一的接口和基础实现，使得框架可以在不同平台上运行，并且可以根据需要添加特定平台的优化实现。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](19)kernel类的定义(src/kern/kernel.h)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-19/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-19/">
+        </link>
+        <updated>2025-04-22T03:34:02.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="kernelh-代码结构与功能实现分析">kernel.h 代码结构与功能实现分析</h1>
+<p><code>kernel.h</code> 是 InferLLM 框架中的核心头文件，定义了 <code>Kernel</code> 类，该类作为不同平台内核实现的统一接口，负责根据硬件平台选择合适的计算内核实现，并管理多线程任务调度。</p>
+<h2 id="1-文件结构概览">1. 文件结构概览</h2>
+<p>文件结构可以分为以下几个部分：</p>
+<ol>
+<li>头文件引入和条件编译</li>
+<li><code>Kernel</code> 类定义</li>
+<li>构造函数和初始化</li>
+<li>线程和优化相关方法</li>
+<li>计算操作接口</li>
+<li>成员变量</li>
+</ol>
+<h2 id="2-头文件引入和条件编译">2. 头文件引入和条件编译</h2>
+<pre><code class="language-cpp">#pragma once
+
+#include &lt;stdbool.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdint.h&gt;
+#include &quot;core/thread_pool.h&quot;
+#include &quot;kern/kernel_define.h&quot;
+#include &quot;utils.h&quot;
+
+#if INFER_X86
+#include &quot;kern/optimized/x86/kernel.h&quot;
+#elif INFER_ARM
+#include &quot;kern/optimized/arm/kernel.h&quot;
+#elif INFER_RVV
+#include &quot;kern/optimized/rvv/kernel.h&quot;
+#else
+#include &quot;kern/naive/naive.h&quot;
+#endif
+
+#ifdef ENABLE_GPU
+#include &quot;kern/gpu/kernel_gpu.h&quot;
+#endif
+</code></pre>
+<p>这部分代码通过条件编译引入不同平台的优化实现：</p>
+<ul>
+<li>如果定义了 <code>INFER_X86</code>，则引入 x86 平台的优化实现</li>
+<li>如果定义了 <code>INFER_ARM</code>，则引入 ARM 平台的优化实现</li>
+<li>如果定义了 <code>INFER_RVV</code>，则引入 RISC-V 向量扩展的优化实现</li>
+<li>否则，引入朴素实现</li>
+</ul>
+<p>此外，如果定义了 <code>ENABLE_GPU</code>，则引入 GPU 平台的优化实现。</p>
+<p>这种设计使得编译时可以根据目标平台选择合适的优化实现，而不需要修改源代码。</p>
+<h2 id="3-kernel-类定义">3. Kernel 类定义</h2>
+<pre><code class="language-cpp">namespace inferllm {
+
+class Kernel {
+public:
+    // 构造函数和方法
+    // ...
+};
+
+}  // namespace inferllm
+</code></pre>
+<p><code>Kernel</code> 类是整个内核系统的核心，它提供了统一的接口，根据硬件平台选择合适的计算内核实现，并管理多线程任务调度。</p>
+<h2 id="4-构造函数和初始化">4. 构造函数和初始化</h2>
+<pre><code class="language-cpp">Kernel(KernelType kernel_type) : m_kernel_type(kernel_type) {}
+Kernel(KernelType kernel_type, ThreadPool* thread_pool)
+        : m_kernel_type(kernel_type), m_thread_pool(thread_pool) {
+#ifdef INFER_RVV
+    opt::init();
+#endif
+}
+</code></pre>
+<p><code>Kernel</code> 类提供了两个构造函数：</p>
+<ul>
+<li>第一个构造函数只接受内核类型参数，不使用线程池</li>
+<li>第二个构造函数接受内核类型和线程池指针，可以进行多线程计算</li>
+</ul>
+<p>如果定义了 <code>INFER_RVV</code>，则在构造函数中调用 <code>opt::init()</code> 进行 RISC-V 向量扩展的初始化。</p>
+<h2 id="5-线程和优化相关方法">5. 线程和优化相关方法</h2>
+<pre><code class="language-cpp">uint32_t nr_thread() const {
+    if (m_thread_pool == nullptr)
+        return 1;
+    return m_thread_pool-&gt;nr_threads();
+}
+
+bool supported_optimization(KernelOptMethod method) {
+    if (m_kernel_type == KernelType::Arm || m_kernel_type == KernelType::Naive) {
+        if (method == KernelOptMethod::MatmulInt4Reorder) {
+#if defined(__ARM_FEATURE_DOTPROD)
+            return true;
+#else
+            return false;
+#endif
+        }
+        return false;
+    }
+    return false;
+}
+</code></pre>
+<p>这部分代码提供了两个方法：</p>
+<ul>
+<li><code>nr_thread()</code>：返回线程池中的线程数量，如果没有线程池则返回 1</li>
+<li><code>supported_optimization()</code>：检查是否支持特定的优化方法，目前只检查 ARM 平台是否支持 <code>MatmulInt4Reorder</code> 优化</li>
+</ul>
+<p><code>supported_optimization()</code> 方法使用条件编译检查 ARM 平台是否支持点积指令（<code>__ARM_FEATURE_DOTPROD</code>），如果支持则返回 <code>true</code>，否则返回 <code>false</code>。</p>
+<h2 id="6-计算操作接口">6. 计算操作接口</h2>
+<pre><code class="language-cpp">//! compute
+template &lt;KernelID Id, typename... Args&gt;
+void operator()(Args... args) {
+    //! parallel to execute tasks
+    if (m_kernel_type == KernelType::GPU) {
+#if ENABLE_GPU
+        gpu::Comp&lt;Id, Args...&gt;::exec(std::forward&lt;Args&gt;(args)..., m_handle);
+#endif
+
+    } else {
+        TaskSet task_set =
+                opt::Comp&lt;Id, Args...&gt;::get_all_task(std::forward&lt;Args&gt;(args)...);
+        for (auto&amp; task : task_set) {
+            m_thread_pool-&gt;add_task(task.first, task.second);
+        }
+    }
+}
+template &lt;KernelID Id, typename... Args&gt;
+size_t get_workspace(Args... args) {
+    return opt::Space&lt;Id, Args...&gt;::get(std::forward&lt;Args&gt;(args)...);
+}
+</code></pre>
+<p>这部分代码提供了两个模板方法：</p>
+<ul>
+<li><code>operator()</code>：执行计算操作，根据内核类型选择不同的实现</li>
+<li><code>get_workspace()</code>：获取计算操作所需的工作空间大小</li>
+</ul>
+<p><code>operator()</code> 方法是 <code>Kernel</code> 类的核心，它根据内核类型选择不同的实现：</p>
+<ul>
+<li>如果内核类型是 <code>GPU</code>，则调用 GPU 实现的 <code>exec</code> 方法</li>
+<li>否则，调用优化实现的 <code>get_all_task</code> 方法获取任务集，然后将任务添加到线程池中执行</li>
+</ul>
+<p>这种设计使得不同平台的优化实现可以共享相同的接口，而具体实现由不同平台的优化代码提供。</p>
+<h2 id="7-成员变量">7. 成员变量</h2>
+<pre><code class="language-cpp">ThreadPool* m_thread_pool = nullptr;
+KernelType m_kernel_type;
+#if ENABLE_GPU
+void set_handle(cudaHandle* handle) { m_handle = handle; }
+cudaHandle* m_handle;
+#endif
+</code></pre>
+<p><code>Kernel</code> 类有两个主要成员变量：</p>
+<ul>
+<li><code>m_thread_pool</code>：线程池指针，用于多线程计算</li>
+<li><code>m_kernel_type</code>：内核类型，用于选择合适的计算内核实现</li>
+</ul>
+<p>如果定义了 <code>ENABLE_GPU</code>，则还有一个 <code>m_handle</code> 成员变量，用于 GPU 计算。</p>
+<h2 id="8-功能分析">8. 功能分析</h2>
+<p>通过分析 <code>kernel.h</code> 文件，可以看出它实现了以下功能：</p>
+<h3 id="81-统一接口">8.1 统一接口</h3>
+<p>通过 <code>Kernel</code> 类提供统一的接口，使得不同平台的优化实现可以共享相同的接口，而具体实现由不同平台的优化代码提供。</p>
+<h3 id="82-平台选择">8.2 平台选择</h3>
+<p>通过条件编译和 <code>KernelType</code> 枚举，可以在编译时和运行时选择合适的优化实现，从而在不同硬件平台上获得最佳性能。</p>
+<h3 id="83-多线程计算">8.3 多线程计算</h3>
+<p>通过线程池和任务集，可以将计算任务分解为多个子任务，并分配给不同的线程处理，从而提高计算效率。</p>
+<h3 id="84-gpu-加速">8.4 GPU 加速</h3>
+<p>通过条件编译和 <code>KernelType::GPU</code>，可以在支持 GPU 的平台上使用 GPU 加速计算。</p>
+<h2 id="9-设计模式分析">9. 设计模式分析</h2>
+<p><code>kernel.h</code> 文件采用了多种设计模式：</p>
+<h3 id="91-策略模式">9.1 策略模式</h3>
+<p>通过 <code>KernelType</code> 枚举和不同平台的优化实现，可以在运行时选择不同的计算策略。</p>
+<h3 id="92-模板方法模式">9.2 模板方法模式</h3>
+<p>通过模板方法 <code>operator()</code> 和 <code>get_workspace()</code>，提供了统一的接口，而具体实现由不同平台的优化代码提供。</p>
+<h3 id="93-工厂模式">9.3 工厂模式</h3>
+<p>通过 <code>Kernel</code> 类的构造函数和 <code>KernelType</code> 枚举，可以创建不同类型的内核实例。</p>
+<h2 id="总结">总结</h2>
+<p><code>kernel.h</code> 是 InferLLM 框架中的核心头文件，定义了 <code>Kernel</code> 类，该类作为不同平台内核实现的统一接口，负责根据硬件平台选择合适的计算内核实现，并管理多线程任务调度。通过条件编译、模板方法和策略模式等技术，实现了在不同硬件平台上的高效计算，同时保持了代码的可维护性和扩展性。这种设计使得 InferLLM 框架能够在不同硬件平台上高效运行，而不需要修改核心代码。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[[InferLLM大模型推理框架项目](18)kernel计算的基础定义实现(src/kern/kernel_define.h)]]></title>
+        <id>https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-18/</id>
+        <link href="https://solahome.github.io/post/InferLLM-Large-Language-Model-infer-framework-project-18/">
+        </link>
+        <updated>2025-04-20T03:30:29.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="kernel_defineh-代码结构与功能实现分析">kernel_define.h 代码结构与功能实现分析</h1>
+<p><code>kernel_define.h</code> 是 InferLLM 框架中的核心头文件，定义了内核计算所需的基本数据结构、枚举类型和宏定义。这个文件为整个计算内核系统提供了基础设施，使得不同平台的优化实现可以共享相同的接口和数据结构。</p>
+<h2 id="1-文件结构概览">1. 文件结构概览</h2>
+<p>文件结构可以分为以下几个部分：</p>
+<ol>
+<li>头文件引入和宏定义</li>
+<li>命名空间和类型定义</li>
+<li>内核相关枚举类型</li>
+<li>任务调度相关结构</li>
+<li>量化计算相关结构</li>
+<li>宏定义工具</li>
+</ol>
+<h2 id="2-头文件引入和宏定义">2. 头文件引入和宏定义</h2>
+<pre><code class="language-cpp">#pragma once
+
+#include &lt;stdbool.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;functional&gt;
+#include &lt;vector&gt;
+
+#define PI                           (3.1415)
+#define PGELU                        (0.044715)
+#define INFER_ATTRIBUTE_TARGET(simd) __attribute__((target(simd)))
+</code></pre>
+<p>这部分引入了基本的 C/C++ 标准库头文件，并定义了一些常量和宏：</p>
+<ul>
+<li><code>PI</code> 和 <code>PGELU</code>：数学常量，其中 <code>PGELU</code> 是 GELU 激活函数中使用的常数</li>
+<li><code>INFER_ATTRIBUTE_TARGET</code>：用于指定函数应该使用特定的 SIMD 指令集编译</li>
+</ul>
+<h2 id="3-命名空间和类型定义">3. 命名空间和类型定义</h2>
+<pre><code class="language-cpp">namespace inferllm {
+
+template &lt;class Dtype&gt;
+using InData = std::vector&lt;const Dtype*&gt;;
+</code></pre>
+<p>所有代码都在 <code>inferllm</code> 命名空间中，<code>InData</code> 是一个模板类型别名，表示指向常量数据的指针数组，用于传递多个输入数据。</p>
+<h2 id="4-内核相关枚举类型">4. 内核相关枚举类型</h2>
+<pre><code class="language-cpp">enum class KernelID {
+    EmbeddingGetInt4Float = 0,
+    EmbeddingGetInt8Float,
+    // ... 其他内核ID
+    MatmulInt4WeightReorder,
+};
+
+enum class KernelOptMethod {
+    MatmulInt4Reorder = 0,
+};
+
+enum class ElemMode {
+    Add = 0,
+    Mul,
+    Silu,
+    Gelu,
+};
+
+enum class RotMode {
+    Mode0 = 0,
+    Mode1,
+    ModelRotHalf,
+};
+
+enum class KernelType { Naive = 0, Arm = 1, X86 = 2, GPU = 3 };
+</code></pre>
+<p>这部分定义了几个重要的枚举类型：</p>
+<ul>
+<li>
+<p><code>KernelID</code>：标识不同类型的计算操作，包括：</p>
+<ul>
+<li>嵌入查找操作（如 <code>EmbeddingGetInt4Float</code>）</li>
+<li>元素级操作（如 <code>ElemwiseFloat</code>）</li>
+<li>矩阵乘法操作（如 <code>MatmulInt4Float</code>）</li>
+<li>注意力计算相关操作（如 <code>HeadBatchedMatmulFloat</code>）</li>
+<li>位置编码操作（如 <code>RopeFloat</code>）</li>
+</ul>
+</li>
+<li>
+<p><code>KernelOptMethod</code>：定义内核优化方法，目前只有 <code>MatmulInt4Reorder</code></p>
+</li>
+<li>
+<p><code>ElemMode</code>：定义元素级操作的模式，包括加法、乘法、Silu 和 Gelu 激活函数</p>
+</li>
+<li>
+<p><code>RotMode</code>：定义旋转位置编码的模式，用于实现 RoPE（Rotary Position Embedding）</p>
+</li>
+<li>
+<p><code>KernelType</code>：定义内核类型，包括朴素实现、ARM 优化、X86 优化和 GPU 实现</p>
+</li>
+</ul>
+<h2 id="5-任务调度相关结构">5. 任务调度相关结构</h2>
+<pre><code class="language-cpp">struct TaskId {
+    uint32_t start;
+    uint32_t end;
+    uint32_t thread_id;
+};
+
+//! the task, the first parameter is the task start id, the second parameter is
+//! the task end if, the third parameter is the thread id
+using MultiThreadingTask = std::function&lt;void(TaskId)&gt;;
+
+//! the task pair, the first parameter is the task, the second parameter is the
+//! number of sub task, some kernel may need to split the task into several
+using TaskSet = std::vector&lt;std::pair&lt;MultiThreadingTask, uint32_t&gt;&gt;;
+</code></pre>
+<p>这部分定义了多线程任务调度相关的结构：</p>
+<ul>
+<li><code>TaskId</code>：表示任务的范围和线程 ID</li>
+<li><code>MultiThreadingTask</code>：表示可以在多线程环境中执行的任务函数</li>
+<li><code>TaskSet</code>：表示一组任务及其子任务数量</li>
+</ul>
+<p>这些结构使得内核计算可以在多线程环境中高效执行，通过将大型计算任务分解为多个子任务，并分配给不同的线程处理。</p>
+<h2 id="6-量化计算相关结构">6. 量化计算相关结构</h2>
+<pre><code class="language-cpp">#define QK40 32
+struct BlockQ40 {
+    float d;               // delta
+    uint8_t qs[QK40 / 2];  // nibbles / quants
+};
+static_assert(sizeof(BlockQ40) == 20, &quot;BlockQ40 size error&quot;);
+
+struct BlockQ40X8 {
+    uint8_t qs[QK40 / 2 * 8];     // nibbles / quants
+    float scale[8];               // delta
+};
+static_assert(sizeof(BlockQ40X8) == 160, &quot;BlockQ40X8 size error&quot;);
+
+#define QK80 32
+struct BlockQ80 {
+    float d;          // delta
+    int8_t qs[QK80];  // nibbles
+};
+static_assert(sizeof(BlockQ80) == 36, &quot;BlockQ80 size error&quot;);
+</code></pre>
+<p>这部分定义了量化计算相关的数据结构：</p>
+<ul>
+<li><code>BlockQ40</code>：4 位量化块，包含一个缩放因子 <code>d</code> 和 16 个字节的量化值（每个字节存储两个 4 位值）</li>
+<li><code>BlockQ40X8</code>：8 组 4 位量化块，包含 8 个缩放因子和 128 个字节的量化值</li>
+<li><code>BlockQ80</code>：8 位量化块，包含一个缩放因子 <code>d</code> 和 32 个字节的量化值</li>
+</ul>
+<p>这些结构使得模型可以使用低精度整数（4 位或 8 位）进行计算，从而减少内存占用和计算量，同时通过缩放因子保持计算精度。</p>
+<h2 id="7-宏定义工具">7. 宏定义工具</h2>
+<pre><code class="language-cpp">#define PartialImplementKernel(kernel_id, fun)       \
+    template &lt;typename... Args&gt;                      \
+    struct Comp&lt;KernelID::kernel_id, Args...&gt; {      \
+        static TaskSet get_all_task(Args... args) {  \
+            return fun(std::forward&lt;Args&gt;(args)...); \
+        }                                            \
+    };
+
+#define PartialImplementSpace(kernel_id, fun)        \
+    template &lt;typename... Args&gt;                      \
+    struct Space&lt;KernelID::kernel_id, Args...&gt; {     \
+        static size_t get(Args... args) {            \
+            return fun(std::forward&lt;Args&gt;(args)...); \
+        }                                            \
+    };
+</code></pre>
+<p>这部分定义了两个宏，用于简化内核实现：</p>
+<ul>
+<li><code>PartialImplementKernel</code>：为特定的内核 ID 实现 <code>Comp</code> 模板类，该类提供 <code>get_all_task</code> 静态方法，返回任务集</li>
+<li><code>PartialImplementSpace</code>：为特定的内核 ID 实现 <code>Space</code> 模板类，该类提供 <code>get</code> 静态方法，返回工作空间大小</li>
+</ul>
+<p>这些宏使得不同平台的优化实现可以方便地注册到内核系统中，而不需要修改核心代码。</p>
+<h2 id="8-功能分析">8. 功能分析</h2>
+<p>通过分析 <code>kernel_define.h</code> 文件，可以看出它实现了以下功能：</p>
+<h3 id="81-内核标识与分类">8.1 内核标识与分类</h3>
+<p>通过 <code>KernelID</code> 枚举，将不同类型的计算操作进行分类和标识，使得内核系统可以根据操作类型选择合适的实现。</p>
+<h3 id="82-多线程任务调度">8.2 多线程任务调度</h3>
+<p>通过 <code>TaskId</code>、<code>MultiThreadingTask</code> 和 <code>TaskSet</code> 结构，提供了多线程任务调度的基础设施，使得计算任务可以在多线程环境中高效执行。</p>
+<h3 id="83-量化计算支持">8.3 量化计算支持</h3>
+<p>通过 <code>BlockQ40</code>、<code>BlockQ40X8</code> 和 <code>BlockQ80</code> 结构，提供了 4 位和 8 位量化计算的支持，使得模型可以使用低精度整数进行计算，从而减少内存占用和计算量。</p>
+<h3 id="84-内核实现注册">8.4 内核实现注册</h3>
+<p>通过 <code>PartialImplementKernel</code> 和 <code>PartialImplementSpace</code> 宏，提供了内核实现注册的机制，使得不同平台的优化实现可以方便地注册到内核系统中。</p>
+<h2 id="9-设计模式分析">9. 设计模式分析</h2>
+<p><code>kernel_define.h</code> 文件采用了多种设计模式：</p>
+<h3 id="91-策略模式">9.1 策略模式</h3>
+<p>通过 <code>KernelType</code> 枚举，可以在运行时选择不同的计算策略（朴素实现、ARM 优化、X86 优化、GPU 实现）。</p>
+<h3 id="92-模板方法模式">9.2 模板方法模式</h3>
+<p>通过 <code>PartialImplementKernel</code> 和 <code>PartialImplementSpace</code> 宏定义的模板类，提供了统一的接口，而具体实现由不同平台的优化代码提供。</p>
+<h3 id="93-命令模式">9.3 命令模式</h3>
+<p>通过 <code>MultiThreadingTask</code> 和 <code>TaskSet</code>，将计算任务封装为命令对象，由线程池执行。</p>
+<h2 id="总结">总结</h2>
+<p><code>kernel_define.h</code> 是 InferLLM 框架中的核心头文件，定义了内核计算所需的基本数据结构、枚举类型和宏定义。它为整个计算内核系统提供了基础设施，使得不同平台的优化实现可以共享相同的接口和数据结构。通过多线程任务调度、量化计算支持和内核实现注册等机制，使得 InferLLM 框架能够在不同硬件平台上高效运行，同时保持代码的可维护性和扩展性。</p>
+]]></content>
+    </entry>
+</feed>
